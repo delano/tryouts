@@ -2,20 +2,44 @@
 require 'rubygems'
 require 'ostruct'
 require 'rye'
+require 'yaml'
+begin; require 'json'; rescue LoadError; end   # json may not be installed
+
 
 class Tryouts
+  class BadDreams < RuntimeError; end
+  
   require 'tryouts/tryout'
   require 'tryouts/drill'
   
     # An Array of Tryout objects
   @@tryouts = []
   
-  def self.handle_known_exceptions
-    
-  end
+    # A Hash of dreams
+  @@dreams = {}
   
   
   ## ----------------------------  EXTERNAL DSL  -----
+  def self.dreams(d=nil)
+    return @@dreams unless d
+    
+    if File.exists?(d)
+      type = File.extname d
+      if type == ".yaml" || type == ".yml"
+        @@dreams = YAML.load_file d
+      elsif type == ".json" || type == ".js"
+        @@dreams = JSON.load_file d
+      elsif type == ".rb"
+        @@dreams = eval File.read d
+      else
+        raise BadDreams, d
+      end
+    elsif d.kind_of?(Hash)
+      @@dreams = d
+    else
+      raise BadDreams, d
+    end
+  end
   
   # Add a shell command to Rye::Cmd
   def self.command(name, path=nil)

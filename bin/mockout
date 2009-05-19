@@ -6,9 +6,11 @@
 # It is otherwise uninteresting!
 #
 
+require 'rubygems'
 require 'drydock'
 require 'yaml'
-require 'json'
+
+begin; require 'json'; rescue LoadError; end   # json may not be installed
 
 module DrillCLI 
   extend Drydock

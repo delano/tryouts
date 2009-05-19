@@ -6,8 +6,9 @@ require 'tryouts'
 
 class Syntax < Tryouts
   command :rudy
-  dreams File.join(TRYOUTS_HOME, 'tryouts', 'syntax.yaml')
-  tryout "display machines" do
+  dreams File.join(TRYOUTS_HOME, 'tryouts', 'syntax_dream.yaml')
+  p dreams
+  tryout "basic dsl syntax" do
     drill 'localhost' do
       rudy 
     end

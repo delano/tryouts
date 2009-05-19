@@ -1,7 +1,7 @@
 ---
-- "display machines":
-  - No machines running in stage-app
-  - "Try: rudy machines --all"
-- "poop":
-  - No machines running in stage-app
-  - "Try: rudy machines --all"
+"display machines":
+- No machines running in stage-app
+- "Try: rudy machines --all"
+"poop":
+- No machines running in stage-app
+- "Try: rudy machines --all"
