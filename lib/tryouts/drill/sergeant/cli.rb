@@ -18,8 +18,9 @@ module Tryouts::Drill::Sergeant
         response.output = ret.stdout
         response.emsg = ret.stderr
       rescue Rye::CommandNotFound => ex
-        response.rcode = -1
+        response.rcode = -2
         response.emsg = "[#{@rbox.host}] Command not found: #{ex.message}"
+        response.backtrace = ex.backtrace
       rescue Rye::CommandError => ex
         response.rcode = ex.exit_code
         response.output = ex.stdout

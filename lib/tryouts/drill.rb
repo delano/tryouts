@@ -17,20 +17,32 @@ class Tryouts::Drill
     # A Reality object
   attr_reader :reality
       
-  def initialize(dtype, rcode, *args, &drill)
+  def initialize(dtype, rcode, *drill_args, &drill)
     @dtype, @drill = dtype, drill
-    @sergeant = hire_sergeant *args
+    @sergeant = hire_sergeant *drill_args
     
     @dream = Tryouts::Drill::Dream.new(rcode)
   end
   
-  def hire_sergeant(*args)
+  def hire_sergeant(*drill_args)
     if @dtype == :cli
-      Tryouts::Drill::Sergeant::CLI.new(*args)
+      Tryouts::Drill::Sergeant::CLI.new(*drill_args)
     end
   end
   
   def run
-    @reality = @sergeant.run @drill
+    begin
+      @reality = @sergeant.run @drill
+    rescue => ex
+      @reality = Tryouts::Drill::Reality.new
+      @reality.exit_code = -2
+      @reality.emsg, @reality.backtrace = ex.message, ex.backtrace
+    end
   end
+  
+  def success?
+    @dream == @reality
+  end
+  
+  
 end

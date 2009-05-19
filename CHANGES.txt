@@ -1,0 +1,6 @@
+TRYOUTS, CHANGES
+
+
+#### 0.5 (2009-05-19) ###############################
+
+NOTE: Initial public release

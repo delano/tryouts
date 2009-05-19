@@ -40,9 +40,14 @@ class Tryouts
   end
   
   def self.run
+    puts "Tryouts for #{self}"
     @@tryouts.each do |to|
       to.run
     end
+  end
+  
+  def self.print_report
+    
   end
   
   ##---

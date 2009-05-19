@@ -4,15 +4,15 @@ $:.unshift TRYOUTS_LIB # Put our local lib in first place
 
 require 'tryouts'
 
-class RudyCLI < Tryouts
-  command :rudy, "/bin/ls"
-  
+class Syntax < Tryouts
+  command :rudy
+  dreams File.join(TRYOUTS_HOME, 'tryouts', 'syntax.yaml')
   tryout "display machines" do
-    drill 0, 'localhost' do
-      rudy2 :V
+    drill 'localhost' do
+      rudy 
     end
   end
 
 end
 
-RudyCLI.run
+Syntax.run
