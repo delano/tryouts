@@ -1,40 +1,57 @@
 
+require 'rubygems'
 require 'ostruct'
+require 'rye'
 
-module Tryouts
+class Tryouts
+  require 'tryouts/tryout'
+  require 'tryouts/drill'
   
-  def before(&b)
-    b.call
+    # An Array of Tryout objects
+  @@tryouts = []
+  
+  def self.handle_known_exceptions
+    
   end
-  def after(&b)
-    at_exit &b
+  
+  
+  ## ----------------------------  EXTERNAL DSL  -----
+  
+  # Add a shell command to Rye::Cmd
+  def self.command(name, path=nil)
+    Rye::Cmd.module_eval do
+      define_method(name) do |*args|
+        cmd(path || name, *args)
+      end
+    end
   end
-  
-  
+
   #    tryout :name do
   #       ...
   #    end
-  def tryout(name, &b)
-    puts "Running#{@poop}: #{name}"
-    begin
-      b.call
-      puts $/*2
-      sleep 1
-    rescue Interrupt
+  def self.tryout(name, type=nil, &b)
+    to = Tryouts::Tryout.new(name, type)
+    to.from_block b
+    @@tryouts << to
+  end
+  
+  # Ignore a tryout
+  def self.xtryout(name, &b)
+  end
+  
+  def self.run
+    @@tryouts.each do |to|
+      to.run
     end
   end
   
-  # Ignore everything
-  def xtryout(name, &b)
-  end
-  
-  # Is this wacky syntax useful for anything?
-  #    t2 :set .
-  #       run = "poop"
-  def t2(*args)
-    OpenStruct.new
-  end
+  ##---
+  ## Is this wacky syntax useful for anything?
+  ##    t2 :set .
+  ##       run = "poop"
+  ## def self.t2(*args)
+  ##   OpenStruct.new
+  ## end
+  ##+++
   
 end
-
-include Tryouts
