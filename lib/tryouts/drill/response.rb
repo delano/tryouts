@@ -4,7 +4,7 @@ class Tryouts::Drill
   #
   # A generic base class for Dream and Reality
   #
-  class Response < Struct.new(:rcode, :output, :emsg, :backtrace)
+  class Response < Struct.new(:rcode, :output, :emsg, :backtrace, :format)
     def ==(other)
       self.rcode == other.rcode &&
       self.output == other.output &&

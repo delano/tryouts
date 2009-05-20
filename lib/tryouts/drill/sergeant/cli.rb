@@ -24,8 +24,8 @@ module Tryouts::Drill::Sergeant
           ret = @rbox.instance_eval &runtime
         end
         response.rcode = ret.exit_code
-        response.output = ret.stdout
-        response.emsg = ret.stderr
+        response.output = Array.new(ret.stdout)  # Cast the Rye::Rap object
+        response.emsg = ret.stderr unless ret.stderr.empty?
       rescue Rye::CommandNotFound => ex
         response.rcode = -2
         response.emsg = "[#{@rbox.host}] Command not found: #{ex.message}"

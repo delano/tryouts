@@ -7,19 +7,18 @@ require 'tryouts'
 
 class MockoutCLI < Tryouts
   command :mockout, MOCKOUT_PATH
+  dreams File.join(TRYOUTS_HOME, 'tryouts')
   
   tryout "common usage" do
-    drill  'no command'
+    #drill  'no command'
     drill     'no args',             :sergeant
-    drill 'json output', :f, 'json', :sergeant
     drill 'yaml output', :f, 'yaml', :sergeant
+    #drill 'json output', :f, 'json', :sergeant
   end
   
   tryout "inline dream", :cli, :mockout do
     output = ['we expect mockout to', 'echo these lines back']
-    
-    #dream output
-    
+    dream 'echo', output
     # $ bin/mockout sergeant -e 'we expect mockout to' 'echo these lines back'
     drill 'echo', :sergeant, :e, *output  
   end

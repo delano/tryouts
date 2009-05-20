@@ -14,7 +14,7 @@ class Tryouts::Drill
     # A Sergeant object which executes the drill
   attr_reader :sergeant
     # A Dream object
-  attr_accessor :dream
+  attr_reader :dream
     # A Reality object
   attr_reader :reality
       
@@ -35,12 +35,13 @@ class Tryouts::Drill
     begin
       print Tryouts::DRILL_MSG % @name
       @reality = @sergeant.run @drill
-      puts self.success? ? "PASSED" : "FAILED"
+      process_reality
     rescue => ex
       @reality = Tryouts::Drill::Reality.new
       @reality.rcode = -2
       @reality.emsg, @reality.backtrace = ex.message, ex.backtrace
-    end
+    end  
+    puts self.success? ? "PASS" : "FAIL (#{discrepency.join(', ')})"
     self.success?
   end
   
@@ -48,5 +49,39 @@ class Tryouts::Drill
     @dream == @reality
   end
   
+  def discrepency
+    diffs = []
+    if @dream
+      diffs << "rcode" if @dream.rcode != @reality.rcode
+      diffs << "output" if @dream.output != @reality.output
+      diffs << "emsg" if @dream.emsg != @reality.emsg
+    else
+      diffs << "nodream"
+    end
+    diffs
+  end
   
+  def add_dream(d)
+    @dream = d if d.is_a?(Tryouts::Drill::Dream)
+  end
+  
+  private 
+  # Use the :format provided in the dream to convert the output from reality
+  def process_reality
+    return unless @dream && @dream.format
+    
+    if @dream.format.to_s == "yaml"
+      @reality.output = YAML.load(@reality.output.join("\n"))
+      if @reality.output.is_a?(Array)
+        # Remove new lines from String output
+        @reality.output = @reality.output.collect do |line|
+          line.is_a?(String) ? line.chomp : line
+        end
+      end
+    elsif  @dream.format.to_s == "json"
+      @reality.output = JSON.load(@reality.output.join("\n"))
+    end
+    
+    #p [:process, @name, @dream.format, @reality.output]
+  end
 end

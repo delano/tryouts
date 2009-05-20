@@ -1,0 +1,2 @@
+
+require "tryouts/mixins/hash"

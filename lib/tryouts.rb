@@ -8,7 +8,8 @@ begin; require 'json'; rescue LoadError; end   # json may not be installed
 
 class Tryouts
   class BadDreams < RuntimeError; end
-  
+
+  require 'tryouts/mixins'
   require 'tryouts/tryout'
   require 'tryouts/drill'
   
@@ -18,31 +19,26 @@ class Tryouts
     # An Array of Tryout objects
   @@tryouts = []
   
-    # A Hash of dreams
+    # A Hash of dreams for all tryouts in this class. The keys should
+    # match the names of each tryout. The values are hashes will drill
+    # names as keys and response 
   @@dreams = {}
   
     # A symbol representing the command taking part in tryout
   @@command = nil
   
+  
   ## ----------------------------  EXTERNAL DSL  -----
-  def self.dreams(d=nil)
-    return @@dreams unless d
-    
-    if File.exists?(d)
-      type = File.extname d
-      if type == ".yaml" || type == ".yml"
-        @@dreams = YAML.load_file d
-      elsif type == ".json" || type == ".js"
-        @@dreams = JSON.load_file d
-      elsif type == ".rb"
-        @@dreams = eval File.read d
-      else
-        raise BadDreams, d
-      end
-    elsif d.kind_of?(Hash)
-      @@dreams = d
+  def self.dreams(dreams=nil)
+    return @@dreams unless dreams
+    if File.exists?(dreams)
+      # If we're given a directory we'll build the filename using the class name
+      dreams = find_dreams_file(dreams) if File.directory?(dreams)
+      @@dreams = load_dreams_file dreams
+    elsif dreams.kind_of?(Hash)
+      @@dreams = dreams
     else
-      raise BadDreams, d
+      raise BadDreams, dreams
     end
   end
   
@@ -62,6 +58,7 @@ class Tryouts
   def self.tryout(name, type=:cli, command=nil, &b)
     command ||= @@command if type == :cli
     to = Tryouts::Tryout.new(name, type, command)
+    to.dreams = @@dreams[name] if @@dreams.has_key?(name)
     to.from_block b
     @@tryouts << to
   end
@@ -94,4 +91,58 @@ class Tryouts
   ## end
   ##+++
   
+  
+ private 
+   # Convert every Hash of dream params into a Tryouts::Drill::Dream object
+   def self.parse_dreams
+     if @@dreams.kind_of?(Hash)
+       raise BadDreams, 'Not deep enough' unless @@dreams.deepest_point == 4
+       @@dreams.each_pair do |tname, drills|
+         drills.each_pair do |dname, dream_params|
+           next if dream_params.is_a?(Tryouts::Drill::Dream)
+           dream = Tryouts::Drill::Dream.new
+           dream_params.each_pair { |n,v| dream.send("#{n}=", v) }
+           @@dreams[tname][dname] = dream
+         end
+       end
+     else
+       raise BadDreams, 'Not a kind of Hash'
+     end
+   end
+   
+   # Populate @@dreams with the content of the file +dpath+. 
+   def self.load_dreams_file(dpath)
+     type = File.extname dpath
+     if type == ".yaml" || type == ".yml"
+       @@dreams = YAML.load_file dpath
+     elsif type == ".json" || type == ".js"
+       @@dreams = JSON.load_file dpath
+     elsif type == ".rb"
+       @@dreams = eval File.read dpath
+     else
+       raise BadDreams, "Unknown kind of dream: #{dpath}"
+     end
+     parse_dreams
+   end
+   
+   # Find a dreams file in the directory +dir+ based on the current class name.
+   # The expected filename format is: classname_dreams.ext where "classname" is
+   # the lowercase name of the Tryouts subclass and "ext" is one of: yaml, js, 
+   # json, rb. 
+   #
+   #     e.g.
+   #     Tryouts.find_dreams_file "dirpath"   # => dirpath/tryouts_dreams.rb
+   #
+   def self.find_dreams_file(dir)
+     dpath = nil
+     [:rb, :yaml].each do |ext|
+       tmp = File.join(dir, "#{self.to_s.downcase}_dreams.#{ext}")
+       if File.exists?(tmp)
+         dpath = tmp
+         break
+       end
+     end
+     dpath
+   end
+ 
 end
