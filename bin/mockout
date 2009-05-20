@@ -32,11 +32,11 @@ module DrillCLI
     else
       players = ['d-bam', 'alberta', 'birds', 'condor man']
       coaches = ['greg', 'rupaul', 'telly', 'prince kinko']
-      out.puts '#'*54
+      #out.puts '#'*54
       out.puts "%9s %44s" % ["Date:", "2009-02-16"]
-      out.puts '='*54
+      #out.puts '='*54
       out.puts "%9s %44s" % ["Players:", players.join(', ')]
-      out.puts '-'*54
+      #out.puts '-'*54
       out.puts "%9s %44s" % ["Coaches:", coaches.join('|')]
     end
     out.rewind
