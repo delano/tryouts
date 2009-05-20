@@ -12,6 +12,9 @@ class Tryouts
   require 'tryouts/tryout'
   require 'tryouts/drill'
   
+  TRYOUT_MSG = '  Tryout "%s": '
+  DRILL_MSG  = '     Drill "%s":'
+  
     # An Array of Tryout objects
   @@tryouts = []
   

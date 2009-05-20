@@ -13,8 +13,6 @@ class Tryouts::Tryout
   @@default_dtype = :cli
   @@valid_dtypes = [:cli]
   
-  @@run_message_template = '  Drill "%s": '
-  
   def initialize(name, dtype)
     if !dtype.nil? && !@@valid_dtypes.member?( dtype)
       abort "#{dtype} is not a valid drill type"
@@ -32,7 +30,7 @@ class Tryouts::Tryout
   
   def run
     drills.each do |drill|
-      print @@run_message_template % @name
+      print Tryouts::TRYOUT_MSG % @name
       response = drill.run
       puts drill.success?
       @results << response
@@ -51,8 +49,8 @@ class Tryouts::Tryout
     drills << d
   end
   
-  def drill(rcode, *args, &b)
-    drill = Tryouts::Drill.new(@@default_dtype, rcode, *args, &b)
+  def drill(*args, &b)
+    drill = Tryouts::Drill.new(@@default_dtype, *args, &b)
     add_drill drill
   end
 end

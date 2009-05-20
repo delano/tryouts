@@ -32,6 +32,7 @@ class Tryouts::Drill
   
   def run
     begin
+      print TRYOUTS::DRILL_MSG % 
       @reality = @sergeant.run @drill
     rescue => ex
       @reality = Tryouts::Drill::Reality.new
