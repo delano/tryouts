@@ -29,6 +29,9 @@ class Tryouts
   
   
   ## ----------------------------  EXTERNAL DSL  -----
+  
+  # Load dreams from a file, directory, or Hash.
+  # Raises a Tryouts::BadDreams exception when something goes awry. 
   def self.dreams(dreams=nil)
     return @@dreams unless dreams
     if File.exists?(dreams)
@@ -54,7 +57,11 @@ class Tryouts
     end
   end
 
-  
+  # Create a new Tryout object and add it to the list for this Tryouts class. 
+  # * +name+ is the name of the Tryout
+  # * +type+ is the default drill type for the Tryout. One of: :cli, :api
+  # * +command+ when type is :cli, this is the name of the Rye::Box method that we're testing. Otherwise ignored. 
+  # * +b+ is a block definition for the Tryout. See Tryout#from_block
   def self.tryout(name, type=:cli, command=nil, &b)
     command ||= @@command if type == :cli
     to = Tryouts::Tryout.new(name, type, command)

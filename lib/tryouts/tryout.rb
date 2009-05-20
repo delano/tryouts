@@ -28,10 +28,14 @@ class Tryouts::Tryout
   end
   
   ## ---------------------------------------  EXTERNAL API  -----
+  
+  # Populate this Tryout from a block. The block should contain calls to 
+  # the external DSL methods: command, dream, drill, xdrill
   def from_block(b, &inline)
     instance_eval &b
   end
   
+  # Execute all Drill objects
   def run
     puts Tryouts::TRYOUT_MSG % @name
     @drills.each do |drill|
@@ -39,6 +43,7 @@ class Tryouts::Tryout
     end
   end
   
+  # Prints error output. If there are no errors, it prints nothing. 
   def report
     return if success?
     puts $/, "ERRORS:"
@@ -65,7 +70,9 @@ class Tryouts::Tryout
     !(@drills.collect { |r| r.success? }.member?(false))
   end
   
-    
+  # Add a Drill object to the list for this Tryout. If there is a dream
+  # defined with the same name as the Drill, that dream will be given to
+  # the Drill before its added to the list. 
   def add_drill(d)
     d.add_dream @dreams[d.name] if !@dreams.nil? && @dreams.has_key?(d.name)
     drills << d if d.is_a?(Tryouts::Drill)
@@ -73,6 +80,10 @@ class Tryouts::Tryout
   
   
   ## ---------------------------------------  EXTERNAL DSL  -----
+  
+  def command
+    
+  end
   
   # Add or overwrite the entry in +@dreams+ for the drill named +name+. 
   # +output+, +rcode+, and +emsg+ are values appropriate for a Dream object.
@@ -82,6 +93,9 @@ class Tryouts::Tryout
     @dreams[name] = dream
   end
   
+  # Create and add a Drill object to the list for this Tryout
+  # +name+ is the name of the drill. 
+  # +args+ is sent directly to the Drill class. The values are specific on the Sergeant.
   def drill(name, *args, &b)
     drill = Tryouts::Drill.new(name, @dtype, @command, *args, &b)
     add_drill drill

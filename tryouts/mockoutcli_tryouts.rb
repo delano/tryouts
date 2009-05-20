@@ -18,7 +18,7 @@ class MockoutCLI < Tryouts
   
   tryout "inline dream", :cli, :mockout do
     output = ['we expect mockout to', 'echo these lines back']
-    dream 'echo', output
+    dream 'echo', output, 1
     # $ bin/mockout sergeant -e 'we expect mockout to' 'echo these lines back'
     drill 'echo', :sergeant, :e, *output  
   end
