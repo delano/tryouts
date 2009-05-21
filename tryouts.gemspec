@@ -4,14 +4,14 @@
 	s.version = "0.5.0"
 	s.summary = "Tryouts are high-level tests for your Ruby code. May all your dreams come true!"
 	s.description = s.summary
-	s.author = ""
-	s.email = ""
-	s.homepage = ""
+	s.author = "Delano Mandelbaum"
+	s.email = "tryouts@solutious.com"
+	s.homepage = "http://github.com/delano/tryouts"
   
   # = EXECUTABLES =
   # The list of executables in your project (if any). Don't include the path, 
   # just the base filename.
-  s.executables = %w[]
+  s.executables = %w[tryouts]
   
   # Directories to extract rdocs from
   s.require_paths = %w[lib]  
@@ -24,8 +24,8 @@
   
   # = DEPENDENCIES =
   # Add all gem dependencies
-  s.add_dependency 'drydock', '>= 0.6.4'  # NOT RELEASED
-  s.add_dependency 'rye', '>= 0.6.5'
+  s.add_dependency 'drydock', '>= 0.6.5'
+  s.add_dependency 'rye', '>= 0.6.6'
   s.add_dependency 'sysinfo', '>= 0.5.1'
   
   # = MANIFEST =
@@ -40,7 +40,10 @@
   README.rdoc
   Rakefile
   bin/mockout
+  bin/tryouts
   lib/tryouts.rb
+  lib/tryouts/cli.rb
+  lib/tryouts/cli/run.rb
   lib/tryouts/drill.rb
   lib/tryouts/drill/response.rb
   lib/tryouts/drill/sergeant/cli.rb

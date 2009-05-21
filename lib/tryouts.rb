@@ -5,6 +5,8 @@ require 'rye'
 require 'yaml'
 begin; require 'json'; rescue LoadError; end   # json may not be installed
 
+GYMNASIUM_HOME = File.join(Dir.pwd, 'tryouts')
+GYMNASIUM_GLOB = File.join(GYMNASIUM_HOME, '**', '*_tryouts.rb')
 
 class Tryouts
   class BadDreams < RuntimeError; end
@@ -32,7 +34,11 @@ class Tryouts
   
   @@classes = []
   
-  def self.inherited(klass); @@classes << klass; end
+  def self.inherited(klass)
+     @@classes << klass
+     # Preload dreams if possible
+     dreams find_dreams_file(GYMNASIUM_HOME, klass) rescue nil
+  end
   def self.classes; @@classes; end
   
   ## ----------------------------  EXTERNAL DSL  -----
@@ -163,10 +169,11 @@ class Tryouts
    #     e.g.
    #     Tryouts.find_dreams_file "dirpath"   # => dirpath/tryouts_dreams.rb
    #
-   def self.find_dreams_file(dir)
+   def self.find_dreams_file(dir, klass=nil)
      dpath = nil
+     klass ||= self
      [:rb, :yaml].each do |ext|
-       tmp = File.join(dir, "#{self.to_s.downcase}_dreams.#{ext}")
+       tmp = File.join(dir, "#{klass.to_s.downcase}_dreams.#{ext}")
        if File.exists?(tmp)
          dpath = tmp
          break

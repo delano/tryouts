@@ -1,9 +1,7 @@
 
-
 module Tryouts::CLI
   class Run < Drydock::Command
-    GYMNASIUM_HOME = File.join(Dir.pwd, 'tryouts')
-    GYMNASIUM_GLOB = File.join(GYMNASIUM_HOME, '**', '*_tryouts.rb')
+
     
     def run
       

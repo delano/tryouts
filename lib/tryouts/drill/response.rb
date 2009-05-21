@@ -25,6 +25,7 @@ class Tryouts::Drill
     def normalize!
       @rcode = @rcode.to_i if @rcode.is_a?(String)
       @format = @format.to_sym if @format.is_a?(String)
+      @output = [@output] if @output.is_a?(String)
       return unless @output.is_a?(Array)
       @output = @output.collect { |line| line.strip }.reject { |line| line == "" }
     end
