@@ -20,7 +20,12 @@ module TryoutsCLI
     @verbose += 1
   end
   
+  about "Run tryouts from current working directory"
   argv :files
   command :run => Tryouts::CLI::Run
+  
+  about "Show dreams available from the current working directory"
+  argv :files
+  command :dreams => Tryouts::CLI::Run
   
 end

@@ -45,7 +45,10 @@ class Tryouts::Tryout
   
   # Prints error output. If there are no errors, it prints nothing. 
   def report
-    return if success?
+    if success?
+      puts $/, "All your dreams came true"
+      return
+    end
     puts $/, "ERRORS:"
     @drills.each do |drill|
       next if drill.success?
@@ -59,7 +62,8 @@ class Tryouts::Tryout
           puts '%24s' % "[nodream]"
           next
         end
-        puts '%24s: %s vs %s' % [d, drill.dream.send(d), drill.reality.send(d)]
+        puts '%24s: %s' % ["dream #{d}", drill.dream.send(d).inspect]
+        puts '%24s: %s' % ["reality #{d}", drill.reality.send(d).inspect]
       end
     end
   end

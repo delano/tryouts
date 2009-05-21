@@ -40,6 +40,7 @@ class Tryouts
      dreams find_dreams_file(GYMNASIUM_HOME, klass) rescue nil
   end
   def self.classes; @@classes; end
+  def self.dreams; @@dreams; end
   
   ## ----------------------------  EXTERNAL DSL  -----
   
