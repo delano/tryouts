@@ -67,9 +67,15 @@ class Tryouts
   end
   
   # +name+ of the Drill associated to this Dream
+  # +output+ A String or Array of expected output. A Dream object will be created using this value (optional)
   # +definition+ is a block which will be run on an instance of Dream
-  def self.dream(name, &definition)
-    @@dreams[@@current_dream][name] = Tryouts::Drill::Dream.from_block definition
+  def self.dream(name, output=nil, &definition)
+    if output.nil?
+      dobj = Tryouts::Drill::Dream.from_block definition
+    else
+      dobj = Tryouts::Drill::Dream.new(output)
+    end
+    @@dreams[@@current_dream][name] = dobj
   end
   
   # Add a shell command to Rye::Cmd and save the command name

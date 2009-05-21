@@ -5,11 +5,12 @@ class Tryouts::Drill
   # A generic base class for Dream and Reality
   #
   class Response
-    attr_writer :rcode, :output, :format, :emsg, :backtrace
-    def initialize
-      @rcode = 0
-      @format = :string
-      @output = []
+    attr_accessor :output, :format, :rcode, :emsg, :backtrace
+    def initialize(output=nil, format=nil, rcode=0)
+      @output, @format, @rcode = output, format, rcode
+      @format ||= :string
+      @output ||= []
+      normalize!
     end
     
     def ==(other)
@@ -21,6 +22,11 @@ class Tryouts::Drill
     def output(val=nil); @output = val unless val.nil?; @output; end
     def emsg(val=nil); @emsg = val unless val.nil?; @emsg; end
     def format(val=nil); @format = val unless val.nil?; @format; end
+    
+    def output=(val); @output = val; normalize!; @output; end
+    def rcode=(val); @rcode = val; normalize!; @rcode; end
+    def format=(val); @format = val; normalize!; @format; end
+    def emsg=(val); @emsg = val; normalize!; @emsg; end
     
     def normalize!
       @rcode = @rcode.to_i if @rcode.is_a?(String)
