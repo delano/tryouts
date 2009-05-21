@@ -16,11 +16,16 @@ class MockoutCLI < Tryouts
     #drill 'json output', :f, 'json', :sergeant
   end
   
-  tryout "inline dream", :cli, :mockout do
-    output = ['we expect mockout to', 'echo these lines back']
-    dream 'echo', output, 1
+  tryout "inline dream will pass", :cli, :mockout do
+    output = ['we expect mockout to2', 'echo these lines back']
+    dream 'echo arguments', output
     # $ bin/mockout sergeant -e 'we expect mockout to' 'echo these lines back'
-    drill 'echo', :sergeant, :e, *output  
+    drill 'echo arguments', :sergeant, :e, *output  
+  end
+  
+  tryout "inline dream will fail", :cli, :mockout do
+    dream 'echo arguments', "The dream does"
+    drill 'echo arguments', :sergeant, :e, "not match reality"
   end
   
   #tryout "groups", :api do

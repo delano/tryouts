@@ -13,11 +13,14 @@ class Tryouts
   require 'tryouts/tryout'
   require 'tryouts/drill'
   
-  TRYOUT_MSG = "\n%16s "
-  DRILL_MSG  = '%18s: '
+  TRYOUT_MSG = "\n     %s "
+  DRILL_MSG  = ' %20s: '
   
     # An Array of Tryout objects
   @@tryouts = []
+  
+    # A Hash of Tryout names pointing to index values of @@tryouts
+  @@tryouts_map = {}
   
     # A Hash of dreams for all tryouts in this class. The keys should
     # match the names of each tryout. The values are hashes will drill
@@ -32,7 +35,7 @@ class Tryouts
   
   # Load dreams from a file, directory, or Hash.
   # Raises a Tryouts::BadDreams exception when something goes awry. 
-  def self.dreams(dreams=nil)
+  def self.dreams(dreams=nil, &definition)
     return @@dreams unless dreams
     if File.exists?(dreams)
       # If we're given a directory we'll build the filename using the class name
@@ -40,9 +43,21 @@ class Tryouts
       @@dreams = load_dreams_file dreams
     elsif dreams.kind_of?(Hash)
       @@dreams = dreams
+    elsif dreams.kind_of?(String) && definition
+      @@current_dream = dreams  # Used in Tryouts.dream
+      @@dreams[@@current_dream] ||= {}
+      # TODO: definition.call is returning the wrong value. It needs to return the dream hash for a tryout
+      definition.call
     else
       raise BadDreams, dreams
     end
+    @@dreams
+  end
+  
+  # +name+ of the Drill associated to this Dream
+  # +definition+ is a block which will be run on an instance of Dream
+  def self.dream(name, &definition)
+    @@dreams[@@current_dream][name] = Tryouts::Drill::Dream.from_block definition
   end
   
   # Add a shell command to Rye::Cmd and save the command name
@@ -68,6 +83,7 @@ class Tryouts
     to.dreams = @@dreams[name] if @@dreams.has_key?(name)
     to.from_block b
     @@tryouts << to
+    @@tryouts_map[name] = @@tryouts.size - 1  # WARNING: NOT THREAD SAFE
   end
   
   # Ignore a tryout
@@ -103,7 +119,8 @@ class Tryouts
    # Convert every Hash of dream params into a Tryouts::Drill::Dream object
    def self.parse_dreams
      if @@dreams.kind_of?(Hash)
-       raise BadDreams, 'Not deep enough' unless @@dreams.deepest_point == 4
+       
+       #raise BadDreams, 'Not deep enough' unless @@dreams.deepest_point == 2
        @@dreams.each_pair do |tname, drills|
          drills.each_pair do |dname, dream_params|
            next if dream_params.is_a?(Tryouts::Drill::Dream)
@@ -125,7 +142,7 @@ class Tryouts
      elsif type == ".json" || type == ".js"
        @@dreams = JSON.load_file dpath
      elsif type == ".rb"
-       @@dreams = eval File.read dpath
+       @@dreams = class_eval File.read dpath
      else
        raise BadDreams, "Unknown kind of dream: #{dpath}"
      end

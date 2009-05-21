@@ -30,7 +30,7 @@ class Tryouts::Tryout
   ## ---------------------------------------  EXTERNAL API  -----
   
   # Populate this Tryout from a block. The block should contain calls to 
-  # the external DSL methods: command, dream, drill, xdrill
+  # the external DSL methods: dream, drill, xdrill
   def from_block(b, &inline)
     instance_eval &b
   end
@@ -81,14 +81,11 @@ class Tryouts::Tryout
   
   ## ---------------------------------------  EXTERNAL DSL  -----
   
-  def command
-    
-  end
-  
   # Add or overwrite the entry in +@dreams+ for the drill named +name+. 
   # +output+, +rcode+, and +emsg+ are values appropriate for a Dream object.
   def dream(name, output, rcode=0, emsg=nil)
     dream = Tryouts::Drill::Dream.new
+    output = [output] unless output.is_a?(Array)
     dream.output, dream.rcode, dream.emsg = output, rcode, emsg
     @dreams[name] = dream
   end

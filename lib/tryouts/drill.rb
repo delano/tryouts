@@ -68,18 +68,19 @@ class Tryouts::Drill
   private 
   # Use the :format provided in the dream to convert the output from reality
   def process_reality
+    @reality.normalize!
     return unless @dream && @dream.format
-    
     if @dream.format.to_s == "yaml"
       @reality.output = YAML.load(@reality.output.join("\n"))
-      if @reality.output.is_a?(Array)
-        # Remove new lines from String output
-        @reality.output = @reality.output.collect do |line|
-          line.is_a?(String) ? line.chomp : line
-        end
-      end
     elsif  @dream.format.to_s == "json"
       @reality.output = JSON.load(@reality.output.join("\n"))
+    end
+    
+    if @reality.output.is_a?(Array)
+      # Remove new lines from String output
+      @reality.output = @reality.output.collect do |line|
+        line.is_a?(String) ? line.strip : line
+      end
     end
     
     #p [:process, @name, @dream.format, @reality.output]
