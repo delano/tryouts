@@ -30,6 +30,10 @@ class Tryouts
     # A symbol representing the command taking part in tryout
   @@command = nil
   
+  @@classes = []
+  
+  def self.inherited(klass); @@classes << klass; end
+  def self.classes; @@classes; end
   
   ## ----------------------------  EXTERNAL DSL  -----
   
@@ -38,9 +42,11 @@ class Tryouts
   def self.dreams(dreams=nil, &definition)
     return @@dreams unless dreams
     if File.exists?(dreams)
+      dfile = dreams
       # If we're given a directory we'll build the filename using the class name
-      dreams = find_dreams_file(dreams) if File.directory?(dreams)
-      @@dreams = load_dreams_file dreams
+      dfile = find_dreams_file(dreams) if File.directory?(dreams)
+      raise BadDreams, "Cannot find dreams file (#{dreams})" unless dfile
+      @@dreams = load_dreams_file dfile
     elsif dreams.kind_of?(Hash)
       @@dreams = dreams
     elsif dreams.kind_of?(String) && definition
@@ -142,7 +148,7 @@ class Tryouts
      elsif type == ".json" || type == ".js"
        @@dreams = JSON.load_file dpath
      elsif type == ".rb"
-       @@dreams = class_eval File.read dpath
+       @@dreams = class_eval File.read( dpath)
      else
        raise BadDreams, "Unknown kind of dream: #{dpath}"
      end

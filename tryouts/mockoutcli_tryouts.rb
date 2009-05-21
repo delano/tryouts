@@ -1,19 +1,17 @@
-TRYOUTS_HOME = File.expand_path(File.join(File.dirname(__FILE__), '..'))
-TRYOUTS_LIB  = File.join(TRYOUTS_HOME, 'lib')
-MOCKOUT_PATH = File.join(TRYOUTS_HOME, 'bin', 'mockout')
-$:.unshift TRYOUTS_LIB # Put our local lib in first place
 
-require 'tryouts'
 
 class MockoutCLI < Tryouts
+  TRYOUTS_HOME = File.expand_path(File.join(File.dirname(__FILE__), '..'))
+  MOCKOUT_PATH = File.join(TRYOUTS_HOME, 'bin', 'mockout')
+
   command :mockout, MOCKOUT_PATH
   dreams File.join(TRYOUTS_HOME, 'tryouts')
   
   tryout "common usage" do
-    #drill  'no command'
+    drill  'no command'
     drill     'no args',             :sergeant
     drill 'yaml output', :f, 'yaml', :sergeant
-    #drill 'json output', :f, 'json', :sergeant
+    drill 'json output', :f, 'json', :sergeant
   end
   
   tryout "inline dream will pass", :cli, :mockout do
@@ -37,5 +35,3 @@ class MockoutCLI < Tryouts
 
   
 end
-
-MockoutCLI.run

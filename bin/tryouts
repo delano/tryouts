@@ -1,0 +1,26 @@
+#!/usr/bin/ruby
+
+TRYOUTS_HOME = File.expand_path(File.join(File.dirname(__FILE__), '..'))
+
+local_libs = %w{tryouts net-scp amazon-ec2 aws-s3 caesars drydock rye storable sysinfo annoy}
+local_libs.each { |dir| $:.unshift File.join(TRYOUTS_HOME, '..', dir, 'lib') }
+
+require 'drydock'
+require 'tryouts'
+require 'tryouts/cli'
+
+module TryoutsCLI
+  extend Drydock
+  
+  debug :on
+  default :run, :with_args
+  
+  global :v, :verbose, "Increase output" do 
+    @verbose ||= 0
+    @verbose += 1
+  end
+  
+  argv :files
+  command :run => Tryouts::CLI::Run
+  
+end

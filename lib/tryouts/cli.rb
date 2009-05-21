@@ -1,0 +1,3 @@
+
+require 'tryouts/cli/run'
+

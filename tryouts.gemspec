@@ -1,7 +1,7 @@
 @spec = Gem::Specification.new do |s|
 	s.name = "tryouts"
   s.rubyforge_project = "tryouts"
-	s.version = "0.5"
+	s.version = "0.5.0"
 	s.summary = "Tryouts are high-level tests for your Ruby code. May all your dreams come true!"
 	s.description = s.summary
 	s.author = ""
@@ -24,7 +24,7 @@
   
   # = DEPENDENCIES =
   # Add all gem dependencies
-  s.add_dependency 'drydock', '>= 0.6.3'
+  s.add_dependency 'drydock', '>= 0.6.4'  # NOT RELEASED
   s.add_dependency 'rye', '>= 0.6.5'
   s.add_dependency 'sysinfo', '>= 0.5.1'
   
@@ -37,9 +37,20 @@
   s.files = %w(
   CHANGES.txt
   LICENSE.txt
-  README.txt
+  README.rdoc
   Rakefile
+  bin/mockout
+  lib/tryouts.rb
+  lib/tryouts/drill.rb
+  lib/tryouts/drill/response.rb
+  lib/tryouts/drill/sergeant/cli.rb
+  lib/tryouts/mixins.rb
+  lib/tryouts/mixins/hash.rb
+  lib/tryouts/tryout.rb
   tryouts.gemspec
+  tryouts/mockoutcli_dreams.rb
+  tryouts/mockoutcli_dreams.yaml
+  tryouts/mockoutcli_tryouts.rb
   )
   
   s.has_rdoc = true
