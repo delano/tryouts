@@ -85,15 +85,22 @@ class Tryouts::Tryout
   
   ## ---------------------------------------  EXTERNAL DSL  -----
   
-  # Add or overwrite the entry in +@dreams+ for the drill named +name+. 
-  # +output+, +rcode+, and +emsg+ are values appropriate for a Dream object.
-  def dream(name, output, rcode=0, emsg=nil)
-    dream = Tryouts::Drill::Dream.new
-    output = [output] unless output.is_a?(Array)
-    dream.output, dream.rcode, dream.emsg = output, rcode, emsg
-    @dreams[name] = dream
-  end
   
+  # +name+ of the Drill associated to this Dream
+  # +output+ A String or Array of expected output. A Dream object will be created using this value (optional)
+  # +definition+ is a block which will be run on an instance of Dream
+  #
+  # NOTE: This method is DSL-only. It's not intended to be used in OO syntax. 
+  def dream(name, output=nil, format=:string, rcode=0, emsg=nil, &definition)
+    if output.nil?
+      dobj = Tryouts::Drill::Dream.from_block definition
+    else
+      dobj = Tryouts::Drill::Dream.new(output)
+      dobj.format, dobj.rcode, dobj.emsg = format, rcode, emsg
+    end
+    @dreams[name] = dobj
+  end
+
   # Create and add a Drill object to the list for this Tryout
   # +name+ is the name of the drill. 
   # +args+ is sent directly to the Drill class. The values are specific on the Sergeant.
@@ -102,4 +109,27 @@ class Tryouts::Tryout
     add_drill drill
   end
   def xdrill(*args, &b); end # ignore calls to xdrill
+  
+  
+  
+  
+  private
+  
+  # Convert every Hash of dream params into a Tryouts::Drill::Dream object
+  def parse_dreams!
+    if @dreams.kind_of?(Hash)
+      #raise BadDreams, 'Not deep enough' unless @@dreams.deepest_point == 2
+      @dreams.each_pair do |tname, drills|
+        drills.each_pair do |dname, dream_params|
+          next if dream_params.is_a?(Tryouts::Drill::Dream)
+          dream = Tryouts::Drill::Dream.new
+          dream_params.each_pair { |n,v| dream.send("#{n}=", v) }
+          @dreams[tname][dname] = dream
+        end
+      end
+    else
+      raise BadDreams, 'Not a kind of Hash'
+    end
+  end
+  
 end

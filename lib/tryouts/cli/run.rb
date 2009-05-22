@@ -7,22 +7,20 @@ module Tryouts::CLI
     end
     
     def dreams
-      find_tryouts_files
+      load_available_tryouts_files
       puts Tryouts.dreams.to_yaml
     end
     
     def run
-      find_tryouts_files
+      load_available_tryouts_files
 
-      Tryouts.classes.each do |klass|
-        klass.run
-      end
+      Tryouts.run
     
     end
     
     
   private 
-    def find_tryouts_files
+    def load_available_tryouts_files
       if @argv.files
         @argv.files.each do |file|
           file = File.join(file, '**', '*_tryouts.rb') if File.directory?(file)
@@ -38,7 +36,7 @@ module Tryouts::CLI
 
       puts "FOUND:", @tryouts_files if @global.verbose > 0
       
-      @tryouts_files.each { |file| load file }
+      @tryouts_files.each { |file| Tryouts.parse_file file }
     end
   end
 end
