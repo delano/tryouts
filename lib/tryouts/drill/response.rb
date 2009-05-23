@@ -7,15 +7,16 @@ class Tryouts::Drill
   class Response
     attr_accessor :output, :format, :rcode, :emsg, :backtrace
     def initialize(output=nil, format=nil, rcode=0)
-      @output, @format, @rcode = output, format, rcode
+      @output, @format, @rcode = output, format, (rcode || 0)
       @format ||= :string
       @output ||= []
       normalize!
     end
     
     def ==(other)
-      self.rcode == other.rcode &&
-      self.emsg == other.emsg &&
+      return false if other.nil?
+      @rcode == other.rcode &&
+      @emsg == other.emsg &&
       compare_output(other)
     end
     def rcode(val=nil); @rcode = val unless val.nil?; normalize!; @rcode; end
@@ -31,34 +32,42 @@ class Tryouts::Drill
     # Enforce the following restrictions on the data fields:
     # * +rcode+ is an Integer
     # * +format+ is a Symbol
-    # * +output+ is an Array with empty strings and nils removed. 
     # This method is called automatically any time a field is updated.
     def normalize!
       @rcode = @rcode.to_i if @rcode.is_a?(String)
       @format = @format.to_sym if @format.is_a?(String)
-      @output = [@output] unless @output.is_a?(Array)
-      return unless @output.is_a?(Array)
-      @output = @output.compact.collect { |line| line.strip }.reject { |line| line == "" }
     end
     def compare_output(other)
-      return true if self.output == other.output
-      return false unless self.output.size == other.output.size
+      return true if @output == other.output
       
-      if self.output.first.is_a?(Regexp)
-        expressions = self.output 
-        strings = other.output
-      elsif other.output.first.is_a?(Regexp)
-        expressions = other.output 
-        strings = self.output
+      if @format == :class
+        if @output.is_a?(Class)
+          klass = @output 
+          payload = other.output
+        elsif other.output.is_a?(Class)
+          klass = other.output 
+          payload = @output
+        end
+        return payload.is_a?(klass)
       end
       
-      if defined?(expressions) && defined?(strings)
-        # Returns true only when every result returns true
-        return !(self.output.collect { |regex| r.success? }.member?(false))
-        expressions.each_with_index do |regex, index|
-          return false unless strings[index] =~ regex
+      if @output.kind_of?(Array) && other.kind_of?(Array)
+        return false unless @output.size == other.output.size
+      
+        if @output.first.is_a?(Regexp)
+          expressions = @output 
+          strings = other.output
+        elsif other.output.first.is_a?(Regexp)
+          expressions = other.output 
+          strings = @output
         end
-        return true
+      
+        if !expressions.nil? && !strings.nil?
+          expressions.each_with_index do |regex, index|
+            return false unless strings[index] =~ regex
+          end
+          return true
+        end
       end
       
       false
@@ -76,7 +85,6 @@ class Tryouts::Drill
     def self.from_block(definition)
       d = Tryouts::Drill::Dream.new
       d.from_block definition
-      p d
       d
     end
     
@@ -86,8 +94,12 @@ class Tryouts::Drill
       self
     end
     
+    # Takes a String +val+ and splits the lines into an Array. Each line
+    # has 
     def inline(val=nil)
-      lines = (val.split($/) || [])
+      lines = (val.split($/) || []).collect { |line| line.strip }
+      lines.reject! { |line| line == "" }
+      lines
     end
   end
 

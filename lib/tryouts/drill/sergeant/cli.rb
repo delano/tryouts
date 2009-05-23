@@ -8,12 +8,13 @@ module Tryouts::Drill::Sergeant
       # An Array of arguments to be sent to +rbox.send(*rbox_args)+
     attr_accessor :rbox_args
     
-    def initialize(*rbox_args)
-      @rbox_args = rbox_args
+    def initialize(*args)
+      @rbox_args = args
       @rbox = Rye::Box.new
     end
   
-    def run(block, &inline)
+    # NOTE: Context is ignored for this Sergeant. 
+    def run(block, context=nil, &inline)
       # A Proc object takes precedence over an inline block. 
       runtime = (block.nil? ? inline : block)
       response = Tryouts::Drill::Reality.new
@@ -24,7 +25,7 @@ module Tryouts::Drill::Sergeant
           ret = @rbox.instance_eval &runtime
         end
         response.rcode = ret.exit_code
-        response.output = Array.new(ret.stdout)  # Cast the Rye::Rap object
+        response.output = ret.stdout.size == 1 ? ret.stdout.first : Array.new(ret.stdout)  # Cast the Rye::Rap object
         response.emsg = ret.stderr unless ret.stderr.empty?
       rescue Rye::CommandNotFound => ex
         response.rcode = -2

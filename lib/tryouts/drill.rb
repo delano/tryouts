@@ -1,8 +1,12 @@
 
 
 class Tryouts::Drill
+  
   require 'tryouts/drill/response'
   require 'tryouts/drill/sergeant/cli'
+  require 'tryouts/drill/sergeant/api'
+  
+  class NoSergeant < RuntimeError; end
     
     # A symbol specifying the drill type. One of: :cli
   attr_reader :dtype
@@ -28,20 +32,26 @@ class Tryouts::Drill
   def hire_sergeant(*drill_args)
     if @dtype == :cli
       Tryouts::Drill::Sergeant::CLI.new(*drill_args)
+    elsif @dtype == :api
+      Tryouts::Drill::Sergeant::API.new(*drill_args)
+    else
+      raise NoSergeant, "What is #{@dtype}?"
     end
   end
   
-  def run
+  def run(context=nil)
+    context ||= Class.new
     begin
       print Tryouts::DRILL_MSG % @name
-      @reality = @sergeant.run @drill
+      @reality = @sergeant.run @drill, context
       process_reality
     rescue => ex
       @reality = Tryouts::Drill::Reality.new
       @reality.rcode = -2
       @reality.emsg, @reality.backtrace = ex.message, ex.backtrace
     end  
-    puts self.success? ? "PASS" : "FAIL (#{discrepency.join(', ')})"
+    note = @dream ? discrepency.join(', ') : 'nodream'
+    puts self.success? ? "PASS" : "FAIL (#{note})"
     self.success?
   end
   
@@ -55,8 +65,6 @@ class Tryouts::Drill
       diffs << "rcode" if @dream.rcode != @reality.rcode
       diffs << "output" if @dream.output != @reality.output
       diffs << "emsg" if @dream.emsg != @reality.emsg
-    else
-      diffs << "nodream"
     end
     diffs
   end

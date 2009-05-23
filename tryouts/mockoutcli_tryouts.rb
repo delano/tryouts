@@ -5,7 +5,6 @@ MOCKOUT_PATH = File.join(TRYOUTS_HOME, 'bin', 'mockout')
 
 group "mockout cli"
 command :mockout, MOCKOUT_PATH
-dreams File.join(TRYOUTS_HOME, 'tryouts')
 
 tryout "common usage" do
   drill  'no command'

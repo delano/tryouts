@@ -13,9 +13,7 @@ module Tryouts::CLI
     
     def run
       load_available_tryouts_files
-
       Tryouts.run
-    
     end
     
     

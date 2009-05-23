@@ -12,13 +12,25 @@ class Tryouts::Tryout
   
     # A default value for Drill.dtype
   attr_reader :dtype
+  
     # For drill type :cli, this is the name of the command to test. It
     # should be a valid method available to a Rye::Box object.
     # For drill type :api, this attribute is ignored. 
   attr_reader :command
   
+    # A block to executed one time before starting the drills
+  attr_reader :before
+    # A block to executed one time after the drills
+  attr_reader :after
+  
   @@valid_dtypes = [:cli, :api]
   
+  # All :api Drills are run within this context (not used for :cli). 
+  # Each Drill is executed in a new instance of this class. That means
+  # instance variables are not carried through, but class variables are. 
+  # The before and after blocks are also run in this context.
+  class DrillContext; end
+     
   def initialize(name, dtype, command=nil, *args)
     raise "Must supply command for dtype :cli" if dtype == :cli && command.nil?
     raise "#{dtype} is not a valid drill type" if !@@valid_dtypes.member?(dtype)
@@ -37,10 +49,12 @@ class Tryouts::Tryout
   
   # Execute all Drill objects
   def run
+    DrillContext.new.instance_eval &before if before.is_a?(Proc)
     puts Tryouts::TRYOUT_MSG % @name
     @drills.each do |drill|
-      drill.run   # returns true or false
+      drill.run(DrillContext.new)   # returns true or false
     end
+    DrillContext.new.instance_eval &after if after.is_a?(Proc)
   end
   
   # Prints error output. If there are no errors, it prints nothing. 
@@ -57,13 +71,22 @@ class Tryouts::Tryout
         puts '%24s' % drill.reality.emsg 
         next
       end
-      drill.discrepency.each do |d|
-        if d == 'nodream'
-          puts '%24s' % "[nodream]"
-          next
+      
+      if drill.dream
+        drill.discrepency.each do |d|
+          puts '%24s: %s' % ["dream #{d}", drill.dream.send(d).inspect]
+          puts '%24s: %s' % ["reality #{d}", drill.reality.send(d).inspect]
         end
-        puts '%24s: %s' % ["dream #{d}", drill.dream.send(d).inspect]
-        puts '%24s: %s' % ["reality #{d}", drill.reality.send(d).inspect]
+      else
+        puts '%24s' % ["[nodream]"]
+        if drill.reality.rcode > 0
+          puts '%24s: %s' % ["rcode", drill.reality.rcode.inspect]
+          puts '%24s: %s' % ["msg", drill.reality.emsg.inspect]
+        end
+      end
+      
+      if drill.reality.rcode > 0
+        puts '%24s: %s' % ["backtrace", drill.reality.backtrace.inspect]
       end
     end
   end
@@ -85,6 +108,17 @@ class Tryouts::Tryout
   
   ## ---------------------------------------  EXTERNAL DSL  -----
   
+  # A block to executed one time before starting the drills
+  def before(&block)
+    return @before unless block
+    @before = block
+  end
+  
+  # A block to executed one time after the drills
+  def after(&block)
+    return @after unless block
+    @after = block
+  end
   
   # +name+ of the Drill associated to this Dream
   # +output+ A String or Array of expected output. A Dream object will be created using this value (optional)
@@ -105,7 +139,8 @@ class Tryouts::Tryout
   # +name+ is the name of the drill. 
   # +args+ is sent directly to the Drill class. The values are specific on the Sergeant.
   def drill(name, *args, &b)
-    drill = Tryouts::Drill.new(name, @dtype, @command, *args, &b)
+    args.unshift(@command) if @dtype == :cli
+    drill = Tryouts::Drill.new(name, @dtype, *args, &b)
     add_drill drill
   end
   def xdrill(*args, &b); end # ignore calls to xdrill
