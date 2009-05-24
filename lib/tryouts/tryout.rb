@@ -1,5 +1,11 @@
 
-class Tryouts::Tryout
+class Tryouts
+  
+  # = Tryout
+  #
+  # A Tryout is a set of drills (each drill is a test). 
+  #
+  class Tryout
   
     # The name of this tryout
   attr_reader :name
@@ -50,10 +56,11 @@ class Tryouts::Tryout
   
   # Execute all Drill objects
   def run
+    update_drills!   # Ensure all drills have all known dreams
     DrillContext.new.instance_eval &setup if setup.is_a?(Proc)
     puts Tryouts::TRYOUT_MSG % @name
     @drills.each do |drill|
-      drill.run(DrillContext.new)   # returns true or false
+      drill.run(DrillContext.new)      # Returns true or false
     end
     DrillContext.new.instance_eval &clean if clean.is_a?(Proc)
   end
@@ -104,8 +111,21 @@ class Tryouts::Tryout
   def add_drill(d)
     d.add_dream @dreams[d.name] if !@dreams.nil? && @dreams.has_key?(d.name)
     drills << d if d.is_a?(Tryouts::Drill)
+    d
   end
   
+  # Goes through the list of Drill objects (@drills) and gives each 
+  # one its associated Dream object (if available). 
+  # 
+  # This method is called before Tryout#run, but is only necessary in  
+  # the case where dreams where loaded after the drills were defined. 
+  def update_drills!
+    return if @dreams.nil?
+    @drills.each do |drill|
+      next unless @dreams.has_key?(drill.name)
+      drill.add_dream @dreams[drill.name]
+    end
+  end
   
   ## ---------------------------------------  EXTERNAL DSL  -----
   
@@ -134,6 +154,8 @@ class Tryouts::Tryout
       dobj.format, dobj.rcode, dobj.emsg = format, rcode, emsg
     end
     @dreams[name] = dobj
+    
+    dobj
   end
 
   # Create and add a Drill object to the list for this Tryout
@@ -151,7 +173,8 @@ class Tryouts::Tryout
   
   private
   
-  # Convert every Hash of dream params into a Tryouts::Drill::Dream object
+  # Convert every Hash of dream params into a Tryouts::Drill::Dream object. 
+  # DEPRECATED: This is not used anymore since we have the dreams DSL syntax.
   def parse_dreams!
     if @dreams.kind_of?(Hash)
       #raise BadDreams, 'Not deep enough' unless @@dreams.deepest_point == 2
@@ -168,4 +191,4 @@ class Tryouts::Tryout
     end
   end
   
-end
+end; end
