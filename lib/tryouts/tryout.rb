@@ -19,9 +19,10 @@ class Tryouts::Tryout
   attr_reader :command
   
     # A block to executed one time before starting the drills
-  attr_reader :before
-    # A block to executed one time after the drills
-  attr_reader :after
+  attr_reader :setup
+  
+    # A block to executed one time before starting the drills
+  attr_reader :clean
   
   @@valid_dtypes = [:cli, :api]
   
@@ -49,12 +50,12 @@ class Tryouts::Tryout
   
   # Execute all Drill objects
   def run
-    DrillContext.new.instance_eval &before if before.is_a?(Proc)
+    DrillContext.new.instance_eval &setup if setup.is_a?(Proc)
     puts Tryouts::TRYOUT_MSG % @name
     @drills.each do |drill|
       drill.run(DrillContext.new)   # returns true or false
     end
-    DrillContext.new.instance_eval &after if after.is_a?(Proc)
+    DrillContext.new.instance_eval &clean if clean.is_a?(Proc)
   end
   
   # Prints error output. If there are no errors, it prints nothing. 
@@ -108,16 +109,16 @@ class Tryouts::Tryout
   
   ## ---------------------------------------  EXTERNAL DSL  -----
   
-  # A block to executed one time before starting the drills
-  def before(&block)
-    return @before unless block
-    @before = block
+  # A block to executed one time _before_ starting the drills
+  def setup(&block)
+    return @setup unless block
+    @setup = block
   end
   
-  # A block to executed one time after the drills
-  def after(&block)
-    return @after unless block
-    @after = block
+  # A block to executed one time _after_ the drills
+  def clean(&block)
+    return @clean unless block
+    @clean = block
   end
   
   # +name+ of the Drill associated to this Dream

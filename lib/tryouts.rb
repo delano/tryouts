@@ -52,14 +52,7 @@ class Tryouts
   attr_accessor :dream_pointer
   
   def self.instances; @@instances; end
-  def self.dreams; 
-    dreams = {}
-    @@instances.each_pair do |name,inst|
-      dreams[name] = inst.dreams
-    end
-    dreams
-  end
-  
+
   def initialize(group=nil)
     @group = group || "Default Group"
     @tryouts = []
@@ -96,6 +89,10 @@ class Tryouts
     end
     @command
   end
+  def self.command(*args)
+    @@instances[ @@instance_pointer ].command(*args)
+  end
+  
   
   # Require +name+. If +path+ is supplied, it will "require path". 
   # * +name+ The name of the library in question (required). Stored as a Symbol to +@library+.
@@ -106,6 +103,9 @@ class Tryouts
     @library = name.to_sym
     require path.nil? ? @library : path
   end
+  def self.library(*args)
+    @@instances[ @@instance_pointer ].library(*args)
+  end
   
   def group(name=nil)
     return @group if name.nil?
@@ -115,6 +115,9 @@ class Tryouts
     self.load_dreams_file(dfile) if dfile
     @group
   end
+  def self.group(*args)
+    raise "Group is already set: #{@@instances[ @@instance_pointer ].group}"
+  end
   
   # Create a new Tryout object and add it to the list for this Tryouts class. 
   # * +name+ is the name of the Tryout
@@ -123,7 +126,7 @@ class Tryouts
   # * +b+ is a block definition for the Tryout. See Tryout#from_block
   #
   # NOTE: This is a DSL-only method and is not intended for OO use. 
-  def tryout(name, type=nil, command=nil, &b)
+  def tryout(name, type=nil, command=nil, &block)
     return if name.nil?
     type ||= @dtype
     command ||= @command if type == :cli
@@ -131,17 +134,89 @@ class Tryouts
     # Populate the dreams if they've already been loaded
     to.dreams = @dreams[name] if @dreams.has_key?(name)
     # Process the rest of the DSL
-    to.from_block b
+    to.from_block block if block
     @tryouts << to
     @map[name] = @tryouts.size - 1
     to
   end
-  
+  def self.tryout(*args, &block)
+    @@instances[ @@instance_pointer ].tryout(*args, &block)
+  end
   
   # Ignore a tryout
   #
   # NOTE: This is a DSL-only method and is not intended for OO use.
-  def xtryout(name, &b)
+  def xtryout(*args, &block); end
+  def self.xtryout(*args, &block); end
+  
+  # Load dreams from a file, or Hash.
+  # Raises a Tryouts::BadDreams exception when something goes awry. 
+  #
+  # This method is used in two ways:
+  # * In the dreams file DSL
+  # * As a getter method on a Tryout object
+  def dreams(group=nil, &definition)
+    return @dreams unless group
+    if File.exists?(group)
+      dfile = group
+      # If we're given a directory we'll build the filename using the class name
+      dfile = self.class.find_dreams_file(group) if File.directory?(group)
+      raise BadDreams, "Cannot find dreams file (#{group})" unless dfile
+      @dreams = load_dreams_file dfile
+    elsif group.kind_of?(Hash)
+      @dreams = group
+    elsif group.kind_of?(String) && definition  
+      @dream_pointer = group  # Used in Tryouts.dream
+      @dreams[ @dream_pointer ] ||= {}
+      definition.call
+    else
+      raise BadDreams, group
+    end
+    @dreams
+  end
+  def self.dreams(*args, &block)
+    if args.empty? && block.nil?
+      dreams = {}
+      @@instances.each_pair do |name,inst|
+        dreams[name] = inst.dreams
+      end
+      return dreams
+    else
+      @@instances[ @@instance_pointer ].dreams(*args, &block)
+    end
+  end
+  
+  # +name+ of the Drill associated to this Dream
+  # +output+ A String or Array of expected output. A Dream object will be created using this value (optional)
+  # +definition+ is a block which will be run on an instance of Dream
+  #
+  # NOTE: This method is DSL-only. It's not intended to be used in OO syntax. 
+  def dream(name, output=nil, format=:string, rcode=0, emsg=nil, &definition)
+    if output.nil?
+      dobj = Tryouts::Drill::Dream.from_block definition
+    else
+      dobj = Tryouts::Drill::Dream.new(output)
+      dobj.format, dobj.rcode, dobj.emsg = format, rcode, emsg
+    end
+    @dreams[@dream_pointer][name] = dobj
+  end
+  def self.dream(*args, &block)
+    @@instances[ @@instance_pointer ].dream(*args, &block)
+  end
+  
+  # Populate @@dreams with the content of the file +dpath+. 
+  def load_dreams_file(dpath)
+    type = File.extname dpath
+    if type == ".yaml" || type == ".yml"
+      @dreams = YAML.load_file dpath
+    elsif type == ".json" || type == ".js"
+      @dreams = JSON.load_file dpath
+    elsif type == ".rb"
+      @dreams = instance_eval File.read(dpath)
+    else
+      raise BadDreams, "Unknown kind of dream: #{dpath}"
+    end
+    @dreams
   end
   
   
@@ -169,7 +244,14 @@ class Tryouts
     end
   end
   
-
+  def self.inherited(klass)
+    to = Tryouts.new
+    to.group = klass
+    @@instance_pointer = to.group
+    @@instances[ @@instance_pointer ] = to
+  end
+  
+  
   ##---
   ## Is this wacky syntax useful for anything?
   ##    t2 :set .
@@ -179,63 +261,6 @@ class Tryouts
   ## end
   ##+++
   
-  # Load dreams from a file, directory, or Hash.
-  # Raises a Tryouts::BadDreams exception when something goes awry. 
-  #
-  # This method is used in two ways:
-  # * In the dreams file DSL
-  # * As a getter method on a Tryout object
-  def dreams(group=nil, &definition)
-    return @dreams unless group
-    if File.exists?(group)
-      dfile = group
-      # If we're given a directory we'll build the filename using the class name
-      dfile = self.class.find_dreams_file(group) if File.directory?(group)
-      raise BadDreams, "Cannot find dreams file (#{group})" unless dfile
-      @dreams = load_dreams_file dfile
-    elsif group.kind_of?(Hash)
-      @dreams = group
-    elsif group.kind_of?(String) && definition  
-      @dream_pointer = group  # Used in Tryouts.dream
-      @dreams[ @dream_pointer ] ||= {}
-      definition.call
-    else
-      raise BadDreams, group
-    end
-    @dreams
-  end
-  
-  # +name+ of the Drill associated to this Dream
-  # +output+ A String or Array of expected output. A Dream object will be created using this value (optional)
-  # +definition+ is a block which will be run on an instance of Dream
-  #
-  # NOTE: This method is DSL-only. It's not intended to be used in OO syntax. 
-  def dream(name, output=nil, format=:string, rcode=0, emsg=nil, &definition)
-    if output.nil?
-      dobj = Tryouts::Drill::Dream.from_block definition
-    else
-      dobj = Tryouts::Drill::Dream.new(output)
-      dobj.format, dobj.rcode, dobj.emsg = format, rcode, emsg
-    end
-    @dreams[@dream_pointer][name] = dobj
-  end
-  
-  
-  # Populate @@dreams with the content of the file +dpath+. 
-  def load_dreams_file(dpath)
-    type = File.extname dpath
-    if type == ".yaml" || type == ".yml"
-      @dreams = YAML.load_file dpath
-    elsif type == ".json" || type == ".js"
-      @dreams = JSON.load_file dpath
-    elsif type == ".rb"
-      @dreams = instance_eval File.read(dpath)
-    else
-      raise BadDreams, "Unknown kind of dream: #{dpath}"
-    end
-    @dreams
-  end
-
   # Find a dreams file in the directory +dir+ based on the current group name.
   # The expected filename format is: groupname_dreams.ext where "groupname" is
   # the lowercase name of the Tryouts group (spaces removed) and "ext" is one 
