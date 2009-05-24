@@ -1,13 +1,92 @@
-= Tryouts - v0.5
+= Tryouts - v0.5 ALPHA
 
-Tryouts are high-level tests for your Ruby code. May all your dreams come true!
+Tryouts is a high-level testing library for your command-line applications and Ruby codes.
 
-Please Note: this library has not yet been released. There are still a lot of rough edges. 
+*WORK IN PROGRESS*
 
+A BBQ started nearby as I was writing this documentation. It's incomplete and I'm sorry about that but I can tell you that this BBQ smells really, really good. 
+
+
+== Terminology
+
+Tryouts is a bit different than other testing libraries. Test definitions are organized in a similar way as Shoulda tests (although the keywords in the syntax are different). 
+
+* Tryout: a set of drills.
+* Drill: a test, like a basketball. 
+
+
+== Testing Ruby codes (an API)
+
+
+== Testing a command-line application (a CLI)
+
+Tryouts tests command-line applications by comparing expected output with the actual output. Let's say we have an executable called mockout and we want to test the following commands:
+
+    $ bin/mockout
+    $ bin/mockout info 
+    $ bin/mockout -f yaml info
+    
+The tryout definition would look like this:
+
+    command :mockout, "bin/mockout"
+    
+    tryout "common usage", :cli do
+      drill  "no command"
+      drill     "no args",             :info
+      drill "yaml output", :f, "yaml", :info
+    end
+    
+And the expected output would be defined like this:
+
+    dreams "common usage" do
+      dream "no command" do
+        output inline(%Q{
+              Date:                                   2009-02-16
+           Players:            d-bam, alberta, birds, condor man
+           Coaches:               greg|rupaul|telly|prince kinko
+        })
+      end
+    end
+    
+== ALPHA Notice
+
+This library is very new (est. 2009-05-19) and has not been vetted by the scrutiny of time. In particular you can expect:
+
+* Ugly/awkward output from the tryouts executable. I wrote the core functionality that I needed to start writing tryouts for my other projects. I haven't spent very much time on reporting yet. However, this will change!
+* The test definition syntax may change in future releases. 
+* Unexpected errors. 
+
+== 3 Ways to define tryouts
+There are three ways to define an instance of this class:
+* In +_tryouts.rb+ files using the DSL syntax. One file per Tryouts object. 
+  * See: http://github.com/delano/tryouts/blob/master/tryouts/mockoutcli_tryouts.rb
+* In standalone ruby files using a hybrid DSL/OO syntax. Supports multiple 
+  Tryouts objects per file. 
+  * See: http://github.com/delano/tryouts/blob/master/tryouts/standalone_test.rb
+* With regular object-oriented syntax.
+  * See: http://tryouts.rubyforge.org/
+
+== On Threads
+
+Tryouts does some funky stuff to make it simple to write and run tests. This "funky 
+stuff" means that this library is *not thread-safe at definition-time*. However, once 
+all tryouts files are parsed (or in OO-syntax, once all objects are created), this
+class should be *thread-safe at drill-time*. 
+
+== Thanks
+
+* Everyone at Utrecht.rb 
 
 == Credits
 
 * Delano (@solutious.com)
+
+== Related Projects
+
+* Context[http://github.com/jeremymcanally/context/tree/master]
+* Testy[http://github.com/ahoward/testy/tree/master]
+* Expectations[http://expectations.rubyforge.org/]
+* Zebra[http://github.com/giraffesoft/zebra/tree/master]
 
 == License
 

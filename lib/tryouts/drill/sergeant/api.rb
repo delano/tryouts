@@ -1,7 +1,12 @@
 
 
 
-module Tryouts::Drill::Sergeant
+class Tryouts; class Drill; module Sergeant
+  
+  # = API
+  # 
+  # The sergeant responsible for running Ruby code (API) drills.
+  #
   class API
     
     def initialize(*args)
@@ -27,4 +32,4 @@ module Tryouts::Drill::Sergeant
     end
     
   end
-end
+end; end; end

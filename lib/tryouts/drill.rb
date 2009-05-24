@@ -1,14 +1,20 @@
 
 
-class Tryouts::Drill
+class Tryouts
+  
+  # = Drill
+  # 
+  # This class represents a drill. A drill is single test. 
+  #
+  class Drill
   
   require 'tryouts/drill/response'
   require 'tryouts/drill/sergeant/cli'
   require 'tryouts/drill/sergeant/api'
   
-  class NoSergeant < RuntimeError; end
+  class NoSergeant < Tryouts::Exception; end
     
-    # A symbol specifying the drill type. One of: :cli
+    # A symbol specifying the drill type. One of: :cli, :api
   attr_reader :dtype
     # The name of the drill. This should match the name used in the dreams file. 
   attr_reader :name
@@ -17,9 +23,9 @@ class Tryouts::Drill
   
     # A Sergeant object which executes the drill
   attr_reader :sergeant
-    # A Dream object
+    # A Dream object (the expected output of the test)
   attr_reader :dream
-    # A Reality object
+    # A Reality object (the actual output of the test)
   attr_reader :reality
       
   def initialize(name, dtype, *drill_args, &drill)
@@ -93,4 +99,5 @@ class Tryouts::Drill
     
     #p [:process, @name, @dream.format, @reality.output]
   end
-end
+  
+end; end

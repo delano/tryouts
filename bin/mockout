@@ -20,10 +20,10 @@ module DrillCLI
   #  @verbose = v
   #end
   
-  default :sergeant
+  default :info
   
   option :e, :echo, "Echo the arguments"
-  command :sergeant do |obj|
+  command :info do |obj|
     format = obj.global.format.nil? ? nil : "to_#{obj.global.format}"
     format = nil if obj.global.format == 'string'
     out = StringIO.new

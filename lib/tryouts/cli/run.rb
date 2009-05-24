@@ -1,5 +1,9 @@
 
-module Tryouts::CLI
+class Tryouts; module CLI
+  
+  # = Run
+  #
+  # The logic bin/tryouts uses for running tryouts. 
   class Run < Drydock::Command
 
     def init
@@ -37,4 +41,4 @@ module Tryouts::CLI
       @tryouts_files.each { |file| Tryouts.parse_file file }
     end
   end
-end
+end; end

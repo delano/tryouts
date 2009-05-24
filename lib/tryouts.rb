@@ -10,12 +10,25 @@ GYMNASIUM_GLOB = File.join(GYMNASIUM_HOME, '**', '*_tryouts.rb')
 
 
 # = Tryouts
+# 
+# This class has three purposes:
+# * It represents the Tryouts object which is a group of Tryout objects. 
+# * The tryouts and dreams DSLs are executed within its namespace. In general the 
+#   class methods are the handlers for the DSL syntax (some instance getter methods 
+#   are modified to support DSL syntax by acting like setters when given arguments)
+# * It stores all known instances of Tryouts objects in a class variable @@instances.
 #
+# ==== Are you ready to run some drills?
 #
-# NOTE: This class is not thread-safe
+# May all your dreams come true!
 #
 class Tryouts
-  class BadDreams < RuntimeError; end
+  # = Exception
+  # A generic exception which all other Tryouts exceptions inherit from.
+  class Exception < RuntimeError; end
+  # = BadDreams
+  # Raised when there is a problem loading or parsing a Tryouts::Drill::Dream object
+  class BadDreams < Exception; end
   
   VERSION = "0.5"
   
@@ -51,6 +64,7 @@ class Tryouts
     # The name of the most recent dreams group (see self.dream)
   attr_accessor :dream_pointer
   
+  # Returns +@@instances+
   def self.instances; @@instances; end
 
   def initialize(group=nil)
@@ -69,13 +83,11 @@ class Tryouts
     instance_eval &b
   end
   
-  def report
-    @tryouts.each { |to| to.report }
-  end
+  # Execute Tryout#report for each Tryout in +@tryouts+
+  def report; @tryouts.each { |to| to.report }; end
   
-  def run
-    @tryouts.each { |to| to.run }
-  end
+  # Execute Tryout#run for each Tryout in +@tryouts+
+  def run; @tryouts.each { |to| to.run }; end
   
   # Add a shell command to Rye::Cmd and save the command name
   # in @@commands so it can be used as the default for drills
@@ -89,6 +101,9 @@ class Tryouts
     end
     @command
   end
+  # Calls Tryouts#command on the current instance of Tryouts
+  #
+  # NOTE: this is a standalone DSL-syntax method. 
   def self.command(*args)
     @@instances[ @@instance_pointer ].command(*args)
   end
@@ -103,6 +118,9 @@ class Tryouts
     @library = name.to_sym
     require path.nil? ? @library : path
   end
+  # Calls Tryouts#library on the current instance of Tryouts
+  #
+  # NOTE: this is a standalone DSL-syntax method.
   def self.library(*args)
     @@instances[ @@instance_pointer ].library(*args)
   end
@@ -115,6 +133,10 @@ class Tryouts
     self.load_dreams_file(dfile) if dfile
     @group
   end
+  # Raises a Tryouts::Exception. +group+ is not support in the standalone syntax
+  # because the group name is take from the name of the class. See inherited. 
+  #
+  # NOTE: this is a standalone DSL-syntax method.
   def self.group(*args)
     raise "Group is already set: #{@@instances[ @@instance_pointer ].group}"
   end
@@ -139,14 +161,20 @@ class Tryouts
     @map[name] = @tryouts.size - 1
     to
   end
+  # Calls Tryouts#tryout on the current instance of Tryouts
+  #
+  # NOTE: this is a standalone DSL-syntax method.
   def self.tryout(*args, &block)
     @@instances[ @@instance_pointer ].tryout(*args, &block)
   end
   
-  # Ignore a tryout
+  # This method does nothing. It provides a quick way to disable a tryout.
   #
   # NOTE: This is a DSL-only method and is not intended for OO use.
   def xtryout(*args, &block); end
+  # This method does nothing. It provides a quick way to disable a tryout.
+  #
+  # NOTE: this is a standalone DSL-syntax method.
   def self.xtryout(*args, &block); end
   
   # Load dreams from a file, or Hash.
@@ -174,6 +202,10 @@ class Tryouts
     end
     @dreams
   end
+  # Without arguments, returns a Hash of all known dreams.
+  # With arguments, it calls Tryouts#dreams on the current instance of Tryouts. 
+  #
+  # NOTE: this is a standalone DSL-syntax method.
   def self.dreams(*args, &block)
     if args.empty? && block.nil?
       dreams = {}
@@ -190,6 +222,7 @@ class Tryouts
   # +output+ A String or Array of expected output. A Dream object will be created using this value (optional)
   # +definition+ is a block which will be run on an instance of Dream
   #
+  #
   # NOTE: This method is DSL-only. It's not intended to be used in OO syntax. 
   def dream(name, output=nil, format=:string, rcode=0, emsg=nil, &definition)
     if output.nil?
@@ -200,11 +233,16 @@ class Tryouts
     end
     @dreams[@dream_pointer][name] = dobj
   end
+  # Calls Tryouts#dream on the current instance of Tryouts
+  #
+  # NOTE: this is a standalone DSL-syntax method.
   def self.dream(*args, &block)
     @@instances[ @@instance_pointer ].dream(*args, &block)
   end
   
   # Populate @@dreams with the content of the file +dpath+. 
+  #
+  # NOTE: this is an OO syntax method
   def load_dreams_file(dpath)
     type = File.extname dpath
     if type == ".yaml" || type == ".yml"
@@ -219,9 +257,9 @@ class Tryouts
     @dreams
   end
   
-  
-  ## ----------------------------  CLASS METHODS  -----
-  
+  # Parse a +_tryouts.rb+ file. See Tryouts::CLI::Run for an example. 
+  #
+  # NOTE: this is an OO syntax method
   def self.parse_file(fpath)
     raise "No such file: #{fpath}" unless File.exists?(fpath)
     to = Tryouts.new
@@ -230,10 +268,11 @@ class Tryouts
     @@instances[ @@instance_pointer ] = to
   end
   
+  # Run all Tryout objects in +@tryouts+
+  #
+  # NOTE: this is an OO syntax method
   def self.run
     @@instances.each_pair do |group, inst|
-      #p inst.dreams
-      #next
       puts "-"*60
       puts "Tryouts for #{group}"
       inst.tryouts.each do |to|
@@ -244,6 +283,11 @@ class Tryouts
     end
   end
   
+  # Called when a new class inherits from Tryouts. This creates a new instance
+  # of Tryouts, sets group to the name of the new class, and adds the instance
+  # to +@@instances+. 
+  #
+  # NOTE: this is a standalone DSL-syntax method.
   def self.inherited(klass)
     to = Tryouts.new
     to.group = klass

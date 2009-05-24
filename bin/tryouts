@@ -9,6 +9,9 @@ require 'drydock'
 require 'tryouts'
 require 'tryouts/cli'
 
+# = TryoutsCLI
+#
+# This is the Drydock definition for the bin/tryouts executable
 module TryoutsCLI
   extend Drydock
   

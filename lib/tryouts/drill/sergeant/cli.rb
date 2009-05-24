@@ -1,6 +1,11 @@
 
 
-module Tryouts::Drill::Sergeant
+class Tryouts; class Drill; module Sergeant
+  
+  # = CLI
+  # 
+  # The sergeant responsible for running command-line interface drills.
+  #
   class CLI
   
     attr_reader :rbox
@@ -40,4 +45,5 @@ module Tryouts::Drill::Sergeant
     end
     
   end
-end
+  
+end; end; end
