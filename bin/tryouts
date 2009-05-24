@@ -31,4 +31,8 @@ module TryoutsCLI
   argv :files
   command :dreams => Tryouts::CLI::Run
   
+  about "Show tryouts available from the current working directory"
+  argv :files
+  command :list => Tryouts::CLI::Run
+  
 end
