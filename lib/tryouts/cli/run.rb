@@ -12,7 +12,19 @@ class Tryouts; module CLI
     
     def dreams
       load_available_tryouts_files
-      puts Tryouts.dreams.to_yaml
+      if @global.verbose > 0
+        puts Tryouts.dreams.to_yaml
+      else
+        Tryouts.dreams.each_pair do |n,dreams|
+          puts n
+          dreams.each_pair do |n, dream|
+            puts "  " << n
+            dream.each_pair do |n, drill|
+              puts "    " << n
+            end
+          end
+        end
+      end
     end
     
     def run
@@ -20,6 +32,22 @@ class Tryouts; module CLI
       Tryouts.run
     end
     
+    def list
+      load_available_tryouts_files
+      if @global.verbose > 0
+        puts Tryouts.instances.to_yaml
+      else
+        Tryouts.instances.each_pair do |n,tryouts|
+          puts n
+          tryouts.tryouts.each do |tryout|
+            puts "  " << tryout.name
+            tryout.drills.each do |drill|
+              puts "    " << drill.name
+            end
+          end
+        end
+      end
+    end
     
   private 
     def load_available_tryouts_files
