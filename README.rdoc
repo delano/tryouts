@@ -11,8 +11,8 @@ Tryouts is a high-level testing library for your command-line applications and R
 
 Tryouts is a bit different than other testing libraries. Test definitions are organized in a similar way as Shoulda tests (although the keywords in the syntax are different). 
 
-* Tryout: a set of drills.
-* Drill: a test, like a basketball. 
+* Tryout: a set of drills (like basketball tryouts)
+* Drill: a test. 
 * Dream: the expected outcome of a drill. 
 
 
@@ -95,6 +95,12 @@ Tryouts does some funky stuff to make it simple to write tests. This "funky
 stuff" means that this library is *not thread-safe at definition-time*. However, once 
 all tryouts files are parsed (or in OO-syntax, once all objects are created), this
 class should be *thread-safe at drill-time*. 
+
+== More Info
+
+* Check out the sourcecodes[http://github.com/delano/tryouts]
+* Read the rdocs[http://tryouts.rubyforge.org/]
+* About Solutious[http://solutious.com/about/]
 
 == Thanks
 
