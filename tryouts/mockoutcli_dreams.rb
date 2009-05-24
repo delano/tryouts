@@ -1,19 +1,18 @@
 
-dreams 'common usage' do
-  dream 'no args' do
+dreams "Common Usage" do
+  dream "No args" do
     output inline(%Q{
-          Date:                                   2009-02-16
-       Players:            d-bam, alberta, birds, condor man
-       Coaches:               greg|rupaul|telly|prince kinko
+         Date:                                   2009-02-16
+       Owners:            greg, rupaul, telly, prince kinko
+      Players:            d-bam, alberta, birds, condor man
     })
   end
-  dream 'yaml output' do
-    rcode 0
+  dream "YAML Output" do
     format :yaml
-    output inline(%Q{
-          Date:                                   2009-02-16
-       Players:            d-bam, alberta, birds, condor man
-       Coaches:               greg|rupaul|telly|prince kinko
+    output ({
+      "Date" => "2009-02-16",
+      "Players" => ["d-bam", "alberta", "birds", "condor man"],
+      "Owners" => ["greg", "rupaul", "telly", "prince kinko"]
     })
   end
 end

@@ -16,32 +16,34 @@ module DrillCLI
   extend Drydock
   
   global :f, :format, String, "One of: json, yaml, string (default)"
-  #global :V, :verbose do |v|
-  #  @verbose = v
-  #end
+  
   
   default :info
+  debug :on
+  
+  data = {
+    "Date" => "2009-02-16",
+    "Owners" => ["greg", "rupaul", "telly", "prince kinko"],
+    "Players" => ["d-bam", "alberta", "birds", "condor man"]
+  }
   
   option :e, :echo, "Echo the arguments"
   command :info do |obj|
     format = obj.global.format.nil? ? nil : "to_#{obj.global.format}"
     format = nil if obj.global.format == 'string'
-    out = StringIO.new
     if obj.option.echo
-      out.puts obj.argv
+      puts obj.argv
     else
-      players = ['d-bam', 'alberta', 'birds', 'condor man']
-      coaches = ['greg', 'rupaul', 'telly', 'prince kinko']
-      #out.puts '#'*54
-      out.puts "%9s %44s" % ["Date:", "2009-02-16"]
-      #out.puts '='*54
-      out.puts "%9s %44s" % ["Players:", players.join(', ')]
-      #out.puts '-'*54
-      out.puts "%9s %44s" % ["Coaches:", coaches.join('|')]
+      if format.nil?
+        data.keys.sort.each do |n|
+          val = data[n]
+          val = val.join(', ') if val.is_a?(Array)
+          puts "%9s %44s" % ["#{n}:", val]
+        end
+      else
+        puts data.send(format)
+      end
     end
-    out.rewind
-    ary = out.readlines
-    puts format.nil? ? ary : ary.send(format)
   end
   
 end
