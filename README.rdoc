@@ -38,7 +38,7 @@ And the expected output would be defined like this:
       output inline(%Q{
             Date:                                   2009-02-16
          Players:            d-bam, alberta, birds, condor man
-         Coaches:            greg, rupaul, telly, prince kinko
+          Owners:            greg, rupaul, telly, prince kinko
       })
     end
     dream "YAML Output" do
