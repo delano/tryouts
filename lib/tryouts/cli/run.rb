@@ -51,17 +51,19 @@ class Tryouts; module CLI
     
   private 
     def load_available_tryouts_files
+      @tryouts_files = []
+      
       if @argv.files
         @argv.files.each do |file|
           file = File.join(file, '**', '*_tryouts.rb') if File.directory?(file)
-          @tryouts_globs += file
+          @tryouts_files += Dir.glob file
+        end
+      else
+        @tryouts_globs.each do |glob|
+          @tryouts_files += Dir.glob glob
         end
       end
-
-      @tryouts_files = []
-      @tryouts_globs.each do |glob|
-        @tryouts_files += Dir.glob glob
-      end
+      
       @tryouts_files.uniq!
 
       puts "FOUND:", @tryouts_files if @global.verbose > 0

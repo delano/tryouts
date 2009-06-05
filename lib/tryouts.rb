@@ -30,7 +30,7 @@ class Tryouts
   # Raised when there is a problem loading or parsing a Tryouts::Drill::Dream object
   class BadDreams < Exception; end
   
-  VERSION = "0.5"
+  VERSION = "0.4.0"
   
   require 'tryouts/mixins'
   require 'tryouts/tryout'
@@ -111,12 +111,13 @@ class Tryouts
   
   # Require +name+. If +path+ is supplied, it will "require path". 
   # * +name+ The name of the library in question (required). Stored as a Symbol to +@library+.
-  # * +path+ The path to the library (optional). Use this if you want to load
-  # a specific copy of the library. Otherwise, it loads from the system path
+  # * +path+ Add a path to the front of $LOAD_PATH (optional). Use this if you want to load
+  # a specific copy of the library. Otherwise, it loads from the system path.
   def library(name=nil, path=nil)
     return @library if name.nil?
     @library = name.to_sym
-    require path.nil? ? @library : path
+    $LOAD_PATH.unshift path unless path.nil?
+    require @library.to_s
   end
   # Calls Tryouts#library on the current instance of Tryouts
   #
@@ -183,22 +184,24 @@ class Tryouts
   # This method is used in two ways:
   # * In the dreams file DSL
   # * As a getter method on a Tryout object
-  def dreams(group=nil, &definition)
-    return @dreams unless group
-    if File.exists?(group)
-      dfile = group
+  def dreams(tryout_name=nil, &definition)
+    return @dreams unless tryout_name
+    if File.exists?(tryout_name)
+      dfile = tryout_name
       # If we're given a directory we'll build the filename using the class name
-      dfile = self.class.find_dreams_file(group) if File.directory?(group)
-      raise BadDreams, "Cannot find dreams file (#{group})" unless dfile
+      if File.directory?(tryout_name)
+        dfile = self.class.find_dreams_file(tryout_name, group) 
+      end
+      raise BadDreams, "Cannot find dreams file (#{tryout_name})" unless dfile
       @dreams = load_dreams_file dfile
-    elsif group.kind_of?(Hash)
-      @dreams = group
-    elsif group.kind_of?(String) && definition  
-      @dream_pointer = group  # Used in Tryouts.dream
+    elsif tryout_name.kind_of?(Hash)
+      @dreams = tryout_name
+    elsif tryout_name.kind_of?(String) && definition  
+      @dream_pointer = tryout_name  # Used in Tryouts.dream
       @dreams[ @dream_pointer ] ||= {}
       definition.call
     else
-      raise BadDreams, group
+      raise BadDreams, tryout_name
     end
     @dreams
   end

@@ -19,6 +19,7 @@ class Tryouts::Drill
       @emsg == other.emsg &&
       compare_output(other)
     end
+    
     def rcode(val=nil); @rcode = val unless val.nil?; normalize!; @rcode; end
     def output(val=nil); @output = val unless val.nil?; normalize!; @output; end
     def emsg(val=nil); @emsg = val unless val.nil?; normalize!; @emsg; end
@@ -42,11 +43,9 @@ class Tryouts::Drill
       
       if @format == :class
         if @output.is_a?(Class)
-          klass = @output 
-          payload = other.output
+          klass, payload = @output, other.output
         elsif other.output.is_a?(Class)
-          klass = other.output 
-          payload = @output
+          klass, payload = other.output, @output
         end
         return payload.is_a?(klass)
       end
@@ -55,11 +54,9 @@ class Tryouts::Drill
         return false unless @output.size == other.output.size
       
         if @output.first.is_a?(Regexp)
-          expressions = @output 
-          strings = other.output
+          expressions, strings = @output, other.output
         elsif other.output.first.is_a?(Regexp)
-          expressions = other.output 
-          strings = @output
+          expressions, strings = other.output, @output
         end
       
         if !expressions.nil? && !strings.nil?
