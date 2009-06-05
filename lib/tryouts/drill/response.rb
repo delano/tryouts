@@ -94,8 +94,9 @@ class Tryouts::Drill
     # Takes a String +val+ and splits the lines into an Array. Each line
     # has 
     def inline(val=nil)
-      lines = (val.split($/) || []).collect { |line| line.strip }
-      lines.reject! { |line| line == "" }
+      lines = (val.split($/) || [])
+      lines.shift if lines.first.strip == ""
+      lines.pop if lines.last.strip == ""
       lines
     end
   end

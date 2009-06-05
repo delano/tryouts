@@ -90,13 +90,6 @@ class Tryouts
       @reality.output = JSON.load(@reality.output.join("\n"))
     end
     
-    if @reality.output.is_a?(Array)
-      # Remove new lines from String output
-      @reality.output = @reality.output.collect do |line|
-        line.is_a?(String) ? line.strip : line
-      end
-    end
-    
     #p [:process, @name, @dream.format, @reality.output]
   end
   
