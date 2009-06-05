@@ -154,7 +154,6 @@ class Tryouts
       dobj.format, dobj.rcode, dobj.emsg = format, rcode, emsg
     end
     @dreams[name] = dobj
-    
     dobj
   end
 

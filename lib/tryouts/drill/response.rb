@@ -9,7 +9,7 @@ class Tryouts::Drill
     def initialize(output=nil, format=nil, rcode=0)
       @output, @format, @rcode = output, format, (rcode || 0)
       @format ||= :string
-      @output ||= []
+      @output = [] if @output.nil?
       normalize!
     end
     

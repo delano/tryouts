@@ -116,6 +116,7 @@ class Tryouts
   def library(name=nil, path=nil)
     return @library if name.nil?
     @library = name.to_sym
+    @dtype = :api
     $LOAD_PATH.unshift path unless path.nil?
     require @library.to_s
   end
@@ -149,16 +150,22 @@ class Tryouts
   # * +b+ is a block definition for the Tryout. See Tryout#from_block
   #
   # NOTE: This is a DSL-only method and is not intended for OO use. 
-  def tryout(name, type=nil, command=nil, &block)
+  def tryout(name, dtype=nil, command=nil, &block)
     return if name.nil?
-    type ||= @dtype
-    command ||= @command if type == :cli
-    to = Tryouts::Tryout.new(name, type, command)
+    dtype ||= @dtype
+    command ||= @command if dtype == :cli
+    
+    to = find_tryout(name, dtype)
+    if to.nil?
+      to = Tryouts::Tryout.new(name, dtype, command)
+      @tryouts << to
+    end
+    
     # Populate the dreams if they've already been loaded
     to.dreams = @dreams[name] if @dreams.has_key?(name)
     # Process the rest of the DSL
     to.from_block block if block
-    @tryouts << to
+    
     @map[name] = @tryouts.size - 1
     to
   end
@@ -167,6 +174,11 @@ class Tryouts
   # NOTE: this is a standalone DSL-syntax method.
   def self.tryout(*args, &block)
     @@instances[ @@instance_pointer ].tryout(*args, &block)
+  end
+  
+  def find_tryout(name, dtype)
+    type ||= :cli
+    @tryouts.select { |t| t.name == name && t.dtype == dtype }.first
   end
   
   # This method does nothing. It provides a quick way to disable a tryout.
@@ -178,12 +190,12 @@ class Tryouts
   # NOTE: this is a standalone DSL-syntax method.
   def self.xtryout(*args, &block); end
   
-  # Load dreams from a file, or Hash.
+  # Load dreams from a file or directory
   # Raises a Tryouts::BadDreams exception when something goes awry. 
   #
   # This method is used in two ways:
   # * In the dreams file DSL
-  # * As a getter method on a Tryout object
+  # * As a getter method on a Tryouts object
   def dreams(tryout_name=nil, &definition)
     return @dreams unless tryout_name
     if File.exists?(tryout_name)
@@ -194,12 +206,18 @@ class Tryouts
       end
       raise BadDreams, "Cannot find dreams file (#{tryout_name})" unless dfile
       @dreams = load_dreams_file dfile
-    elsif tryout_name.kind_of?(Hash)
-      @dreams = tryout_name
-    elsif tryout_name.kind_of?(String) && definition  
-      @dream_pointer = tryout_name  # Used in Tryouts.dream
-      @dreams[ @dream_pointer ] ||= {}
-      definition.call
+    ## NOTE: Use the tryout method for defining dreams
+    ## 
+    ## tryout "Name" do
+    ##   dream "drill name" ...
+    ## end
+    ##
+    ##elsif tryout_name.kind_of?(Hash)
+    ##  @dreams = tryout_name
+    ##elsif tryout_name.kind_of?(String) && definition  
+    ##  @dream_pointer = tryout_name  # Used in Tryouts.dream
+    ##  @dreams[ @dream_pointer ] ||= {}
+    ##  definition.call
     else
       raise BadDreams, tryout_name
     end
