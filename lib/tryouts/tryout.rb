@@ -50,8 +50,9 @@ class Tryouts
   
   # Populate this Tryout from a block. The block should contain calls to 
   # the external DSL methods: dream, drill, xdrill
-  def from_block(b, &inline)
-    instance_eval &b
+  def from_block(b=nil, &inline)
+    runtime = b.nil? ? inline : b
+    instance_eval &runtime
   end
   
   # Execute all Drill objects
@@ -94,7 +95,8 @@ class Tryouts
       end
       
       if drill.reality.rcode > 0
-        puts '%24s: %s' % ["backtrace", drill.reality.backtrace.inspect]
+        puts '%24s: ' % ["backtrace"]
+        puts drill.reality.backtrace, $/
       end
     end
   end
@@ -160,9 +162,9 @@ class Tryouts
   # Create and add a Drill object to the list for this Tryout
   # +name+ is the name of the drill. 
   # +args+ is sent directly to the Drill class. The values are specific on the Sergeant.
-  def drill(name, *args, &b)
+  def drill(name, *args, &definition)
     args.unshift(@command) if @dtype == :cli
-    drill = Tryouts::Drill.new(name, @dtype, *args, &b)
+    drill = Tryouts::Drill.new(name, @dtype, *args, &definition)
     add_drill drill
   end
   def xdrill(*args, &b); end # ignore calls to xdrill

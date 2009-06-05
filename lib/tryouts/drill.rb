@@ -32,6 +32,7 @@ class Tryouts
     @name, @dtype, @drill = name, dtype, drill
     @sergeant = hire_sergeant *drill_args
     # For CLI drills, a block takes precedence over inline args. 
+    # A block will contain multiple shell commands (see Rye::Box#batch)
     drill_args = [] if dtype == :cli && drill.is_a?(Proc)
   end
   
@@ -39,7 +40,7 @@ class Tryouts
     if @dtype == :cli
       Tryouts::Drill::Sergeant::CLI.new(*drill_args)
     elsif @dtype == :api
-      Tryouts::Drill::Sergeant::API.new(*drill_args)
+      Tryouts::Drill::Sergeant::API.new(drill_args.first)
     else
       raise NoSergeant, "What is #{@dtype}?"
     end

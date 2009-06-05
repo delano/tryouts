@@ -163,6 +163,7 @@ class Tryouts
     
     # Populate the dreams if they've already been loaded
     to.dreams = @dreams[name] if @dreams.has_key?(name)
+    
     # Process the rest of the DSL
     to.from_block block if block
     
@@ -190,7 +191,8 @@ class Tryouts
   # NOTE: this is a standalone DSL-syntax method.
   def self.xtryout(*args, &block); end
   
-  # Load dreams from a file or directory
+  # Load dreams from a file or directory or if a block is given
+  # it's processed 
   # Raises a Tryouts::BadDreams exception when something goes awry. 
   #
   # This method is used in two ways:
@@ -198,6 +200,12 @@ class Tryouts
   # * As a getter method on a Tryouts object
   def dreams(tryout_name=nil, &definition)
     return @dreams unless tryout_name
+    
+    #
+    # dreams "path/2/dreams"
+    #  OR
+    # dreams "path/2/file_of_dreams.rb"
+    #
     if File.exists?(tryout_name)
       dfile = tryout_name
       # If we're given a directory we'll build the filename using the class name
@@ -206,18 +214,22 @@ class Tryouts
       end
       raise BadDreams, "Cannot find dreams file (#{tryout_name})" unless dfile
       @dreams = load_dreams_file dfile
-    ## NOTE: Use the tryout method for defining dreams
-    ## 
-    ## tryout "Name" do
-    ##   dream "drill name" ...
-    ## end
-    ##
-    ##elsif tryout_name.kind_of?(Hash)
-    ##  @dreams = tryout_name
-    ##elsif tryout_name.kind_of?(String) && definition  
-    ##  @dream_pointer = tryout_name  # Used in Tryouts.dream
-    ##  @dreams[ @dream_pointer ] ||= {}
-    ##  definition.call
+    
+    #
+    # dreams "Tryout Name" do
+    #   dream "drill name" ...
+    # end
+    #
+    elsif tryout_name.kind_of?(String) && definition  
+      to = find_tryout(@dream_pointer, @dtype)
+      if to.nil?
+        @dream_pointer = tryout_name  # Used in Tryouts.dream
+        @dreams[ @dream_pointer ] ||= {}
+        definition.call
+      else
+        p tryout_name
+        to.from_block &definition
+      end
     else
       raise BadDreams, tryout_name
     end
@@ -235,6 +247,7 @@ class Tryouts
       end
       return dreams
     else
+      # Call the Tryouts#dreams instance method
       @@instances[ @@instance_pointer ].dreams(*args, &block)
     end
   end
@@ -243,16 +256,29 @@ class Tryouts
   # +output+ A String or Array of expected output. A Dream object will be created using this value (optional)
   # +definition+ is a block which will be run on an instance of Dream
   #
+  # This method is different than Tryout#dream because this one stores
+  # dreams inside an instance variable of the current Tryouts object.
+  # This allows for the situation where the dreams block appears before
+  # the tryout block. See Tryouts#tryout
   #
   # NOTE: This method is DSL-only. It's not intended to be used in OO syntax. 
   def dream(name, output=nil, format=:string, rcode=0, emsg=nil, &definition)
-    if output.nil?
-      dobj = Tryouts::Drill::Dream.from_block definition
+    to = find_tryout(@dream_pointer, @dtype)
+    
+    if to.nil?
+      if output.nil?
+        dobj = Tryouts::Drill::Dream.from_block definition
+      else
+        dobj = Tryouts::Drill::Dream.new(output)
+        dobj.format, dobj.rcode, dobj.emsg = format, rcode, emsg
+      end
+      @dreams[@dream_pointer][name] = dobj
     else
-      dobj = Tryouts::Drill::Dream.new(output)
-      dobj.format, dobj.rcode, dobj.emsg = format, rcode, emsg
+      # Let the Tryout object process the dream DSL.
+      # We'll get here if the dream is placed after 
+      # the drill with the same name in the same block.
+      to.dream name, output, format, rcode, emsg, &definition
     end
-    @dreams[@dream_pointer][name] = dobj
   end
   # Calls Tryouts#dream on the current instance of Tryouts
   #
