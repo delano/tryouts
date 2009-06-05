@@ -221,13 +221,13 @@ class Tryouts
     # end
     #
     elsif tryout_name.kind_of?(String) && definition  
-      to = find_tryout(@dream_pointer, @dtype)
+      
+      to = find_tryout(tryout_name, @dtype)
       if to.nil?
         @dream_pointer = tryout_name  # Used in Tryouts.dream
         @dreams[ @dream_pointer ] ||= {}
         definition.call
       else
-        p tryout_name
         to.from_block &definition
       end
     else
