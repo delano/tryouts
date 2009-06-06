@@ -41,6 +41,8 @@ class Tryouts::Drill
     def compare_output(other)
       return true if @output == other.output
       
+      p self
+      exit
       if @format == :class
         if @output.is_a?(Class)
           klass, payload = @output, other.output
