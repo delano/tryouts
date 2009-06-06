@@ -58,30 +58,29 @@ class Tryouts
   # Execute all Drill objects
   def run
     update_drills!   # Ensure all drills have all known dreams
-    DrillContext.new.instance_eval &setup if setup.is_a?(Proc)
+    DrillContext.class_eval &setup if setup.is_a?(Proc)
     puts Tryouts::TRYOUT_MSG % @name
     @drills.each do |drill|
       drill.run(DrillContext.new)      # Returns true or false
     end
-    DrillContext.new.instance_eval &clean if clean.is_a?(Proc)
+    DrillContext.class_eval &clean if clean.is_a?(Proc)
   end
   
   # Prints error output. If there are no errors, it prints nothing. 
   def report
     return true if success?
-    puts $/, "ERRORS:"
-    @drills.each do |drill|
-      next if drill.success?
-      puts Tryouts::DRILL_MSG % drill.name
-      if drill.reality.rcode < 0
-        puts '%24s' % drill.reality.emsg 
-        next
-      end
+    failed = @drills.select { |d| !d.success? }
+    failed.each_with_index do |drill,index|
+      
+      puts '%sERROR %2d/%-2d in "%s"' % [$/, index+1, failed.size, drill.name]
       
       if drill.dream
-        drill.discrepency.each do |d|
-          puts '%24s: %s' % ["dream #{d}", drill.dream.send(d).inspect]
-          puts '%24s: %s' % ["reality #{d}", drill.reality.send(d).inspect]
+        puts '%24s: %s (expected %s)' % ["response code", drill.reality.rcode, drill.dream.rcode]
+        puts '%24s: %s' % ["expected output", drill.dream.output.inspect]
+        puts '%24s: %s' % ["actual output", drill.reality.output.inspect]
+        if drill.reality.emsg || (drill.reality.emsg != drill.dream.emsg)
+          puts '%24s: %s' % ["expected error msg", drill.dream.emsg.inspect]
+            puts '%24s: %s' % ["actual error msg", drill.reality.emsg.inspect]
         end
       else
         puts '%24s' % ["[nodream]"]

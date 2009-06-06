@@ -39,8 +39,9 @@ class Tryouts
   require 'tryouts/orderedhash'
   HASH_TYPE = (RUBY_VERSION =~ /1.9/) ? ::Hash : Tryouts::OrderedHash
   
-  TRYOUT_MSG = "\n %s "
+  TRYOUT_MSG = "\n  %s "
   DRILL_MSG  = ' %30s: '
+  DRILL_ERR  = '  %s: '
   
     # An Array of +_tryouts.rb+ file paths that have been loaded.
   @@loaded_files = []
@@ -74,7 +75,6 @@ class Tryouts
     @tryouts = HASH_TYPE.new
     @paths = []
     @command = nil
-    @dtype = :cli
     @dreams = HASH_TYPE.new
     @dream_pointer = nil
   end
@@ -100,6 +100,7 @@ class Tryouts
   def command(name=nil, path=nil)
     return @command if name.nil?
     @command = name.to_sym
+    @dtype = :cli
     Rye::Cmd.module_eval do
       define_method(name) do |*args|
         cmd(path || name, *args)
@@ -160,7 +161,6 @@ class Tryouts
     return if name.nil?
     dtype ||= @dtype
     command ||= @command if dtype == :cli
-    
     to = find_tryout(name, dtype)
     if to.nil?
       to = Tryouts::Tryout.new(name, dtype, command)
@@ -168,10 +168,8 @@ class Tryouts
     end
     # Populate the dreams if they've already been loaded
     to.dreams = @dreams[name] if @dreams.has_key?(name)
-    
     # Process the rest of the DSL
     to.from_block block if block
-
     to
   end
   # Calls Tryouts#tryout on the current instance of Tryouts
@@ -180,10 +178,13 @@ class Tryouts
   def self.tryout(*args, &block)
     @@instances.last.tryout(*args, &block)
   end
-  
-  def find_tryout(name, dtype)
-    type ||= :cli
-    @tryouts.values.select { |t| t.name == name && t.dtype == dtype }.first
+
+  # Find matching Tryout objects by +name+ and filter by 
+  # +dtype+ if specified. Returns a Tryout object or nil.
+  def find_tryout(name, dtype=nil)
+    by_name = @tryouts.values.select { |t| t.name == name }
+    by_name = by_name.select { |t| t.dtype == dtype } if dtype
+    by_name.first  # by_name is an Array. We just want the Object. 
   end
   
   # This method does nothing. It provides a quick way to disable a tryout.
@@ -204,7 +205,7 @@ class Tryouts
   # * As a getter method on a Tryouts object
   def dreams(tryout_name=nil, &definition)
     return @dreams unless tryout_name
-    
+
     #
     # dreams "path/2/dreams"
     #  OR
@@ -225,7 +226,6 @@ class Tryouts
     # end
     #
     elsif tryout_name.kind_of?(String) && definition  
-      
       to = find_tryout(tryout_name, @dtype)
       
       if to.nil?

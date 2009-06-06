@@ -34,6 +34,7 @@ class Tryouts
     # For CLI drills, a block takes precedence over inline args. 
     # A block will contain multiple shell commands (see Rye::Box#batch)
     drill_args = [] if dtype == :cli && drill.is_a?(Proc)
+    @reality = Tryouts::Drill::Reality.new
   end
   
   def hire_sergeant(*drill_args)
@@ -50,7 +51,6 @@ class Tryouts
     return false if @dream.nil?
     begin
       print Tryouts::DRILL_MSG % @name
-      @reality = Tryouts::Drill::Reality.new
       @reality = @sergeant.run @drill, context
       process_reality
     rescue => ex
