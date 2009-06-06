@@ -168,26 +168,4 @@ class Tryouts
   def xdrill(*args, &b); end # ignore calls to xdrill
   
   
-  
-  
-  private
-  
-  # Convert every Hash of dream params into a Tryouts::Drill::Dream object. 
-  # DEPRECATED: This is not used anymore since we have the dreams DSL syntax.
-  def parse_dreams!
-    if @dreams.kind_of?(Hash)
-      #raise BadDreams, 'Not deep enough' unless @@dreams.deepest_point == 2
-      @dreams.each_pair do |tname, drills|
-        drills.each_pair do |dname, dream_params|
-          next if dream_params.is_a?(Tryouts::Drill::Dream)
-          dream = Tryouts::Drill::Dream.new
-          dream_params.each_pair { |n,v| dream.send("#{n}=", v) }
-          @dreams[tname][dname] = dream
-        end
-      end
-    else
-      raise BadDreams, 'Not a kind of Hash'
-    end
-  end
-  
 end; end

@@ -70,7 +70,7 @@ class Tryouts
     diffs = []
     if @dream
       diffs << "rcode" if @dream.rcode != @reality.rcode
-      diffs << "output" if @dream.output != @reality.output
+      diffs << "output" unless @dream.compare_output(@reality)
       diffs << "emsg" if @dream.emsg != @reality.emsg
     end
     diffs
@@ -85,9 +85,9 @@ class Tryouts
   def process_reality
     @reality.normalize!
     return unless @dream && @dream.format
-    if @dream.format.to_s == "to_yaml"
+    if @dream.format == :to_yaml
       @reality.output = YAML.load(@reality.output.join("\n"))
-    elsif  @dream.format.to_s == "to_json"
+    elsif  @dream.format == :to_json
       @reality.output = JSON.load(@reality.output.join("\n"))
     end
     
