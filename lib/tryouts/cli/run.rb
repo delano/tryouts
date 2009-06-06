@@ -34,7 +34,7 @@ class Tryouts; module CLI
       
       load_available_tryouts_files
 
-      successes = []
+      passed, failed = 0, 0
       Tryouts.instances.each_pair do |group,tryouts_inst|
         puts '', ' %-60s'.att(:reverse) % group
         puts "  #{tryouts_inst.paths.join("\n  ")}" if @global.verbose > 0
@@ -42,11 +42,16 @@ class Tryouts; module CLI
           to.run
           to.report
           STDOUT.flush
-          successes << to.success?
+          passed += to.passed
+          failed += to.failed
         end
       end
-      unless successes.member?(false)
-        puts $/, "All your dreams came true" unless @global.quiet
+      unless @global.quiet
+        if failed == 0
+          puts $/, " All #{passed+failed} dreams came true ".att(:reverse).color(:green)          
+        else
+          puts $/, " #{passed} of #{passed+failed} dreams came true ".att(:reverse).color(:red)
+        end
       end
     end
     
@@ -86,8 +91,8 @@ class Tryouts; module CLI
         end
       end
       @tryouts_files.uniq!  # Don't load the same file twice
+      @tryouts_files.each { |f| puts "LOADING: #{f}"} if @global.verbose > 0
       @tryouts_files.each { |file| Tryouts.parse_file file }
-      puts @tryouts_files if @global.verbose > 0
     end
   end
 end; end

@@ -9,26 +9,24 @@ class Tryouts
   
     # The name of this tryout
   attr_reader :name
-  
-    # A Hash of Dream objects for this Tryout. The keys are drill names. 
-  attr_accessor :dreams
-  
-    # An Array of Drill objects
-  attr_reader :drills
-  
     # A default value for Drill.dtype
   attr_reader :dtype
-  
+    # A block to executed one time before starting the drills
+  attr_reader :setup
+    # A block to executed one time before starting the drills
+  attr_reader :clean
+    # An Array of Drill objects
+  attr_reader :drills
+    # The number of dreams that came true (successful drills)
+  attr_reader :passed
+    # The number of dreams that did not come true (failed drills)
+  attr_reader :failed
     # For drill type :cli, this is the name of the command to test. It
     # should be a valid method available to a Rye::Box object.
     # For drill type :api, this attribute is ignored. 
   attr_reader :command
-  
-    # A block to executed one time before starting the drills
-  attr_reader :setup
-  
-    # A block to executed one time before starting the drills
-  attr_reader :clean
+    # A Hash of Dream objects for this Tryout. The keys are drill names. 
+  attr_accessor :dreams
   
   @@valid_dtypes = [:cli, :api]
   
@@ -42,8 +40,8 @@ class Tryouts
     raise "Must supply command for dtype :cli" if dtype == :cli && command.nil?
     raise "#{dtype} is not a valid drill type" if !@@valid_dtypes.member?(dtype)
     @name, @dtype, @command = name, dtype, command
-    @drills = []
-    @dreams = {}
+    @drills, @dreams = [], {}
+    @passed, @failed = 0, 0
   end
   
   ## ---------------------------------------  EXTERNAL API  -----
@@ -62,6 +60,7 @@ class Tryouts
     puts Tryouts::TRYOUT_MSG.bright % @name
     @drills.each do |drill|
       drill.run(DrillContext.new)      # Returns true or false
+      drill.success? ? @passed += 1 : @failed += 1
     end
     DrillContext.class_eval &clean if clean.is_a?(Proc)
   end
