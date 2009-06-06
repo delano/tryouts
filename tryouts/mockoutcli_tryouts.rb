@@ -7,9 +7,9 @@ command :mockout, MOCKOUT_PATH
 
 tryout "Common Usage" do
   drill  "No Command"
-  drill     "No args",             :info
-  drill "YAML Output", :f, "yaml", :info
-  drill "JSON Output", :f, "json", :info
+  drill     "No args",            :info
+  drill "YAML Output", :f, :yaml, :info
+  drill "JSON Output", :f, :json, :info
 end
 
 tryout "inline dream that passes", :cli, :mockout do

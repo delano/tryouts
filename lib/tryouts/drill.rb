@@ -85,9 +85,9 @@ class Tryouts
   def process_reality
     @reality.normalize!
     return unless @dream && @dream.format
-    if @dream.format.to_s == "yaml"
+    if @dream.format.to_s == "to_yaml"
       @reality.output = YAML.load(@reality.output.join("\n"))
-    elsif  @dream.format.to_s == "json"
+    elsif  @dream.format.to_s == "to_json"
       @reality.output = JSON.load(@reality.output.join("\n"))
     end
     

@@ -3,7 +3,6 @@ common usage:
     :format: :yaml
     :rcode: 0
   no args: 
-    :format: :string
     :rcode: 0
     :output: 
     - "    Date:                                   2009-02-16\n"

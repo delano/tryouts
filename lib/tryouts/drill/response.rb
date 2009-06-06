@@ -8,8 +8,7 @@ class Tryouts::Drill
     attr_accessor :output, :format, :rcode, :emsg, :backtrace
     def initialize(output=nil, format=nil, rcode=0)
       @output, @format, @rcode = output, format, (rcode || 0)
-      @format ||= :string
-      @output = [] if @output.nil?
+      @output = nil if @output.nil?
       normalize!
     end
     
@@ -39,37 +38,33 @@ class Tryouts::Drill
       @format = @format.to_sym if @format.is_a?(String)
     end
     def compare_output(other)
-      return true if @output == other.output
-      
-      p self
-      exit
-      if @format == :class
-        if @output.is_a?(Class)
-          klass, payload = @output, other.output
-        elsif other.output.is_a?(Class)
-          klass, payload = other.output, @output
-        end
-        return payload.is_a?(klass)
+      #
+      # The dream is always on the left (Does your dream match reality?)
+      # This check is important so we can support both:
+      # @dream == @reality
+      #  AND
+      # @reality == @dream
+      #
+      if self.is_a? Tryouts::Drill::Dream
+        dream, reality = self, other
+      elsif self.is_a? Tryouts::Drill::Reality
+        dream, reality = other, self
+      else
+        # If self isn't a Dream or a Reality, then we have a problem
+        return false
       end
       
-      if @output.kind_of?(Array) && other.kind_of?(Array)
-        return false unless @output.size == other.output.size
-      
-        if @output.first.is_a?(Regexp)
-          expressions, strings = @output, other.output
-        elsif other.output.first.is_a?(Regexp)
-          expressions, strings = other.output, @output
-        end
-      
-        if !expressions.nil? && !strings.nil?
-          expressions.each_with_index do |regex, index|
-            return false unless strings[index] =~ regex
-          end
-          return true
-        end
+      # The matching statement will be the return value. 
+      if dream.format.nil?
+        dream.output == reality.output
+      elsif reality.respond_to? dream.format
+        reality.output.send(dream.format) == dream.output
+      else
+        false
       end
       
-      false
+      
+      
     end
 
   end

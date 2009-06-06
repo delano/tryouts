@@ -268,9 +268,8 @@ class Tryouts
   # the tryout block. See Tryouts#tryout
   #
   # NOTE: This method is DSL-only. It's not intended to be used in OO syntax. 
-  def dream(name, output=nil, format=:string, rcode=0, emsg=nil, &definition)
+  def dream(name, output=nil, format=nil, rcode=0, emsg=nil, &definition)
     to = find_tryout(@dream_pointer, @dtype)
-    
     if to.nil?
       if output.nil?
         dobj = Tryouts::Drill::Dream.from_block definition
