@@ -75,25 +75,25 @@ class Tryouts
       next if drill.success?
       puts Tryouts::DRILL_MSG % drill.name
       if drill.reality.rcode < 0
-        puts '%24s' % drill.reality.emsg 
+        puts '%34s' % drill.reality.emsg 
         next
       end
       
       if drill.dream
         drill.discrepency.each do |d|
-          puts '%24s: %s' % ["dream #{d}", drill.dream.send(d).inspect]
-          puts '%24s: %s' % ["reality #{d}", drill.reality.send(d).inspect]
+          puts '%34s: %s' % ["dream #{d}", drill.dream.send(d).inspect]
+          puts '%34s: %s' % ["reality #{d}", drill.reality.send(d).inspect]
         end
       else
-        puts '%24s' % ["[nodream]"]
+        puts '%34s' % ["[nodream]"]
         if drill.reality.rcode > 0
-          puts '%24s: %s' % ["rcode", drill.reality.rcode.inspect]
-          puts '%24s: %s' % ["msg", drill.reality.emsg.inspect]
+          puts '%34s: %s' % ["rcode", drill.reality.rcode.inspect]
+          puts '%34s: %s' % ["msg", drill.reality.emsg.inspect]
         end
       end
       
       if drill.reality.rcode > 0
-        puts '%24s: ' % ["backtrace"]
+        puts '%34s: ' % ["backtrace"]
         puts drill.reality.backtrace, $/
       end
     end

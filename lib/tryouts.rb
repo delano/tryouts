@@ -167,7 +167,6 @@ class Tryouts
       to = Tryouts::Tryout.new(name, dtype, command)
       @tryouts << to
     end
-    
     # Populate the dreams if they've already been loaded
     to.dreams = @dreams[name] if @dreams.has_key?(name)
     
@@ -220,7 +219,7 @@ class Tryouts
         dfile = self.class.find_dreams_file(tryout_name, @group) 
       end
       raise BadDreams, "Cannot find dreams file (#{tryout_name})" unless dfile
-      @dreams = load_dreams_file dfile
+      @dreams = load_dreams_file( dfile) || {}
     
     #
     # dreams "Tryout Name" do

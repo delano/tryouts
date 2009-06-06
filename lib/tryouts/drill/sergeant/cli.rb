@@ -18,7 +18,7 @@ class Tryouts; class Drill; module Sergeant
       @rbox = Rye::Box.new
     end
   
-    # NOTE: Context is ignored for this Sergeant. 
+    # NOTE: Context is ignored for the CLI Sergeant. 
     def run(block, context=nil, &inline)
       # A Proc object takes precedence over an inline block. 
       runtime = (block.nil? ? inline : block)

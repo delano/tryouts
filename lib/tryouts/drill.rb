@@ -47,13 +47,13 @@ class Tryouts
   end
   
   def run(context=nil)
-    context ||= Class.new
+    @reality = Tryouts::Drill::Reality.new
+    return false if @dream.nil?
     begin
       print Tryouts::DRILL_MSG % @name
       @reality = @sergeant.run @drill, context
       process_reality
     rescue => ex
-      @reality = Tryouts::Drill::Reality.new
       @reality.rcode = -2
       @reality.emsg, @reality.backtrace = ex.message, ex.backtrace
     end  
