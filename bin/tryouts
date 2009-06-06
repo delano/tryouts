@@ -18,6 +18,7 @@ module TryoutsCLI
   debug :on
   default :run, :with_args
   
+  global :q, :quiet, "Decrease output"
   global :v, :verbose, "Increase output" do 
     @verbose ||= 0
     @verbose += 1
