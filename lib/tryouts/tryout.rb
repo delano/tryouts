@@ -59,7 +59,7 @@ class Tryouts
   def run
     update_drills!   # Ensure all drills have all known dreams
     DrillContext.class_eval &setup if setup.is_a?(Proc)
-    puts Tryouts::TRYOUT_MSG % @name
+    puts Tryouts::TRYOUT_MSG.bright % @name
     @drills.each do |drill|
       drill.run(DrillContext.new)      # Returns true or false
     end
@@ -71,8 +71,8 @@ class Tryouts
     return true if success?
     failed = @drills.select { |d| !d.success? }
     failed.each_with_index do |drill,index|
-      
-      puts '%sERROR %2d/%-2d in "%s"' % [$/, index+1, failed.size, drill.name]
+      title = ' %-59s' % %Q{ERROR #{index+1}/#{failed.size} in "#{drill.name}"}
+      puts $/, ' ' << title.color(:red).att(:reverse)
       
       if drill.dream
         puts '%24s: %s (expected %s)' % ["response code", drill.reality.rcode, drill.dream.rcode]
@@ -94,6 +94,7 @@ class Tryouts
         puts '%24s: ' % ["backtrace"]
         puts drill.reality.backtrace, $/
       end
+      
     end
     false
   end

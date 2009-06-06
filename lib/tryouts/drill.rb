@@ -58,7 +58,7 @@ class Tryouts
       @reality.emsg, @reality.backtrace = ex.message, ex.backtrace
     end  
     note = @dream ? discrepency.join(', ') : 'nodream'
-    puts self.success? ? "PASS" : "FAIL (#{note})"
+    puts self.success? ? "PASS".color(:green) : "FAIL (#{note})".color(:red)
     self.success?
   end
   

@@ -36,8 +36,7 @@ class Tryouts; module CLI
 
       successes = []
       Tryouts.instances.each_pair do |group,tryouts_inst|
-        puts '', '-'*60 unless @global.quiet
-        puts group
+        puts '', ' %-60s'.att(:reverse) % group
         puts "  #{tryouts_inst.paths.join("\n  ")}" if @global.verbose > 0
         tryouts_inst.tryouts.each_pair do |name,to|
           to.run
