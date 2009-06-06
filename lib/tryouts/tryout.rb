@@ -68,10 +68,7 @@ class Tryouts
   
   # Prints error output. If there are no errors, it prints nothing. 
   def report
-    if success?
-      puts $/, "All your dreams came true"
-      return
-    end
+    return true if success?
     puts $/, "ERRORS:"
     @drills.each do |drill|
       next if drill.success?
@@ -99,6 +96,7 @@ class Tryouts
         puts drill.reality.backtrace, $/
       end
     end
+    false
   end
   
   # Did every Tryout finish successfully?

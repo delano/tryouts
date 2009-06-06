@@ -36,9 +36,11 @@ class Tryouts
   require 'tryouts/tryout'
   require 'tryouts/drill'
   
-  TRYOUT_MSG = "\n     %s "
-  DRILL_MSG  = ' %20s: '
+  TRYOUT_MSG = "\n ---> %s "
+  DRILL_MSG  = ' %30s: '
   
+    # An Array of +_tryouts.rb+ file paths that have been loaded
+  @@loaded_files = []
     # An Hash of Tryouts instances stored under the name of the Tryouts subclass. 
   @@instances = {}
     # The most recent tryouts name specified in the DSL
@@ -84,7 +86,11 @@ class Tryouts
   end
   
   # Execute Tryout#report for each Tryout in +@tryouts+
-  def report; @tryouts.each { |to| to.report }; end
+  def report
+    successes = []
+    @tryouts.each { |to| successes << to.report }
+    puts $/, "All your dreams came true" unless successes.member?(false)
+  end
   
   # Execute Tryout#run for each Tryout in +@tryouts+
   def run; @tryouts.each { |to| to.run }; end
@@ -136,7 +142,7 @@ class Tryouts
     @group
   end
   # Raises a Tryouts::Exception. +group+ is not support in the standalone syntax
-  # because the group name is take from the name of the class. See inherited. 
+  # because the group name is taken from the name of the class. See inherited. 
   #
   # NOTE: this is a standalone DSL-syntax method.
   def self.group(*args)
@@ -210,7 +216,7 @@ class Tryouts
       dfile = tryout_name
       # If we're given a directory we'll build the filename using the class name
       if File.directory?(tryout_name)
-        dfile = self.class.find_dreams_file(tryout_name, group) 
+        dfile = self.class.find_dreams_file(tryout_name, @group) 
       end
       raise BadDreams, "Cannot find dreams file (#{tryout_name})" unless dfile
       @dreams = load_dreams_file dfile
@@ -309,8 +315,14 @@ class Tryouts
   # NOTE: this is an OO syntax method
   def self.parse_file(fpath)
     raise "No such file: #{fpath}" unless File.exists?(fpath)
+    file_content = File.read(fpath)
     to = Tryouts.new
-    to.instance_eval(File.read(fpath), fpath)
+    to.instance_eval file_content, fpath
+    if @@instances.has_key? to.group
+      to = @@instances[to.group]
+      to.instance_eval file_content, fpath
+      
+    end
     @@instance_pointer = to.group
     @@instances[ @@instance_pointer ] = to
   end
@@ -321,7 +333,7 @@ class Tryouts
   def self.run
     @@instances.each_pair do |group, inst|
       puts "-"*60
-      puts "Tryouts for #{group}"
+      puts %Q{"#{group}" Group}
       inst.tryouts.each do |to|
         to.run
         to.report
@@ -336,7 +348,8 @@ class Tryouts
   #
   # NOTE: this is a standalone DSL-syntax method.
   def self.inherited(klass)
-    to = Tryouts.new
+    to = @@instances[ klass ]
+    to ||= Tryouts.new
     to.group = klass
     @@instance_pointer = to.group
     @@instances[ @@instance_pointer ] = to
