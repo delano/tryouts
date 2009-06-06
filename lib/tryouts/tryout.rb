@@ -58,13 +58,12 @@ class Tryouts
   # Execute all Drill objects
   def run
     update_drills!   # Ensure all drills have all known dreams
-    drill_context = DrillContext.new
-    drill_context.instance_eval &setup if setup.is_a?(Proc)
+    DrillContext.new.instance_eval &setup if setup.is_a?(Proc)
     puts Tryouts::TRYOUT_MSG % @name
     @drills.each do |drill|
-      drill.run(drill_context)      # Returns true or false
+      drill.run(DrillContext.new)      # Returns true or false
     end
-    drill_context.instance_eval &clean if clean.is_a?(Proc)
+    DrillContext.new.instance_eval &clean if clean.is_a?(Proc)
   end
   
   # Prints error output. If there are no errors, it prints nothing. 
@@ -75,25 +74,25 @@ class Tryouts
       next if drill.success?
       puts Tryouts::DRILL_MSG % drill.name
       if drill.reality.rcode < 0
-        puts '%34s' % drill.reality.emsg 
+        puts '%24s' % drill.reality.emsg 
         next
       end
       
       if drill.dream
         drill.discrepency.each do |d|
-          puts '%34s: %s' % ["dream #{d}", drill.dream.send(d).inspect]
-          puts '%34s: %s' % ["reality #{d}", drill.reality.send(d).inspect]
+          puts '%24s: %s' % ["dream #{d}", drill.dream.send(d).inspect]
+          puts '%24s: %s' % ["reality #{d}", drill.reality.send(d).inspect]
         end
       else
-        puts '%34s' % ["[nodream]"]
+        puts '%24s' % ["[nodream]"]
         if drill.reality.rcode > 0
-          puts '%34s: %s' % ["rcode", drill.reality.rcode.inspect]
-          puts '%34s: %s' % ["msg", drill.reality.emsg.inspect]
+          puts '%24s: %s' % ["rcode", drill.reality.rcode.inspect]
+          puts '%24s: %s' % ["msg", drill.reality.emsg.inspect]
         end
       end
       
       if drill.reality.rcode > 0
-        puts '%34s: ' % ["backtrace"]
+        puts '%24s: ' % ["backtrace"]
         puts drill.reality.backtrace, $/
       end
     end

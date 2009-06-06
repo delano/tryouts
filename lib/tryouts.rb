@@ -39,7 +39,7 @@ class Tryouts
   require 'tryouts/orderedhash'
   HASH_TYPE = (RUBY_VERSION =~ /1.9/) ? ::Hash : Tryouts::OrderedHash
   
-  TRYOUT_MSG = "\n ---> %s "
+  TRYOUT_MSG = "\n %s "
   DRILL_MSG  = ' %30s: '
   
     # An Array of +_tryouts.rb+ file paths that have been loaded.
@@ -49,21 +49,20 @@ class Tryouts
   
     # The name of this group of Tryout objects
   attr_accessor :group
-    # An Array of Tryout objects
-  attr_accessor :tryouts
-    # A Hash of Tryout names pointing to index values of :tryouts
-  attr_accessor :map
-    # A Symbol representing the command taking part in the tryouts. For @dtype :cli only. 
-  attr_accessor :command
-    # A Symbol representing the name of the library taking part in the tryouts. For @dtype :api only.
-  attr_accessor :library
     # A Symbol representing the default drill type. One of: :cli, :api
   attr_accessor :dtype
-  
+    # An Array of file paths which populated this instance of Tryouts
+  attr_accessor :paths
     # A Hash of dreams for all tryouts in this class. The keys should
     # match the names of each tryout. The values are hashes will drill
     # names as keys and response
   attr_accessor :dreams
+    # An Array of Tryout objects
+  attr_accessor :tryouts
+    # A Symbol representing the command taking part in the tryouts. For @dtype :cli only. 
+  attr_accessor :command
+    # A Symbol representing the name of the library taking part in the tryouts. For @dtype :api only.
+  attr_accessor :library
     # The name of the most recent dreams group (see self.dream)
   attr_accessor :dream_pointer
   
@@ -72,11 +71,11 @@ class Tryouts
 
   def initialize(group=nil)
     @group = group || "Default Group"
-    @tryouts = []
-    @map = {}
+    @tryouts = HASH_TYPE.new
+    @paths = []
     @command = nil
     @dtype = :cli
-    @dreams = {}
+    @dreams = HASH_TYPE.new
     @dream_pointer = nil
   end
   
@@ -89,12 +88,12 @@ class Tryouts
   # Execute Tryout#report for each Tryout in +@tryouts+
   def report
     successes = []
-    @tryouts.each { |to| successes << to.report }
+    @tryouts.each_pair { |n,to| successes << to.report }
     puts $/, "All your dreams came true" unless successes.member?(false)
   end
   
   # Execute Tryout#run for each Tryout in +@tryouts+
-  def run; @tryouts.each { |to| to.run }; end
+  def run; @tryouts.each_pair { |n,to| to.run }; end
   
   # Add a shell command to Rye::Cmd and save the command name
   # in @@commands so it can be used as the default for drills
@@ -165,15 +164,14 @@ class Tryouts
     to = find_tryout(name, dtype)
     if to.nil?
       to = Tryouts::Tryout.new(name, dtype, command)
-      @tryouts << to
+      @tryouts[name] = to
     end
     # Populate the dreams if they've already been loaded
     to.dreams = @dreams[name] if @dreams.has_key?(name)
     
     # Process the rest of the DSL
     to.from_block block if block
-    
-    @map[name] = @tryouts.size - 1
+
     to
   end
   # Calls Tryouts#tryout on the current instance of Tryouts
@@ -185,7 +183,7 @@ class Tryouts
   
   def find_tryout(name, dtype)
     type ||= :cli
-    @tryouts.select { |t| t.name == name && t.dtype == dtype }.first
+    @tryouts.values.select { |t| t.name == name && t.dtype == dtype }.first
   end
   
   # This method does nothing. It provides a quick way to disable a tryout.
@@ -229,6 +227,7 @@ class Tryouts
     elsif tryout_name.kind_of?(String) && definition  
       
       to = find_tryout(tryout_name, @dtype)
+      
       if to.nil?
         @dream_pointer = tryout_name  # Used in Tryouts.dream
         @dreams[ @dream_pointer ] ||= {}
@@ -320,8 +319,8 @@ class Tryouts
     if @@instances.has_key? to.group
       to = @@instances[to.group]
       to.instance_eval file_content, fpath
-      
     end
+    to.paths << fpath
     @@instances[to.group] = to
   end
   
@@ -329,18 +328,13 @@ class Tryouts
   #
   # NOTE: this is an OO syntax method
   def self.run
-    successes = []
     @@instances.each_pair do |group, inst|
-      puts "-"*60
-      puts %Q{"#{group}" Group}
-      inst.tryouts.each do |to|
+      inst.tryouts.each_pair do |name,to|
         to.run
         to.report
-        successes << to.success?
         STDOUT.flush
       end
     end
-    puts $/, "All your dreams came true" unless successes.member?(false)
   end
   
   # Called when a new class inherits from Tryouts. This creates a new instance
@@ -351,6 +345,7 @@ class Tryouts
   def self.inherited(klass)
     to = @@instances[ klass ]
     to ||= Tryouts.new
+    to.paths << __FILE__
     to.group = klass
     @@instances[to.group] = to
   end

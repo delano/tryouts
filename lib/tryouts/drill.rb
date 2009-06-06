@@ -47,10 +47,10 @@ class Tryouts
   end
   
   def run(context=nil)
-    @reality = Tryouts::Drill::Reality.new
     return false if @dream.nil?
     begin
       print Tryouts::DRILL_MSG % @name
+      @reality = Tryouts::Drill::Reality.new
       @reality = @sergeant.run @drill, context
       process_reality
     rescue => ex
@@ -63,6 +63,7 @@ class Tryouts
   end
   
   def success?
+    return false if @dream.nil? || @reality.nil?
     @dream == @reality
   end
   

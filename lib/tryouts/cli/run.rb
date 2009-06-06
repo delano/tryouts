@@ -28,47 +28,67 @@ class Tryouts; module CLI
     end
     
     def run
+      if @global.verbose > 0
+        puts "RUBY #{RUBY_VERSION} - #{RUBY_PLATFORM}"
+      end
+      
       load_available_tryouts_files
-      Tryouts.run
+
+      successes = []
+      Tryouts.instances.each_pair do |group,tryouts_inst|
+        puts '', '-'*60 unless @global.quiet
+        puts group
+        puts "  #{tryouts_inst.paths.join("\n  ")}" if @global.verbose > 0
+        tryouts_inst.tryouts.each_pair do |name,to|
+          to.run
+          to.report
+          STDOUT.flush
+          successes << to.success?
+        end
+      end
+      unless successes.member?(false)
+        puts $/, "All your dreams came true" unless @global.quiet
+      end
     end
     
     def list
       load_available_tryouts_files
-      #if @global.verbose > 2
-      #  puts Tryouts.instances.to_yaml   # BUG: Raises "can't dump anonymous class Class"
-      #else
-        Tryouts.instances.each_pair do |n,tryouts|
+      ##if @global.verbose > 2
+      ##  puts Tryouts.instances.to_yaml   # BUG: Raises "can't dump anonymous class Class"
+      ##else
+        Tryouts.instances.each_pair do |n,tryouts_inst|
           puts n
-          tryouts.tryouts.each do |tryout|
+          if @global.verbose > 0
+            puts "  #{tryouts_inst.paths.join("\n  ")}"
+          end
+          tryouts_inst.tryouts.each_pair do |t2,tryout|
             puts "  " << tryout.name
             tryout.drills.each do |drill|
               puts "    " << drill.name
             end
           end
         end
-      #end
+      ##end
     end
     
   private 
     def load_available_tryouts_files
       @tryouts_files = []
-      
-      if @argv
+      # If file paths were given, check those only. 
+      unless @argv.empty?
         @argv.each do |file|
           file = File.join(file, '**', '*_tryouts.rb') if File.directory?(file)
           @tryouts_files += Dir.glob file
         end
+      # Otherwise check the default globs
       else
         @tryouts_globs.each do |glob|
           @tryouts_files += Dir.glob glob
         end
       end
-      
-      @tryouts_files.uniq!
-
-      puts "FOUND:", @tryouts_files if @global.verbose > 0
-      
+      @tryouts_files.uniq!  # Don't load the same file twice
       @tryouts_files.each { |file| Tryouts.parse_file file }
+      puts @tryouts_files if @global.verbose > 0
     end
   end
 end; end
