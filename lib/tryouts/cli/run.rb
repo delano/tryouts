@@ -34,9 +34,9 @@ class Tryouts; module CLI
     
     def list
       load_available_tryouts_files
-      if @global.verbose > 0
-        puts Tryouts.instances.to_yaml
-      else
+      #if @global.verbose > 2
+      #  puts Tryouts.instances.to_yaml   # BUG: Raises "can't dump anonymous class Class"
+      #else
         Tryouts.instances.each_pair do |n,tryouts|
           puts n
           tryouts.tryouts.each do |tryout|
@@ -46,15 +46,15 @@ class Tryouts; module CLI
             end
           end
         end
-      end
+      #end
     end
     
   private 
     def load_available_tryouts_files
       @tryouts_files = []
       
-      if @argv.files
-        @argv.files.each do |file|
+      if @argv
+        @argv.each do |file|
           file = File.join(file, '**', '*_tryouts.rb') if File.directory?(file)
           @tryouts_files += Dir.glob file
         end

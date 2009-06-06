@@ -36,15 +36,16 @@ class Tryouts
   require 'tryouts/tryout'
   require 'tryouts/drill'
   
+  require 'tryouts/orderedhash'
+  HASH_TYPE = (RUBY_VERSION =~ /1.9/) ? ::Hash : Tryouts::OrderedHash
+  
   TRYOUT_MSG = "\n ---> %s "
   DRILL_MSG  = ' %30s: '
   
-    # An Array of +_tryouts.rb+ file paths that have been loaded
+    # An Array of +_tryouts.rb+ file paths that have been loaded.
   @@loaded_files = []
     # An Hash of Tryouts instances stored under the name of the Tryouts subclass. 
-  @@instances = {}
-    # The most recent tryouts name specified in the DSL
-  @@instance_pointer = nil
+  @@instances = HASH_TYPE.new
   
     # The name of this group of Tryout objects
   attr_accessor :group
@@ -111,7 +112,7 @@ class Tryouts
   #
   # NOTE: this is a standalone DSL-syntax method. 
   def self.command(*args)
-    @@instances[ @@instance_pointer ].command(*args)
+    @@instances.last.command(*args)
   end
   
   
@@ -130,7 +131,7 @@ class Tryouts
   #
   # NOTE: this is a standalone DSL-syntax method.
   def self.library(*args)
-    @@instances[ @@instance_pointer ].library(*args)
+    @@instances.last.library(*args)
   end
   
   def group(name=nil)
@@ -146,7 +147,7 @@ class Tryouts
   #
   # NOTE: this is a standalone DSL-syntax method.
   def self.group(*args)
-    raise "Group is already set: #{@@instances[ @@instance_pointer ].group}"
+    raise "Group is already set: #{@@instances.last.group}"
   end
   
   # Create a new Tryout object and add it to the list for this Tryouts class. 
@@ -180,7 +181,7 @@ class Tryouts
   #
   # NOTE: this is a standalone DSL-syntax method.
   def self.tryout(*args, &block)
-    @@instances[ @@instance_pointer ].tryout(*args, &block)
+    @@instances.last.tryout(*args, &block)
   end
   
   def find_tryout(name, dtype)
@@ -254,7 +255,7 @@ class Tryouts
       return dreams
     else
       # Call the Tryouts#dreams instance method
-      @@instances[ @@instance_pointer ].dreams(*args, &block)
+      @@instances.last.dreams(*args, &block)
     end
   end
   
@@ -289,7 +290,7 @@ class Tryouts
   #
   # NOTE: this is a standalone DSL-syntax method.
   def self.dream(*args, &block)
-    @@instances[ @@instance_pointer ].dream(*args, &block)
+    @@instances.last.dream(*args, &block)
   end
   
   # Populate @@dreams with the content of the file +dpath+. 
@@ -322,23 +323,25 @@ class Tryouts
       to.instance_eval file_content, fpath
       
     end
-    @@instance_pointer = to.group
-    @@instances[ @@instance_pointer ] = to
+    @@instances[to.group] = to
   end
   
   # Run all Tryout objects in +@tryouts+
   #
   # NOTE: this is an OO syntax method
   def self.run
+    successes = []
     @@instances.each_pair do |group, inst|
       puts "-"*60
       puts %Q{"#{group}" Group}
       inst.tryouts.each do |to|
         to.run
         to.report
+        successes << to.success?
         STDOUT.flush
       end
     end
+    puts $/, "All your dreams came true" unless successes.member?(false)
   end
   
   # Called when a new class inherits from Tryouts. This creates a new instance
@@ -350,8 +353,7 @@ class Tryouts
     to = @@instances[ klass ]
     to ||= Tryouts.new
     to.group = klass
-    @@instance_pointer = to.group
-    @@instances[ @@instance_pointer ] = to
+    @@instances[to.group] = to
   end
   
   
@@ -374,7 +376,7 @@ class Tryouts
   #
   def self.find_dreams_file(dir, group=nil)
     dpath = nil
-    group ||= @@instance_pointer
+    group ||= @@instances.last.group
     group = group.to_s.downcase.tr(' ', '')
     [:rb, :yaml].each do |ext|
       tmp = File.join(dir, "#{group}_dreams.#{ext}")

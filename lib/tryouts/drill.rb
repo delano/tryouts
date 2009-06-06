@@ -70,7 +70,7 @@ class Tryouts
     diffs = []
     if @dream
       diffs << "rcode" if @dream.rcode != @reality.rcode
-      diffs << "output" unless @dream.compare_output(@reality)
+      diffs << "output" if !@dream.compare_output(@reality)
       diffs << "emsg" if @dream.emsg != @reality.emsg
     end
     diffs

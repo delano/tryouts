@@ -101,8 +101,9 @@ class Tryouts
   
   # Did every Tryout finish successfully?
   def success?
+    return @success unless @success.nil?
     # Returns true only when every Tryout result returns true
-    !(@drills.collect { |r| r.success? }.member?(false))
+    @success = !(@drills.collect { |r| r.success? }.member?(false))
   end
   
   # Add a Drill object to the list for this Tryout. If there is a dream
