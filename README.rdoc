@@ -67,11 +67,11 @@ Tryouts employs the same approach for testing Ruby codes. The return value of th
     end
 
 
-== ALPHA Notice
+== BETA Notice
 
 This library is very new (est. 2009-05-19) and has not been vetted by the scrutiny of time. In particular you can expect:
 
-* Ugly/awkward output from the tryouts executable. I wrote the core functionality that I needed to start writing tryouts for my other projects. I haven't spent very much time on reporting yet. However, this will change!
+* <p style="text-decoration: line-through;">Ugly/awkward output from the tryouts executable. I wrote the core functionality that I needed to start writing tryouts for my other projects. I haven't spent very much time on reporting yet. However, this will change!</a>
 * The test definition syntax may change in future releases. 
 * Unexpected errors. 
 
