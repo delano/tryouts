@@ -79,7 +79,7 @@ class Tryouts
     @drills.each do |drill|
       drill.run(DrillContext.new)      # Returns true or false
       drill.reality.stash.each_pair do |n,v|
-        puts '%13s: %s' % [n,v.inspect]
+        puts '%14s: %s' % [n,v.inspect]
       end
       drill.success? ? @passed += 1 : @failed += 1
     end
@@ -162,7 +162,7 @@ class Tryouts
   # +name+ is the name of the drill. 
   # +args+ is sent directly to the Drill class. The values are specific on the Sergeant.
   def drill(dname, *args, &definition)
-    raise "Cannot specify empty drill name (#{@name})" if dname.nil? || dname.empty?
+    raise "Empty drill name (#{@name})" if dname.nil? || dname.empty?
     args.unshift(@command) if @dtype == :cli
     drill = Tryouts::Drill.new(dname, @dtype, *args, &definition)
     add_drill drill
@@ -176,8 +176,9 @@ class Tryouts
   #
   # NOTE: This method is DSL-only. It's not intended to be used in OO syntax. 
   def dream(dname, output=nil, format=nil, rcode=0, emsg=nil, &definition) 
-    raise "Cannot specify empty dream name (#{@name})" if dname.nil? || dname.empty?
+    raise "Empty dream name (#{@name})" if dname.nil? || dname.empty?
     if output.nil?
+      raise "No output or block for '#{dname}' (#{@name})" if definition.nil?
       dobj = Tryouts::Drill::Dream.from_block definition
     else
       dobj = Tryouts::Drill::Dream.new(output)
