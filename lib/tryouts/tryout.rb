@@ -74,7 +74,7 @@ class Tryouts
   # Execute all Drill objects
   def run
     update_drills!   # Ensure all drills have all known dreams
-    DrillContext.class_eval &setup if setup.is_a?(Proc)
+    DrillContext.module_eval &setup if setup.is_a?(Proc)
     puts Tryouts::TRYOUT_MSG.bright % @name
     @drills.each do |drill|
       drill.run(DrillContext.new)      # Returns true or false
@@ -83,7 +83,7 @@ class Tryouts
       end
       drill.success? ? @passed += 1 : @failed += 1
     end
-    DrillContext.class_eval &clean if clean.is_a?(Proc)
+    DrillContext.module_eval &clean if clean.is_a?(Proc)
   end
   
   # Prints error output. If there are no errors, it prints nothing. 

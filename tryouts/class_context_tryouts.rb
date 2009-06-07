@@ -4,7 +4,7 @@ group "Class context tests"
 xtryout "Setting class variables", :api do
   setup do
     class ::Olivia; end
-    @@from_setup = Olivia.new
+    @@from_setup = Olivia.new  # NOTE: module_eval seems to solve this problem
     @from_setup = true
   end
   
