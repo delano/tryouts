@@ -38,7 +38,7 @@ class Tryouts
       # An ordered Hash of stashed objects. 
     attr_reader :stash
     def initialize; @stash = Tryouts::HASH_TYPE.new; end
-    # If calles with no arguments, returns +@stash+. 
+    # If called with no arguments, returns +@stash+. 
     # If called with arguments, it will add a new value to the +@stash+
     # and return the new value.  e.g.
     #
