@@ -79,7 +79,7 @@ class Tryouts
     @drills.each do |drill|
       drill.run(DrillContext.new)      # Returns true or false
       drill.reality.stash.each_pair do |n,v|
-        puts '%18s: %s' % [n,v.inspect]
+        puts '%13s: %s' % [n,v.inspect]
       end
       drill.success? ? @passed += 1 : @failed += 1
     end
