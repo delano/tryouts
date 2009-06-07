@@ -53,7 +53,7 @@ class Run < Drydock::Command
         msg = msg % [passed+failed]
       else
         score = (passed.to_f / (passed.to_f+failed.to_f)) * 100
-        msg = " %s of %s dreams came true (%.2f%%) ".att(:reverse).color(:red)
+        msg = " %s of %s dreams came true (%d%%) ".att(:reverse).color(:red)
         msg = msg % [passed, passed+failed, score.to_i]
       end
       puts $/, msg
