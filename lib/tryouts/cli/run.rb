@@ -10,6 +10,8 @@ class Run < Drydock::Command
     @tryouts_globs = [GYMNASIUM_GLOB, File.join(Dir.pwd, '*_tryouts.rb')]
   end
   
+  # $ sergeant dreams [path/2/tryouts]
+  # Display the dreams from all known tryouts
   def dreams
     load_available_tryouts_files
     if @global.verbose > 0
@@ -27,6 +29,8 @@ class Run < Drydock::Command
     end
   end
   
+  # $ sergeant run [path/2/tryouts]
+  # Executes all tryouts that can be found from the current working directory. 
   def run
     if @global.verbose > 0
       puts "#{Tryouts.sysinfo.to_s} (#{RUBY_VERSION})"
@@ -48,7 +52,7 @@ class Run < Drydock::Command
     end
     unless @global.quiet
       if failed == 0
-        puts MOOKIE if @global.verbose > 4
+        puts PUG if @global.verbose > 4
         msg = " All %s dreams came true ".att(:reverse).color(:green)
         msg = msg % [passed+failed]
       else
@@ -60,27 +64,27 @@ class Run < Drydock::Command
     end
   end
   
+  # $ sergeant list 
+  # Displays all known tryouts from the current working directory
   def list
     load_available_tryouts_files
-    ##if @global.verbose > 2
-    ##  puts Tryouts.instances.to_yaml   # BUG: Raises "can't dump anonymous class Class"
-    ##else
-      Tryouts.instances.each_pair do |n,tryouts_inst|
-        puts n
-        if @global.verbose > 0
-          puts "  #{tryouts_inst.paths.join("\n  ")}"
-        end
-        tryouts_inst.tryouts.each_pair do |t2,tryout|
-          puts "  " << tryout.name
-          tryout.drills.each do |drill|
-            puts "    " << drill.name
-          end
+    Tryouts.instances.each_pair do |n,tryouts_inst|
+      puts n
+      if @global.verbose > 0
+        puts "  #{tryouts_inst.paths.join("\n  ")}"
+      end
+      tryouts_inst.tryouts.each_pair do |t2,tryout|
+        puts "  " << tryout.name
+        tryout.drills.each do |drill|
+          puts "    " << drill.name
         end
       end
-    ##end
+    end
   end
   
 private 
+
+  # Find and load all tryouts files
   def load_available_tryouts_files
     @tryouts_files = []
     # If file paths were given, check those only. 
@@ -102,7 +106,7 @@ private
 end
 end; end
 
-MOOKIE = %q{
+PUG = %q{
       __,-----._                       ,-. 
     ,'   ,-.    \`---.          ,-----<._/ 
    (,.-. o:.`    )),"\\\-._    ,'         `. 

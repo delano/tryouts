@@ -1,4 +1,4 @@
-#!/usr/local/bin/ruby
+#!/usr/bin/ruby
 
 TRYOUTS_HOME = File.expand_path(File.join(File.dirname(__FILE__), '..'))
 
@@ -15,7 +15,7 @@ require 'tryouts/cli'
 module TryoutsCLI
   extend Drydock
   
-  debug :off
+  debug :on
   default :run, :with_args
   
   global :q, :quiet, "Decrease output"

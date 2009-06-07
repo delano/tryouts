@@ -119,7 +119,6 @@ class Tryouts
     @@instances.last.command(*args)
   end
   
-  
   # Require +name+. If +path+ is supplied, it will "require path". 
   # * +name+ The name of the library in question (required). Stored as a Symbol to +@library+.
   # * +path+ Add a path to the front of $LOAD_PATH (optional). Use this if you want to load
@@ -165,6 +164,9 @@ class Tryouts
     return if name.nil?
     dtype ||= @dtype
     command ||= @command if dtype == :cli
+    
+    raise "No drill type specified for #{name}." if dtype.nil?
+    
     to = find_tryout(name, dtype)
     if to.nil?
       to = Tryouts::Tryout.new(name, dtype, command)
@@ -259,6 +261,19 @@ class Tryouts
       # Call the Tryouts#dreams instance method
       @@instances.last.dreams(*args, &block)
     end
+  end
+  
+  # Returns +@tryouts+.
+  #
+  # Also acts as a stub for Tryouts#tryout in case someone 
+  # specifies "tryouts 'name' do ..." in the DSL. 
+  def tryouts(*args, &block)
+    return tryout(*args, &block) unless args.empty?
+    @tryouts
+  end
+  # An alias for Tryouts.tryout. 
+  def self.tryouts(*args, &block)
+    tryout(args, &block)
   end
   
   # +name+ of the Drill associated to this Dream
