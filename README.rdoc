@@ -1,10 +1,6 @@
-= Tryouts - v0.5 ALPHA
+= Tryouts - v0.4 BETA
 
 Tryouts is a high-level testing library for your command-line applications and Ruby codes.
-
-*WORK IN PROGRESS* 
-
-2009-05-24 - A BBQ started nearby as I was writing this documentation. It's incomplete and I'm sorry about that but I can tell you that this BBQ smells really, really good. 
 
 
 == Terminology
@@ -27,7 +23,7 @@ The tryout definition would look like this:
 
     command :executable, "path/2/executable"
     
-    tryout "Common Usage", :cli do
+    tryout "Common Usage" do
       drill  "No Command"
       drill "YAML Output", :f, 'yaml'
     end
@@ -56,7 +52,7 @@ Tryouts employs the same approach for testing Ruby codes. The return value of th
 
     library :caesars, LIBRARY_PATH
 
-    tryout "Common Usage", :api do
+    tryout "Common Usage" do
       dream "Some Maths", 3 
       drill "Some Maths" do
         12 / 4

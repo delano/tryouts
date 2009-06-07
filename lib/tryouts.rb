@@ -30,7 +30,7 @@ class Tryouts
   # Raised when there is a problem loading or parsing a Tryouts::Drill::Dream object
   class BadDreams < Exception; end
   
-  VERSION = "0.4.0"
+  VERSION = "0.4.1"
   
   require 'tryouts/mixins'
   require 'tryouts/tryout'
@@ -47,6 +47,13 @@ class Tryouts
   @@loaded_files = []
     # An Hash of Tryouts instances stored under the name of the Tryouts subclass. 
   @@instances = HASH_TYPE.new
+    # An instance of SysInfo
+  @@sysinfo = SysInfo.new
+  
+  # Returns +@@instances+
+  def self.instances; @@instances; end
+  # Returns +@@sysinfo+
+  def self.sysinfo;   @@sysinfo;   end
   
     # The name of this group of Tryout objects
   attr_accessor :group
@@ -66,9 +73,6 @@ class Tryouts
   attr_accessor :library
     # The name of the most recent dreams group (see self.dream)
   attr_accessor :dream_pointer
-  
-  # Returns +@@instances+
-  def self.instances; @@instances; end
 
   def initialize(group=nil)
     @group = group || "Default Group"

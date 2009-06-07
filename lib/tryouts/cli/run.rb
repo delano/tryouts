@@ -29,7 +29,7 @@ class Tryouts; module CLI
     
     def run
       if @global.verbose > 0
-        puts "RUBY #{RUBY_VERSION} - #{RUBY_PLATFORM}"
+        puts "#{Tryouts.sysinfo.to_s} (#{RUBY_VERSION})"
       end
       
       load_available_tryouts_files
@@ -48,10 +48,12 @@ class Tryouts; module CLI
       end
       unless @global.quiet
         if failed == 0
-          puts $/, " All #{passed+failed} dreams came true ".att(:reverse).color(:green)          
+          puts MOOKIE if @global.verbose > 5
+          puts $/, " All #{passed+failed} dreams came true ".att(:reverse).color(:green)
         else
           puts $/, " #{passed} of #{passed+failed} dreams came true ".att(:reverse).color(:red)
         end
+        
       end
     end
     
@@ -96,3 +98,27 @@ class Tryouts; module CLI
     end
   end
 end; end
+
+MOOKIE = %q{
+      __,-----._                       ,-. 
+    ,'   ,-.    \`---.          ,-----<._/ 
+   (,.-. o:.`    )),"\\\-._    ,'         `. 
+  ('"-` .\       \`:_ )\  `-;'-._          \ 
+ ,,-.    \` ;  :  \( `-'     ) -._     :   `: 
+(    \ `._\\\ ` ;             ;    `    :    ) 
+ \`.  `-.    __   ,         /  \        ;, ( 
+  `.`-.___--'  `-          /    ;     | :   | 
+    `-' `-.`--._          '           ;     | 
+          (`--._`.                ;   /\    | 
+           \     '                \  ,  )   : 
+           |  `--::----            \'   ;  ;| 
+           \    .__,-      (        )   :  :| 
+            \    : `------; \      |    |   ; 
+             \   :       / , )     |    |  ( 
+    -hrr-     \   \      `-^-|     |   / , ,\ 
+               )  )          | -^- ;   `-^-^' 
+            _,' _ ;          |    | 
+           / , , ,'         /---. : 
+           `-^-^'          (  :  :,' 
+                            `-^--' 
+}

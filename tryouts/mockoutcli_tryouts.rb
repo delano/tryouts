@@ -4,6 +4,7 @@ MOCKOUT_PATH = File.join(TRYOUTS_HOME, "bin", "mockout")
 
 group "mockout cli"
 command :mockout, MOCKOUT_PATH
+dreams File.join(GYMNASIUM_HOME, 'mockoutcli_dreams.rb')
 
 tryout "Common Usage" do
   drill  "No Command"

@@ -1,7 +1,7 @@
 
 group "Class context tests"
 
-tryout "Setting class variables", :api do
+xtryout "Setting class variables", :api do
   setup do
     class ::Olivia; end
     @@from_setup = Olivia.new

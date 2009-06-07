@@ -54,8 +54,8 @@ class Tryouts::Drill
         return false
       end
       
-      # The matching statement will be the return value. 
-      if dream.format.nil?
+      # The matching statement will be the return value.         
+      if dream.format.nil? || (dream.class == reality.class)
         dream.output == reality.output
       elsif reality.respond_to? dream.format
         reality.output.send(dream.format) == dream.output 
