@@ -103,7 +103,10 @@ class Tryouts::Drill
   class Reality < Tryouts::Drill::Response
       # An ordered hash taken from the DrillContext that created this Reality. 
     attr_accessor :stash
-    def initialize; @stash = Tryouts::HASH_TYPE.new; end
+    def initialize
+      @rcode = 0
+      @stash = Tryouts::HASH_TYPE.new
+    end
   end
 
 end
