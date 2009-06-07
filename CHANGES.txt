@@ -1,6 +1,12 @@
 TRYOUTS, CHANGES
 
 
+#### 0.4.2 (2009-06-07) ###############################
+
+* CHANGE: The executable has been renamed to 'sergeant'
+* ADDED: Displays percentage of failed dreams
+
+
 #### 0.4.1 (2009-06-07) ###############################
 
 * CHANGE: The CLI output is no longer terrifyingly ugly.
