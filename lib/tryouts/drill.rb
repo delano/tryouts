@@ -52,6 +52,7 @@ class Tryouts
     begin
       print Tryouts::DRILL_MSG % @name
       @reality = @sergeant.run @drill, context
+      @reality.stash = context.stash if context.respond_to? :stash
       process_reality
     rescue => ex
       @reality.rcode = -2

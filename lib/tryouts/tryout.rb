@@ -34,7 +34,25 @@ class Tryouts
   # Each Drill is executed in a new instance of this class. That means
   # instance variables are not carried through, but class variables are. 
   # The before and after blocks are also run in this context.
-  class DrillContext; end
+  class DrillContext
+      # An ordered Hash of stashed objects. 
+    attr_reader :stash
+    def initialize; @stash = Tryouts::HASH_TYPE.new; end
+    # If calles with no arguments, returns +@stash+. 
+    # If called with arguments, it will add a new value to the +@stash+
+    # and return the new value.  e.g.
+    #
+    #     stash :name, 'some value'   # => 'some value'
+    #
+    def stash(*args)
+      if args.empty?
+        @stash
+      else
+        @stash[args[0]] = args[1] 
+        args[1] 
+      end
+    end
+  end
      
   def initialize(name, dtype, command=nil, *args)
     raise "Must supply command for dtype :cli" if dtype == :cli && command.nil?
@@ -60,6 +78,9 @@ class Tryouts
     puts Tryouts::TRYOUT_MSG.bright % @name
     @drills.each do |drill|
       drill.run(DrillContext.new)      # Returns true or false
+      drill.reality.stash.each_pair do |n,v|
+        puts '%18s: %s' % [n,v.inspect]
+      end
       drill.success? ? @passed += 1 : @failed += 1
     end
     DrillContext.class_eval &clean if clean.is_a?(Proc)
@@ -83,10 +104,6 @@ class Tryouts
         end
       else
         puts '%24s' % ["[nodream]"]
-        if drill.reality.rcode > 0
-          puts '%24s: %s' % ["rcode", drill.reality.rcode.inspect]
-          puts '%24s: %s' % ["msg", drill.reality.emsg.inspect]
-        end
       end
       
       if drill.reality.rcode > 0

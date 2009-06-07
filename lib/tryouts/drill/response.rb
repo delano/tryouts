@@ -100,6 +100,9 @@ class Tryouts::Drill
   #
   # Contains the actual response of a Drill
   #
-  class Reality < Tryouts::Drill::Response; end
+  class Reality < Tryouts::Drill::Response
+      # An ordered hash taken from the DrillContext that created this Reality. 
+    attr_accessor :stash
+  end
 
 end
