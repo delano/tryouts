@@ -310,6 +310,15 @@ class Tryouts
     @@instances.last.dream(*args, &block)
   end
   
+  # This method does nothing. It provides a quick way to disable a dream.
+  #
+  # NOTE: This is a DSL-only method and is not intended for OO use.
+  def xdream(*args, &block); end
+  # This method does nothing. It provides a quick way to disable a dream.
+  #
+  # NOTE: this is a standalone DSL-syntax method.
+  def self.xdream(*args, &block); end
+  
   # Populate @@dreams with the content of the file +dpath+. 
   #
   # NOTE: this is an OO syntax method

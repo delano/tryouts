@@ -158,31 +158,35 @@ class Tryouts
     @clean = block
   end
   
+  # Create and add a Drill object to the list for this Tryout
+  # +name+ is the name of the drill. 
+  # +args+ is sent directly to the Drill class. The values are specific on the Sergeant.
+  def drill(dname, *args, &definition)
+    raise "Cannot specify empty drill name (#{@name})" if dname.nil? || dname.empty?
+    args.unshift(@command) if @dtype == :cli
+    drill = Tryouts::Drill.new(dname, @dtype, *args, &definition)
+    add_drill drill
+  end
+  # A quick way to comment out a drill
+  def xdrill(*args, &b); end # ignore calls to xdrill
+  
   # +name+ of the Drill associated to this Dream
   # +output+ A String or Array of expected output. A Dream object will be created using this value (optional)
   # +definition+ is a block which will be run on an instance of Dream
   #
   # NOTE: This method is DSL-only. It's not intended to be used in OO syntax. 
-  def dream(name, output=nil, format=nil, rcode=0, emsg=nil, &definition) 
+  def dream(dname, output=nil, format=nil, rcode=0, emsg=nil, &definition) 
+    raise "Cannot specify empty dream name (#{@name})" if dname.nil? || dname.empty?
     if output.nil?
       dobj = Tryouts::Drill::Dream.from_block definition
     else
       dobj = Tryouts::Drill::Dream.new(output)
       dobj.format, dobj.rcode, dobj.emsg = format, rcode, emsg
     end
-    @dreams[name] = dobj
+    @dreams[dname] = dobj
     dobj
   end
-
-  # Create and add a Drill object to the list for this Tryout
-  # +name+ is the name of the drill. 
-  # +args+ is sent directly to the Drill class. The values are specific on the Sergeant.
-  def drill(name, *args, &definition)
-    args.unshift(@command) if @dtype == :cli
-    drill = Tryouts::Drill.new(name, @dtype, *args, &definition)
-    add_drill drill
-  end
-  def xdrill(*args, &b); end # ignore calls to xdrill
-  
+  # A quick way to comment out a dream
+  def xdream(*args, &b); end
   
 end; end
