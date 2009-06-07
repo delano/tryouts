@@ -102,13 +102,13 @@ class Tryouts
           puts '%24s: %s' % ["expected error msg", drill.dream.emsg.inspect]
             puts '%24s: %s' % ["actual error msg", drill.reality.emsg.inspect]
         end
+        
+        if drill.reality.rcode > 0
+          puts '%24s: ' % ["backtrace"]
+          puts drill.reality.backtrace, $/
+        end
       else
         puts '%24s' % ["[nodream]"]
-      end
-      
-      if drill.reality.rcode > 0
-        puts '%24s: ' % ["backtrace"]
-        puts drill.reality.backtrace, $/
       end
       
     end
