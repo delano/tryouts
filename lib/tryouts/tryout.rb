@@ -70,7 +70,7 @@ class Tryouts
     return true if success?
     failed = @drills.select { |d| !d.success? }
     failed.each_with_index do |drill,index|
-      title = ' %-59s' % %Q{ERROR #{index+1}/#{failed.size} in "#{drill.name}"}
+      title = ' %-59s' % %Q{ERROR #{index+1}/#{failed.size} "#{drill.name}"}
       puts $/, ' ' << title.color(:red).att(:reverse)
       
       if drill.dream
