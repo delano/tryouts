@@ -48,11 +48,14 @@ class Tryouts
   end
   
   def run(context=nil)
-    return false if @dream.nil?
     begin
       print Tryouts::DRILL_MSG % @name
       @reality = @sergeant.run @drill, context
       @reality.stash = context.stash if context.respond_to? :stash
+      if context.respond_to? :dream
+        @dream = Tryouts::Drill::Dream.new
+        @dream.output = context.dream unless context.dream.nil?
+      end
       process_reality
     rescue => ex
       @reality.rcode = -2

@@ -1,5 +1,4 @@
 
-require 'rubygems'
 require 'ostruct'
 require 'rye'
 require 'yaml'

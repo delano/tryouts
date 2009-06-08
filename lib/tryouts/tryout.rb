@@ -36,7 +36,10 @@ class Tryouts
   # The before and after blocks are also run in this context.
   class DrillContext
       # An ordered Hash of stashed objects. 
-    attr_reader :stash
+    attr_writer :stash
+      # A value used as the dream output that will overwrite a predefined dream
+    attr_writer :dream
+    
     def initialize; @stash = Tryouts::HASH_TYPE.new; end
     # If called with no arguments, returns +@stash+. 
     # If called with arguments, it will add a new value to the +@stash+
@@ -45,12 +48,23 @@ class Tryouts
     #     stash :name, 'some value'   # => 'some value'
     #
     def stash(*args)
-      if args.empty?
-        @stash
-      else
-        @stash[args[0]] = args[1] 
-        args[1] 
-      end
+      return @stash if args.empty?
+      @stash[args[0]] = args[1] 
+      args[1] 
+    end
+
+    # If called with no arguments, returns +@dream+. 
+    # If called with one argument, it will overwrite +@dream+ with that
+    # value. If called with multiple arguments, it will overwrite +@dream+
+    # with the Array of the arguments. In both cases it returns the new value. 
+    # e.g.
+    #
+    #     dream 'some value'            # => 'some value'
+    #     dream :val1, :val2, :val3     # => [:val1, :val2, :val3]
+    #
+    def dream(*args)
+      return @dream if args.empty?
+      @dream = args.size == 1 ? args.first : args
     end
   end
      
