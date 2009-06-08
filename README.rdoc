@@ -1,4 +1,4 @@
-= Tryouts - v0.4 BETA
+= Tryouts - v0.5 BETA
 
 Tryouts is a high-level testing library for your command-line applications and Ruby codes.
 
