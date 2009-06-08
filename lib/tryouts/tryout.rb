@@ -39,8 +39,16 @@ class Tryouts
     attr_writer :stash
       # A value used as the dream output that will overwrite a predefined dream
     attr_writer :dream
+    attr_writer :format
+    attr_writer :rcode
+    attr_writer :emsg
+    attr_writer :output
     
-    def initialize; @stash = Tryouts::HASH_TYPE.new; end
+    def initialize; @stash = Tryouts::HASH_TYPE.new; @has_dream = false; end
+    
+    # Set to to true by DrillContext#dream
+    def has_dream?; @has_dream; end
+    
     # If called with no arguments, returns +@stash+. 
     # If called with arguments, it will add a new value to the +@stash+
     # and return the new value.  e.g.
@@ -52,20 +60,33 @@ class Tryouts
       @stash[args[0]] = args[1] 
       args[1] 
     end
-
+    
     # If called with no arguments, returns +@dream+. 
-    # If called with one argument, it will overwrite +@dream+ with that
-    # value. If called with multiple arguments, it will overwrite +@dream+
-    # with the Array of the arguments. In both cases it returns the new value. 
-    # e.g.
+    # If called with one argument, it will overwrite +@dream+ with the
+    # first element. If called with two arguments, it will check if
+    # the second argument is a Symbol or Fixnum. If it's a Symbol it 
+    # will assume it's +@format+. If it's a Fixnum, it will assume 
+    # it's +@rcode+. If there's a there's a third argument and it's a
+    # Fixnum, it's assumed to be +@rcode+. In all cases, this method 
+    # returns the value of +@dream+. e.g.
     #
-    #     dream 'some value'            # => 'some value'
-    #     dream :val1, :val2, :val3     # => [:val1, :val2, :val3]
+    #     dream 'some value'         # => 'some value'
+    #     dream :val1, :class, 1     # => :val1
     #
     def dream(*args)
       return @dream if args.empty?
-      @dream = args.size == 1 ? args.first : args
+      @has_dream = true
+      @dream = args.shift
+      @format = args.shift if args.first.is_a? Symbol
+      @rcode = args.shift if args.first.is_a? Fixnum
+      @emsg = args.shift if args.first.is_a? String
     end
+    
+    def output(*args); return @output if args.empty?; @output = args.first; end
+    def format(*args); return @format if args.empty?; @format = args.first; end
+    def rcode(*args); return @rcode if args.empty?; @rcode = args.first; end
+    def emsg(*args); return @emsg if args.empty?; @emsg = args.first; end
+    
   end
      
   def initialize(name, dtype, command=nil, *args)

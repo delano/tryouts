@@ -54,9 +54,12 @@ class Tryouts
       # Store the stash from the drill block
       @reality.stash = context.stash if context.respond_to? :stash
       # Create or overwrite an existing dream if onw was defined in the block
-      if context.respond_to?(:dream) && !context.dream.nil?
+      if context.respond_to?(:dream) && context.has_dream?
         @dream = Tryouts::Drill::Dream.new
         @dream.output = context.dream
+        @dream.format = context.format unless context.format.nil?
+        @dream.rcode = context.rcode unless context.rcode.nil?
+        @dream.emsg = context.emsg unless context.emsg.nil?
       end
       
       # If the drill block returned true we assume success if there's no dream
