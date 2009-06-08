@@ -1,7 +1,7 @@
 @spec = Gem::Specification.new do |s|
 	s.name = "tryouts"
   s.rubyforge_project = "tryouts"
-	s.version = "0.4.1"
+	s.version = "0.5.0"
 	s.summary = "Tryouts are high-level tests for your Ruby code. May all your dreams come true!"
 	s.description = s.summary
 	s.author = "Delano Mandelbaum"
@@ -11,7 +11,7 @@
   # = EXECUTABLES =
   # The list of executables in your project (if any). Don't include the path, 
   # just the base filename.
-  s.executables = %w[tryouts]
+  s.executables = %w[sergeant]
   
   # Directories to extract rdocs from
   s.require_paths = %w[lib]  
@@ -40,20 +40,18 @@
   README.rdoc
   Rakefile
   bin/mockout
-  bin/tryouts
+  bin/sergeant
   lib/tryouts.rb
   lib/tryouts/cli.rb
   lib/tryouts/cli/run.rb
   lib/tryouts/drill.rb
   lib/tryouts/drill/response.rb
+  lib/tryouts/drill/sergeant/api.rb
   lib/tryouts/drill/sergeant/cli.rb
   lib/tryouts/mixins.rb
   lib/tryouts/mixins/hash.rb
+  lib/tryouts/orderedhash.rb
   lib/tryouts/tryout.rb
-  tryouts.gemspec
-  tryouts/mockoutcli_dreams.rb
-  tryouts/mockoutcli_dreams.yaml
-  tryouts/mockoutcli_tryouts.rb
   )
   
   s.has_rdoc = true
