@@ -51,10 +51,18 @@ class Tryouts
     begin
       print Tryouts::DRILL_MSG % @name
       @reality = @sergeant.run @drill, context
+      # Store the stash from the drill block
       @reality.stash = context.stash if context.respond_to? :stash
-      if context.respond_to? :dream
+      # Create or overwrite an existing dream if onw was defined in the block
+      if context.respond_to?(:dream) && !context.dream.nil?
         @dream = Tryouts::Drill::Dream.new
-        @dream.output = context.dream unless context.dream.nil?
+        @dream.output = context.dream
+      end
+      
+      # If the drill block returned true we assume success if there's no dream
+      if @dream.nil? && @reality.output == true
+        @dream = Tryouts::Drill::Dream.new
+        @dream.output = true
       end
       process_reality
     rescue => ex

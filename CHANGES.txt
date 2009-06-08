@@ -3,6 +3,7 @@ TRYOUTS, CHANGES
 #### 0.5.1 (2009-06-08) ###############################
 
 * ADDED: dream method is now available inside drill block
+* ADDED: Drills that return true are assumed to pass
 
 
 #### 0.5.0 (2009-06-07) ###############################
@@ -17,7 +18,7 @@ TRYOUTS, CHANGES
 
 #### 0.4.1 (2009-06-07) ###############################
 
-* CHANGE: The CLI output is no longer terrifyingly ugly.
+* CHANGE: The CLI output is no longer terrifyingly ugly
 
 
 #### 0.4.0 (2009-06-05) ###############################

@@ -122,7 +122,8 @@ class Tryouts
           puts drill.reality.backtrace, $/
         end
       else
-        puts '%24s' % ["[nodream]"]
+        puts '%24s: %s' % ["expected output", "[nodream]"]
+        puts '%24s: %s' % ["actual output", drill.reality.output.inspect]
       end
       
     end
