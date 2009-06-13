@@ -1,6 +1,6 @@
 TRYOUTS, CHANGES
 
-#### 0.5.1 (2009-06-08) ###############################
+#### 0.5.1 (2009-06-13) ###############################
 
 * ADDED: dream method is now available inside drill block
 * ADDED: Drills that return true are assumed to pass

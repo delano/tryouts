@@ -19,6 +19,10 @@ module TryoutsCLI
   default :run, :with_args
   
   global :q, :quiet, "Decrease output"
+  global :V, :version, "Display version number" do
+    puts "Tryouts version: #{Tryouts::VERSION}"
+    exit 0
+  end
   global :v, :verbose, "Increase output" do 
     @verbose ||= 0
     @verbose += 1
