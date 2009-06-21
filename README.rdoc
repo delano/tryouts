@@ -2,7 +2,6 @@
 
 Tryouts is a high-level testing library for your command-line applications and Ruby codes.
 
-
 == Terminology
 
 Tryouts is a bit different than other testing libraries. Test definitions are organized in a similar way as Shoulda tests (although the keywords in the syntax are different). 
