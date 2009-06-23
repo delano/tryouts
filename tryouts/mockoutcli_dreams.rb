@@ -1,6 +1,6 @@
 
 dreams "Common Usage" do
-  dream "No args" do
+  dream "No Comman" do
     output inline(%Q{
     Date:                                   2009-02-16
   Owners:            greg, rupaul, telly, prince kinko

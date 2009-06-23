@@ -4,7 +4,7 @@ require 'rye'
 require 'yaml'
 begin; require 'json'; rescue LoadError; end   # json may not be installed
 
-GYMNASIUM_HOME = File.join(Dir.pwd, 'tryouts')
+GYMNASIUM_HOME = File.join(Dir.pwd, 'tryouts')  ## also check try (for rye)
 GYMNASIUM_GLOB = File.join(GYMNASIUM_HOME, '**', '*_tryouts.rb')
 
 
@@ -33,6 +33,7 @@ class Tryouts
   
   require 'tryouts/mixins'
   require 'tryouts/tryout'
+  require 'tryouts/drillcontext'
   require 'tryouts/drill'
   
   require 'tryouts/orderedhash'

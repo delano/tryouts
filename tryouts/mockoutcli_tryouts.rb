@@ -7,7 +7,6 @@ command :mockout, MOCKOUT_PATH
 dreams File.join(GYMNASIUM_HOME, 'mockoutcli_dreams.rb')
 
 tryout "Common Usage" do
-  drill  "No Command"
   drill     "No args",            :info
   drill "YAML Output", :f, :yaml, :info
   drill "JSON Output", :f, :json, :info

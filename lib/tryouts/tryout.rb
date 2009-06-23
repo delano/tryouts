@@ -26,74 +26,15 @@ class Tryouts
     # For drill type :api, this attribute is ignored. 
   attr_reader :command
     # A Hash of Dream objects for this Tryout. The keys are drill names. 
-  attr_accessor :dreams
+  attr_reader :dream_catcher
   
   @@valid_dtypes = [:cli, :api]
-  
-  # All :api Drills are run within this context (not used for :cli). 
-  # Each Drill is executed in a new instance of this class. That means
-  # instance variables are not carried through, but class variables are. 
-  # The before and after blocks are also run in this context.
-  class DrillContext
-      # An ordered Hash of stashed objects. 
-    attr_writer :stash
-      # A value used as the dream output that will overwrite a predefined dream
-    attr_writer :dream
-    attr_writer :format
-    attr_writer :rcode
-    attr_writer :emsg
-    attr_writer :output
-    
-    def initialize; @stash = Tryouts::HASH_TYPE.new; @has_dream = false; end
-    
-    # Set to to true by DrillContext#dream
-    def has_dream?; @has_dream; end
-    
-    # If called with no arguments, returns +@stash+. 
-    # If called with arguments, it will add a new value to the +@stash+
-    # and return the new value.  e.g.
-    #
-    #     stash :name, 'some value'   # => 'some value'
-    #
-    def stash(*args)
-      return @stash if args.empty?
-      @stash[args[0]] = args[1] 
-      args[1] 
-    end
-    
-    # If called with no arguments, returns +@dream+. 
-    # If called with one argument, it will overwrite +@dream+ with the
-    # first element. If called with two arguments, it will check if
-    # the second argument is a Symbol or Fixnum. If it's a Symbol it 
-    # will assume it's +@format+. If it's a Fixnum, it will assume 
-    # it's +@rcode+. If there's a there's a third argument and it's a
-    # Fixnum, it's assumed to be +@rcode+. In all cases, this method 
-    # returns the value of +@dream+. e.g.
-    #
-    #     dream 'some value'         # => 'some value'
-    #     dream :val1, :class, 1     # => :val1
-    #
-    def dream(*args)
-      return @dream if args.empty?
-      @has_dream = true
-      @dream = args.shift
-      @format = args.shift if args.first.is_a? Symbol
-      @rcode = args.shift if args.first.is_a? Fixnum
-      @emsg = args.shift if args.first.is_a? String
-    end
-    
-    def output(*args); return @output if args.empty?; @output = args.first; end
-    def format(*args); return @format if args.empty?; @format = args.first; end
-    def rcode(*args); return @rcode if args.empty?; @rcode = args.first; end
-    def emsg(*args); return @emsg if args.empty?; @emsg = args.first; end
-    
-  end
      
   def initialize(name, dtype, command=nil, *args)
     raise "Must supply command for dtype :cli" if dtype == :cli && command.nil?
     raise "#{dtype} is not a valid drill type" if !@@valid_dtypes.member?(dtype)
     @name, @dtype, @command = name, dtype, command
-    @drills, @dreams = [], {}
+    @drills, @dream_catcher = [], []
     @passed, @failed = 0, 0
   end
   
@@ -158,12 +99,14 @@ class Tryouts
     @success = !(@drills.collect { |r| r.success? }.member?(false))
   end
   
-  # Add a Drill object to the list for this Tryout. If there is a dream
-  # defined with the same name as the Drill, that dream will be given to
-  # the Drill before its added to the list. 
+  # Add a Drill object to the list for this Tryout. If there is one or
+  # more dreams in +@dream_catcher+, it will be added to drill +d+. 
   def add_drill(d)
-    d.add_dream @dreams[d.name] if !@dreams.nil? && @dreams.has_key?(d.name)
-    drills << d if d.is_a?(Tryouts::Drill)
+    unless @dream_catcher.empty?
+      d.add_dream @dream_catcher.first
+      @dream_catcher.clear
+    end
+    drills << d
     d
   end
   
@@ -201,18 +144,19 @@ class Tryouts
     raise "Empty drill name (#{@name})" if dname.nil? || dname.empty?
     args.unshift(@command) if @dtype == :cli
     drill = Tryouts::Drill.new(dname, @dtype, *args, &definition)
-    add_drill drill
+    self.add_drill drill
   end
   # A quick way to comment out a drill
   def xdrill(*args, &b); end # ignore calls to xdrill
   
-  # +name+ of the Drill associated to this Dream
-  # +output+ A String or Array of expected output. A Dream object will be created using this value (optional)
+  # +output+ A String or Array of expected output. A Dream object will be created using this value
+  # +format+ Type of output comparison, one of: :string, :class
+  # +rcode+ Response Code value. For :cli this is the exit code. 
+  # +emsg+ A String or Array of expected error message output.
   # +definition+ is a block which will be run on an instance of Dream
   #
   # NOTE: This method is DSL-only. It's not intended to be used in OO syntax. 
-  def dream(dname, output=nil, format=nil, rcode=0, emsg=nil, &definition) 
-    raise "Empty dream name (#{@name})" if dname.nil? || dname.empty?
+  def dream(output, format=nil, rcode=0, emsg=nil, &definition) 
     if output.nil?
       raise "No output or block for '#{dname}' (#{@name})" if definition.nil?
       dobj = Tryouts::Drill::Dream.from_block definition
@@ -220,7 +164,7 @@ class Tryouts
       dobj = Tryouts::Drill::Dream.new(output)
       dobj.format, dobj.rcode, dobj.emsg = format, rcode, emsg
     end
-    @dreams[dname] = dobj
+    @dream_catcher << dobj
     dobj
   end
   # A quick way to comment out a dream
