@@ -53,7 +53,7 @@ class Tryouts
     puts Tryouts::TRYOUT_MSG.bright % @name
     @drills.each do |drill|
       drill.run DrillContext.new
-      note = @dream ? '' : '(nodream)'
+      note = drill.dream.nil? ? '[nodream]' : ''
       puts drill.success? ? "PASS".color(:green) : "FAIL #{note}".color(:red)
       puts "      #{drill.reality.output.inspect}" if Tryouts.verbose > 0
       if Tryouts.verbose > 1
@@ -135,7 +135,7 @@ class Tryouts
     self.add_drill drill
   end
   # A quick way to comment out a drill
-  def xdrill(*args, &b); end # ignore calls to xdrill
+  def xdrill(*args, &b); @dream_catcher.clear; end # ignore calls to xdrill
   
   
   #

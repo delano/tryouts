@@ -1,12 +1,14 @@
 TRYOUTS, CHANGES
 
+
 #### 0.6.2 (2009-06-24) ###############################
 
 NOTE: command testing (:cli) is still disabled. 
 
+* CHANGE: dream arguments are now ordered: format, output
 * ADDED: One-liner drill syntax
 * ADDED: :regex dream format
-* CHANGE: dream arguments are now ordered: format, output
+* ADDED: Calls to xdrill now also clear the dream catcher
 
 
 #### 0.6.1 (2009-06-24) ###############################

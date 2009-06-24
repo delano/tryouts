@@ -58,8 +58,8 @@ class Run < Drydock::Command
         msg = " You didn't even try to acheive your dreams :[ "
       elsif failed == 0
         puts PUG if Tryouts.verbose > 4
-        msg = " All %s dreams came true ".color(:green)
-        msg = msg % [passed+failed]
+        msg = passed > 1 ? "All %s dreams" : "Your only dream"
+        msg = (" #{msg} came true " % [passed+failed]).color(:green)
       else
         puts BUG if Tryouts.verbose > 4
         score = (passed.to_f / (passed.to_f+failed.to_f)) * 100
