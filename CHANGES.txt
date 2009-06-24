@@ -5,6 +5,7 @@ TRYOUTS, CHANGES
 NOTE: command testing (:cli) is still disabled. 
 
 * ADDED: One-liner drill syntax
+* ADDED: :regex dream format
 
 #### 0.6.1 (2009-06-24) ###############################
 

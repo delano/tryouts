@@ -19,7 +19,13 @@ class Tryouts::Drill
       ## I don't think this check is necessary or useful
       ##return false unless reality.error.nil? && reality.trace.nil?
       return true if reality.output == true and dream.nil?
-      reality.output == dream.output
+      
+      case dream.format
+      when :regex
+        !reality.output.match(dream.output).nil?
+      else 
+        reality.output == dream.output
+      end
       
     end
   end
