@@ -44,7 +44,13 @@ class Tryouts
   # the external DSL methods: dream, drill, xdrill
   def from_block(b=nil, &inline)
     runtime = b.nil? ? inline : b
-    instance_eval &runtime
+    begin
+      instance_eval &runtime
+    rescue => ex
+      puts ex.message
+      puts Tryouts.debug? ? ex.backtrace : ex.backtrace.first
+      exit
+    end
   end
   
   # Execute all Drill objects
@@ -80,11 +86,12 @@ class Tryouts
         puts '%12s: %s' % ["returned", reality.output.inspect]
       else
         dreams.each do |dream|
-          puts '%12s: %s' % [ "expected", dream.output.inspect]
+          note = dream.format.nil? ? '' : "(#{dream.format})"
+          puts '%12s: %s %s' % [ "expected", dream.output.inspect, note]
         end
         puts '%12s: %s' % ["returned", reality.output.inspect]
         unless reality.error.nil?
-          puts '%12s: %s' % ["error", reality.error.inspect]
+          puts '%12s: %s (%s)' % ["error", reality.error.inspect, reality.etype]
         end
         unless reality.trace.nil?
           puts '%12s: %s' % ["trace", reality.trace.join($/ + ' '*14)]

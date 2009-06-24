@@ -26,8 +26,10 @@ class Tryouts::Drill
       when :exception
         reality.etype == dream.output
       when :regex
+        reality.output.respond_to?(:match) &&
         !reality.output.match(dream.output).nil?
       when :size
+        reality.output.respond_to?(:size) &&
         reality.output.size == dream.output
       when :gt
         reality.output > dream.output
