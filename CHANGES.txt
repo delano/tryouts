@@ -5,6 +5,7 @@ TRYOUTS, CHANGES
 
 NOTE: command testing (:cli) is still disabled.
 
+* FIXED: Now correctly append to existing Tryouts object 
 * CHANGE: Renamed :regex format to :match
 * ADDED: Hella better runtime error handling
 * ADDED: Better support for quiet (-q)

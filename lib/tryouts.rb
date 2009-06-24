@@ -241,13 +241,22 @@ class Tryouts
     to = Tryouts.new
     begin
       to.instance_eval file_content, fpath
+      # After parsing the DSL, we'll know the group name.
+      # If a Tryouts object already exists for that group
+      # we'll use that instead and re-parse the DSL. 
+      if @@instances.has_key? to.group
+        to = @@instances[to.group]
+        to.instance_eval file_content, fpath
+      else
+        @@instances[to.group] = to
+      end
+      to.paths << fpath
     rescue SyntaxError, LoadError, Exception,
            RuntimeError, NoMethodError, NameError => ex
       to.errors << ex
       Tryouts.failed = true
     end
-    to.paths << fpath
-    @@instances[to.group] = to
+    to
   end
   
   # Run all Tryout objects in +@tryouts+

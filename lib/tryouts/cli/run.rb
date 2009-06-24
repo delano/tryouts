@@ -38,7 +38,8 @@ class Run < Drydock::Command
     puts "#{Tryouts.sysinfo.to_s} (#{RUBY_VERSION})" if Tryouts.verbose > 0
     
     load_available_tryouts_files
-
+    puts Tryouts.instances.keys
+    
     passed, failed = 0, 0
     Tryouts.instances.each_pair do |group,tryouts_inst|
       puts '', ' %-60s'.att(:reverse) % group  unless Tryouts.verbose < 0
