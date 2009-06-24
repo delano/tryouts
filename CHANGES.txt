@@ -6,6 +6,8 @@ NOTE: command testing (:cli) is still disabled.
 
 * ADDED: One-liner drill syntax
 * ADDED: :regex dream format
+* CHANGE: dream arguments are now ordered: format, output
+
 
 #### 0.6.1 (2009-06-24) ###############################
 
