@@ -38,13 +38,13 @@ class Tryouts; class Drill; module Sergeant
         end
         response.error = ret.stderr unless ret.stderr.empty?
       rescue Rye::CommandNotFound => ex
-        puts ex.message, ex.backtrace if Tryouts.debug? && Tryouts.verbose > 2
+        puts ex.message, ex.backtrace if Tryouts.verbose > 2
         response.etype = ex.class
         response.ecode = ex.exit_code
         response.error = "[#{@rbox.host}] Command not found: #{ex.message}"
         response.trace = ex.backtrace
       rescue Rye::CommandError => ex
-        puts ex.message, ex.backtrace if Tryouts.debug? && Tryouts.verbose > 2
+        puts ex.message, ex.backtrace if Tryouts.verbose > 2
         response.etype = ex.class
         response.ecode = ex.exit_code
         response.output = ex.stdout

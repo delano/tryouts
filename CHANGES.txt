@@ -5,7 +5,7 @@ TRYOUTS, CHANGES
 
 NOTE: command testing (:cli) is still disabled.
 
-* ADDED: Better runtime error handling
+* ADDED: MUCH better runtime error handling
 
 
 #### 0.6.2 (2009-06-24) ###############################

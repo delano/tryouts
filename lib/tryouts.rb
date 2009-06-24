@@ -77,11 +77,13 @@ class Tryouts
   attr_accessor :command
     # A Symbol representing the name of the library taking part in the tryouts. For @dtype :api only.
   attr_accessor :library
-
+    # An Array of exceptions that were raised during the tryouts that were not captured by a drill.
+  attr_reader :errors
+  
   def initialize(group=nil)
     @group = group || "Default Group"
     @tryouts = HASH_TYPE.new
-    @paths = []
+    @paths, @errors = [], []
     @command = nil
   end
   
@@ -131,7 +133,12 @@ class Tryouts
     @library = name.to_sym
     @dtype = :api
     $LOAD_PATH.unshift path unless path.nil?
-    require @library.to_s
+    begin
+      require @library.to_s
+    rescue SyntaxError, LoadError, Exception,
+           RuntimeError, NoMethodError, NameError => ex
+      @errors << ex
+    end
   end
   # Calls Tryouts#library on the current instance of Tryouts
   #
@@ -174,7 +181,12 @@ class Tryouts
     end
     
     # Process the rest of the DSL
-    to.from_block block if block
+    begin
+      to.from_block block if block
+    rescue SyntaxError, LoadError, Exception,
+           RuntimeError, NoMethodError, NameError => ex
+      @errors << ex
+    end
     to
   end
   # Calls Tryouts#tryout on the current instance of Tryouts
@@ -221,10 +233,11 @@ class Tryouts
     raise "No such file: #{fpath}" unless File.exists?(fpath)
     file_content = File.read(fpath)
     to = Tryouts.new
-    to.instance_eval file_content, fpath
-    if @@instances.has_key? to.group
-      to = @@instances[to.group]
+    begin
       to.instance_eval file_content, fpath
+    rescue SyntaxError, LoadError, Exception,
+           RuntimeError, NoMethodError, NameError => ex
+      to.errors << ex
     end
     to.paths << fpath
     @@instances[to.group] = to

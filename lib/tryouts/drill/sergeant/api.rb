@@ -29,7 +29,7 @@ class Tryouts; class Drill; module Sergeant
         begin
           response.output = context.instance_eval &runtime
         rescue => e
-          puts e.message, e.backtrace if Tryouts.debug? && Tryouts.verbose > 2
+          puts e.message, e.backtrace if Tryouts.verbose > 2
           response.etype = e.class
           response.error = e.message
           response.trace = e.backtrace

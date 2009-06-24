@@ -32,7 +32,6 @@ class Run < Drydock::Command
   # $ sergeant run [path/2/tryouts]
   # Executes all tryouts that can be found from the current working directory. 
   def run
-    
     Tryouts.enable_debug if Drydock.debug?
     Tryouts.verbose = @global.verbose
     
@@ -51,7 +50,20 @@ class Run < Drydock::Command
         passed += to.passed
         failed += to.failed
       end
+      
+      unless tryouts_inst.errors.empty?
+        title = '%-61s' % " RUNTIME ERRORS !?"
+        puts $/, title.color(:red).att(:reverse).bright
+        tryouts_inst.errors.each do |ex|
+          trace = Tryouts.verbose > 0 ? ex.backtrace : [ex.backtrace.first]
+          puts '%12s: %s (%s)' % ["error", ex.message.inspect, ex.class]
+          puts '%12s: %s' % ["trace", trace.join($/ + ' '*14)]
+          puts 
+        end
+      end
     end
+    
+    
     unless @global.quiet
       if (passed == 0 && failed == 0)
         puts DEV if Tryouts.verbose > 4

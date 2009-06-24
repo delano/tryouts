@@ -47,9 +47,7 @@ class Tryouts
     begin
       instance_eval &runtime
     rescue => ex
-      puts ex.message
-      puts Tryouts.debug? ? ex.backtrace : ex.backtrace.first
-      exit
+      raise ex
     end
   end
   
@@ -94,7 +92,8 @@ class Tryouts
           puts '%12s: %s (%s)' % ["error", reality.error.inspect, reality.etype]
         end
         unless reality.trace.nil?
-          puts '%12s: %s' % ["trace", reality.trace.join($/ + ' '*14)]
+          trace = Tryouts.verbose > 0 ? reality.trace : [reality.trace.first]
+          puts '%12s: %s' % ["trace", trace.join($/ + ' '*14)]
           puts
         end
         
