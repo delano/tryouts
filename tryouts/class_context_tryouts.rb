@@ -8,8 +8,12 @@ tryout "Setting class variables", :api do
     @from_setup = true
   end
   
-  drill "created in setup", NameError, :exception do
+  drill "can't access class var created in setup (1.9 only)", NameError, :exception do
     @@from_setup
+  end
+  
+  drill "can access class var created in setup (1.8 only)", 'Olivia', :to_s do
+    @@from_setup.class.to_s
   end
   
   drill "create class var", 'Olivia', :to_s  do
@@ -17,9 +21,8 @@ tryout "Setting class variables", :api do
     @@from_drill.class.to_s
   end
   
-  drill "created in drill", 1, :size do
-    @@from_drill
-    self.class.class_variables
+  drill "can access class var created in drill", 'Olivia', :to_s do
+    @@from_drill.class.to_s
   end
   
 end
