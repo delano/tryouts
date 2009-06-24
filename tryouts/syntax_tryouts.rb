@@ -20,8 +20,14 @@ tryout "DSL Syntax", :api do
     true
   end
   
-  drill "inline true values will pass", true
+  drill "inline true values will pass too", true
   drill "can specify inline return values", :food, :food
-  drill "can specify regex format", 'Hi', /hi/i, :regex
+  drill "can specify regex format", 'mahir', /..hi./i, :regex
   
+  dream "big"
+  dream String, :class
+  dream /\Ab.g\z/, :regex
+  drill "can handle multiple dreams" do
+    "big"
+  end
 end

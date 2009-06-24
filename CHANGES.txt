@@ -9,6 +9,7 @@ NOTE: command testing (:cli) is still disabled.
 * ADDED: One-liner drill syntax
 * ADDED: :regex dream format
 * ADDED: Calls to xdrill now also clear the dream catcher
+* ADDED: Support for multiple dreams per drill
 
 
 #### 0.6.1 (2009-06-24) ###############################

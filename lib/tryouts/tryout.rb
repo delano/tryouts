@@ -53,7 +53,7 @@ class Tryouts
     puts Tryouts::TRYOUT_MSG.bright % @name
     @drills.each do |drill|
       drill.run DrillContext.new
-      note = drill.dream.nil? ? '[nodream]' : ''
+      note = drill.dreams.empty? ? '[nodream]' : ''
       puts drill.success? ? "PASS".color(:green) : "FAIL #{note}".color(:red)
       puts "      #{drill.reality.output.inspect}" if Tryouts.verbose > 0
       if Tryouts.verbose > 1
@@ -71,12 +71,17 @@ class Tryouts
     return true if success?
     failed = @drills.select { |d| !d.success? }
     failed.each_with_index do |drill,index|
-      dream, reality = drill.dream, drill.reality
+      dreams, reality = drill.dreams, drill.reality
       title = ' %-59s' % %Q{ERROR #{index+1}/#{failed.size} "#{drill.name}"}
       puts $/, ' ' << title.color(:red).att(:reverse)
       
-      if dream
-        puts '%12s: %s' % [ "expected", dream.output.inspect]
+      if dreams.empty?
+        puts '%12s: %s' % ["expected", "[nodream]"]
+        puts '%12s: %s' % ["returned", reality.output.inspect]
+      else
+        dreams.each do |dream|
+          puts '%12s: %s' % [ "expected", dream.output.inspect]
+        end
         puts '%12s: %s' % ["returned", reality.output.inspect]
         unless reality.error.nil?
           puts '%12s: %s' % ["error", reality.error.inspect]
@@ -85,11 +90,8 @@ class Tryouts
           puts '%12s: %s' % ["trace", reality.trace.join($/ + ' '*14)]
           puts
         end
-      else
-        puts '%12s: %s' % ["expected", "[nodream]"]
-        puts '%12s: %s' % ["returned", reality.output.inspect]
+        
       end
-      
     end
     false
   end
@@ -105,8 +107,8 @@ class Tryouts
   # more dreams in +@dream_catcher+, it will be added to drill +d+. 
   def add_drill(d)
     unless @dream_catcher.empty?
-      d.add_dream @dream_catcher.first
-      @dream_catcher.clear
+      d.add_dreams *@dream_catcher.clone   # We need to clone here b/c
+      @dream_catcher.clear                 # Ruby passes by reference.
     end
     drills << d
     d
@@ -150,7 +152,7 @@ class Tryouts
         dobj = Tryouts::Drill::Dream.new(*args)       # dream 'OUTPUT', :format
       end
     end
-    @dream_catcher << dobj
+    @dream_catcher.push dobj
     dobj
   end
   # A quick way to comment out a dream

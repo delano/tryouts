@@ -24,19 +24,20 @@ class Tryouts
   
     # A Sergeant object which executes the drill
   attr_reader :sergeant
-    # A Dream object (the expected output of the test)
-  attr_reader :dream
+    # An Array of Dream objects (the expected output of the test)
+  attr_reader :dreams
     # A Reality object (the actual output of the test)
   attr_reader :reality
       
   def initialize(name, dtype, *args, &drill)
     @name, @dtype, @drill = name, dtype, drill
+    @dreams = []
     if @dtype == :cli
       @sergeant = Tryouts::Drill::Sergeant::CLI.new *args
     elsif @dtype == :api
       default_output = drill.nil? ? args.shift : nil
       @sergeant = Tryouts::Drill::Sergeant::API.new default_output
-      @dream = Tryouts::Drill::Dream.new(*args) unless args.empty?
+      @dreams << Tryouts::Drill::Dream.new(*args) unless args.empty?
     else
       raise NoSergeant, "Weird drill sergeant: #{@dtype}"
     end
@@ -53,11 +54,10 @@ class Tryouts
       # Store the stash from the drill block
       @reality.stash = context.stash if context.respond_to? :stash
       # If the drill block returned true we assume success if there's no dream
-      if @dream.nil? && @reality.output == true
-        @dream = Tryouts::Drill::Dream.new
-        @dream.output = true
+      if @dreams.empty? && @reality.output == true
+        @dreams << Tryouts::Drill::Dream.new
+        @dreams.first.output = true
       end
-      process_reality
     rescue => ex
       @reality.ecode, @reality.etype = -2, ex.class
       @reality.error, @reality.trace = ex.message, ex.backtrace
@@ -66,24 +66,14 @@ class Tryouts
   end
   
   def success?
-    @dream == @reality
+    @dreams.each { |d| return false unless d == @reality }
+    true
   end
   
   
-  def add_dream(d)
-    @dream = d 
-  end
+  def add_dream(d); @dreams << d; end
+  def add_dreams(*d); @dreams += d; end
   
   private 
-  
-  # Use the :format provided in the dream to convert the output from reality
-  def process_reality
-    case @dream.format
-    when :class
-      @reality.output = @reality.output.class
-    when :exception
-      @reality.output = @reality.etype
-    end
-  end
-  
+    
 end; end
