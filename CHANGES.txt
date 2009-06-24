@@ -1,5 +1,10 @@
 TRYOUTS, CHANGES
 
+#### 0.6.2 (2009-06-24) ###############################
+
+NOTE: command testing (:cli) is still disabled. 
+
+* ADDED: One-liner drill syntax
 
 #### 0.6.1 (2009-06-24) ###############################
 

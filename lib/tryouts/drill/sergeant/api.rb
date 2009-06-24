@@ -9,14 +9,14 @@ class Tryouts; class Drill; module Sergeant
   #
   class API
     
-    attr_reader :opts
+    attr_reader :output
     
     # +opts+ is a Hash with the following optional keys:
     #
     # * +:output+ specify a return value. This will be 
     # used if no block is specified for the drill.
-    def initialize(opts={})
-      @opts = opts
+    def initialize(output=nil)
+      @output = output
     end
   
     def run(block, context, &inline)
@@ -24,7 +24,7 @@ class Tryouts; class Drill; module Sergeant
       runtime = (block.nil? ? inline : block)
       response = Tryouts::Drill::Reality.new
       if runtime.nil?
-        response.output = @opts[:output]
+        response.output = @output
       else
         begin
           response.output = context.instance_eval &runtime

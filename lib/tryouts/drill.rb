@@ -29,25 +29,23 @@ class Tryouts
     # A Reality object (the actual output of the test)
   attr_reader :reality
       
-  def initialize(name, dtype, *opts, &drill)
+  def initialize(name, dtype, *args, &drill)
     @name, @dtype, @drill = name, dtype, drill
-    @sergeant = hire_sergeant opts
+    if @dtype == :cli
+      @sergeant = Tryouts::Drill::Sergeant::CLI.new *args
+    elsif @dtype == :api
+      default_output = drill.nil? ? args.shift : nil
+      @sergeant = Tryouts::Drill::Sergeant::API.new default_output
+      @dream = Tryouts::Drill::Dream.new(*args) unless args.empty?
+    else
+      raise NoSergeant, "Weird drill sergeant: #{@dtype}"
+    end
     # For CLI drills, a block takes precedence over inline args. 
     # A block will contain multiple shell commands (see Rye::Box#batch)
     drill_args = [] if dtype == :cli && drill.is_a?(Proc)
     @reality = Tryouts::Drill::Reality.new
   end
-  
-  def hire_sergeant(opts={})
-    if @dtype == :cli
-      Tryouts::Drill::Sergeant::CLI.new(*opts)
-    elsif @dtype == :api
-      Tryouts::Drill::Sergeant::API.new(opts.first) # should be a hash
-    else
-      raise NoSergeant, "Weird drill sergeant: #{@dtype}"
-    end
-  end
-  
+    
   def run(context=nil)
     begin
       print Tryouts::DRILL_MSG % @name

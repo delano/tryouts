@@ -131,11 +131,7 @@ class Tryouts
   # +args+ is sent directly to the Drill class. The values are specific on the Sergeant.
   def drill(dname, *args, &definition)
     raise "Empty drill name (#{@name})" if dname.nil? || dname.empty?
-    if definition.nil?
-      drill = Tryouts::Drill.new(dname, @dtype, :output => args.first)
-    else
-      drill = Tryouts::Drill.new(dname, @dtype, args.first, &definition)
-    end
+    drill = Tryouts::Drill.new(dname, @dtype, *args, &definition)
     self.add_drill drill
   end
   # A quick way to comment out a drill
