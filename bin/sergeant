@@ -2,8 +2,8 @@
 
 TRYOUTS_HOME = File.expand_path(File.join(File.dirname(__FILE__), '..'))
 
-local_libs = %w{tryouts net-scp amazon-ec2 aws-s3 caesars drydock rye storable sysinfo annoy}
-local_libs.each { |dir| $:.unshift File.join(TRYOUTS_HOME, '..', dir, 'lib') }
+#local_libs = %w{tryouts net-scp amazon-ec2 aws-s3 caesars drydock rye storable sysinfo annoy}
+#local_libs.each { |dir| $:.unshift File.join(TRYOUTS_HOME, '..', dir, 'lib') }
 
 require 'drydock'
 require 'tryouts'
