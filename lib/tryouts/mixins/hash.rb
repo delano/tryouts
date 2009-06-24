@@ -20,6 +20,12 @@ class Hash
     end
     steps
   end
-
+  
+  unless method_defined?(:last)
+    def last
+      self[ self.keys.last ]
+    end
+  end
+  
 end
 

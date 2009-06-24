@@ -41,7 +41,7 @@ class Tryouts
   TRYOUT_MSG = "\n  %s "
   DRILL_MSG  = '    %-50s '
   DRILL_ERR  = '    %s: '
-  
+
     # An Array of +_tryouts.rb+ file paths that have been loaded.
   @@loaded_files = []
     # An Hash of Tryouts instances stored under the name of the Tryouts subclass. 
@@ -86,7 +86,7 @@ class Tryouts
   end
   
   # Populate this Tryouts from a block. The block should contain calls to 
-  # the external DSL methods: tryout, command, dreams
+  # the external DSL methods: tryout, command, library, group
   def from_block(b, &inline)
     instance_eval &b
   end
