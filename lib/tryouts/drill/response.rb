@@ -129,11 +129,13 @@ class Tryouts::Drill
     end
     
     def ==(reality)
-      Response.compare(self, reality)
+      return @answer unless @answer.nil?
+      @answer = Response.compare(self, reality)
     end
     
     def test_to_string(reality)
-      Response.compare_string(self, reality)
+      return @test_string unless @test_string.nil?
+      @test_string = Response.compare_string(self, reality)
     end
   end
 
@@ -153,7 +155,8 @@ class Tryouts::Drill
     end
     
     def ==(dream)
-      Response.compare(dream, self)
+      return @answer unless @answer.nil?
+      @answer = Response.compare(dream, self)
     end
   end
 

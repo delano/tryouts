@@ -33,14 +33,15 @@ class Hash
     end
   end
   
+  require 'digest/sha1'
   
-  def gitash(s)
+  def githash
     # http://stackoverflow.com/questions/552659/assigning-git-sha1s-without-git
     # http://github.com/mojombo/grit/blob/master/lib/grit/git-ruby/git_object.rb#L81
     # http://github.com/mojombo/grit/blob/master/lib/grit/git-ruby/git_object.rb#L225
     # http://www.kernel.org/pub/software/scm/git-core/docs/git-hash-object.html
     # $ git hash-object file
-    DIGEST_TYPE.hexdigest(("%s %d\0" % ['blob', s.length]) << s)
+    Digest::SHA1.hexdigest(("%s %d\0" % ['blob', self.length]) << self.to_s)
   end
 end
 
