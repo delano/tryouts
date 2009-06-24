@@ -17,7 +17,7 @@ require 'tryouts'
 
 class StandaloneCLI < Tryouts
   command :mockout, MOCKOUT_PATH
-  dreams File.join(TRYOUTS_HOME, 'tryouts', 'mockoutcli_dreams.rb')
+  #dreams File.join(TRYOUTS_HOME, 'tryouts', 'mockoutcli_dreams.rb')
 
   tryout "common usage" do
     drill  'no command'
@@ -28,7 +28,7 @@ class StandaloneCLI < Tryouts
 
   tryout "inline dream will pass", :cli, :mockout do
     output = ['we expect mockout to', 'echo these lines back']
-    dream 'echo arguments', output
+    dream output
     # $ bin/mockout sergeant -e 'we expect mockout to' 'echo these lines back'
     drill 'echo arguments', :sergeant, :e, *output  
   end
