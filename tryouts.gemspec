@@ -25,7 +25,7 @@
   # = DEPENDENCIES =
   # Add all gem dependencies
   s.add_dependency 'drydock', '>= 0.6.5'
-  s.add_dependency 'rye', '>= 0.6.6'
+  s.add_dependency 'rye', '>= 0.8.2'
   s.add_dependency 'sysinfo', '>= 0.5.1'
   
   # = MANIFEST =

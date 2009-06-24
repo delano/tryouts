@@ -14,7 +14,7 @@ class Run < Drydock::Command
   # Display the dreams from all known tryouts
   def dreams
     load_available_tryouts_files
-    if @global.verbose > 0
+    if Tryouts.verbose > 0
       puts Tryouts.dreams.to_yaml
     else
       Tryouts.dreams.each_pair do |n,dreams|
@@ -32,16 +32,18 @@ class Run < Drydock::Command
   # $ sergeant run [path/2/tryouts]
   # Executes all tryouts that can be found from the current working directory. 
   def run
-    if @global.verbose > 0
-      puts "#{Tryouts.sysinfo.to_s} (#{RUBY_VERSION})"
-    end
+    
+    Tryouts.enable_debug if Drydock.debug?
+    Tryouts.verbose = @global.verbose
+    
+    puts "#{Tryouts.sysinfo.to_s} (#{RUBY_VERSION})" if Tryouts.verbose > 0
     
     load_available_tryouts_files
 
     passed, failed = 0, 0
     Tryouts.instances.each_pair do |group,tryouts_inst|
       puts '', ' %-60s'.att(:reverse) % group
-      puts "  #{tryouts_inst.paths.join("\n  ")}" if @global.verbose > 0
+      puts "  #{tryouts_inst.paths.join("\n  ")}" if Tryouts.verbose > 0
       tryouts_inst.tryouts.each_pair do |name,to|
         to.run
         to.report
@@ -52,14 +54,14 @@ class Run < Drydock::Command
     end
     unless @global.quiet
       if (passed == 0 && failed == 0)
-        puts DEV if @global.verbose > 4
+        puts DEV if Tryouts.verbose > 4
         msg = " You didn't even try to acheive your dreams :[ "
       elsif failed == 0
-        puts PUG if @global.verbose > 4
+        puts PUG if Tryouts.verbose > 4
         msg = " All %s dreams came true ".color(:green)
         msg = msg % [passed+failed]
       else
-        puts BUG if @global.verbose > 4
+        puts BUG if Tryouts.verbose > 4
         score = (passed.to_f / (passed.to_f+failed.to_f)) * 100
         msg = " %s of %s dreams came true (%d%%) ".color(:red)
         msg = msg % [passed, passed+failed, score.to_i]
@@ -74,7 +76,7 @@ class Run < Drydock::Command
     load_available_tryouts_files
     Tryouts.instances.each_pair do |n,tryouts_inst|
       puts n
-      if @global.verbose > 0
+      if Tryouts.verbose > 0
         puts "  #{tryouts_inst.paths.join("\n  ")}"
       end
       tryouts_inst.tryouts.each_pair do |t2,tryout|
@@ -104,7 +106,7 @@ private
       end
     end
     @tryouts_files.uniq!  # Don't load the same file twice
-    @tryouts_files.each { |f| puts "LOADING: #{f}"} if @global.verbose > 0
+    @tryouts_files.each { |f| puts "LOADING: #{f}"} if Tryouts.verbose > 1
     @tryouts_files.each { |file| Tryouts.parse_file file }
   end
 end

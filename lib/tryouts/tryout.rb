@@ -49,13 +49,17 @@ class Tryouts
   
   # Execute all Drill objects
   def run
-    update_drills!   # Ensure all drills have all known dreams
     DrillContext.module_eval &setup if setup.is_a?(Proc)
     puts Tryouts::TRYOUT_MSG.bright % @name
     @drills.each do |drill|
-      drill.run(DrillContext.new)      # Returns true or false
-      drill.reality.stash.each_pair do |n,v|
-        puts '%14s: %s' % [n,v.inspect]
+      drill.run DrillContext.new
+      note = @dream ? '' : '(nodream)'
+      puts drill.success? ? "PASS".color(:green) : "FAIL #{note}".color(:red)
+      puts "      #{drill.reality.output.inspect}" if Tryouts.verbose > 0
+      if Tryouts.verbose > 1
+        drill.reality.stash.each_pair do |n,v|
+          puts '%14s: %s' % [n,v.inspect]
+        end
       end
       drill.success? ? @passed += 1 : @failed += 1
     end
@@ -67,25 +71,23 @@ class Tryouts
     return true if success?
     failed = @drills.select { |d| !d.success? }
     failed.each_with_index do |drill,index|
+      dream, reality = drill.dream, drill.reality
       title = ' %-59s' % %Q{ERROR #{index+1}/#{failed.size} "#{drill.name}"}
       puts $/, ' ' << title.color(:red).att(:reverse)
       
-      if drill.dream
-        puts '%24s: %s (expected %s)' % ["response code", drill.reality.rcode, drill.dream.rcode]
-        puts '%24s: %s' % ["expected output", drill.dream.output.inspect]
-        puts '%24s: %s' % ["actual output", drill.reality.output.inspect]
-        if drill.reality.emsg || (drill.reality.emsg != drill.dream.emsg)
-          puts '%24s: %s' % ["expected error msg", drill.dream.emsg.inspect]
-            puts '%24s: %s' % ["actual error msg", drill.reality.emsg.inspect]
+      if dream
+        puts '%12s: %s' % [ "expected", dream.output.inspect]
+        puts '%12s: %s' % ["returned", reality.output.inspect]
+        unless reality.error.nil?
+          puts '%12s: %s' % ["error", reality.error.inspect]
         end
-        
-        if drill.reality.rcode > 0
-          puts '%24s: ' % ["backtrace"]
-          puts drill.reality.backtrace, $/
+        unless reality.trace.nil?
+          puts '%12s: %s' % ["trace", reality.trace.join($/ + ' '*14)]
+          puts
         end
       else
-        puts '%24s: %s' % ["expected output", "[nodream]"]
-        puts '%24s: %s' % ["actual output", drill.reality.output.inspect]
+        puts '%12s: %s' % ["expected", "[nodream]"]
+        puts '%12s: %s' % ["returned", reality.output.inspect]
       end
       
     end
@@ -110,19 +112,6 @@ class Tryouts
     d
   end
   
-  # Goes through the list of Drill objects (@drills) and gives each 
-  # one its associated Dream object (if available). 
-  # 
-  # This method is called before Tryout#run, but is only necessary in  
-  # the case where dreams where loaded after the drills were defined. 
-  def update_drills!
-    return if @dreams.nil?
-    @drills.each do |drill|
-      next unless @dreams.has_key?(drill.name)
-      drill.add_dream @dreams[drill.name]
-    end
-  end
-  
   ## ---------------------------------------  EXTERNAL DSL  -----
   
   # A block to executed one time _before_ starting the drills
@@ -142,27 +131,28 @@ class Tryouts
   # +args+ is sent directly to the Drill class. The values are specific on the Sergeant.
   def drill(dname, *args, &definition)
     raise "Empty drill name (#{@name})" if dname.nil? || dname.empty?
-    args.unshift(@command) if @dtype == :cli
-    drill = Tryouts::Drill.new(dname, @dtype, *args, &definition)
+    if definition.nil?
+      drill = Tryouts::Drill.new(dname, @dtype, :output => args.first)
+    else
+      drill = Tryouts::Drill.new(dname, @dtype, args.first, &definition)
+    end
     self.add_drill drill
   end
   # A quick way to comment out a drill
   def xdrill(*args, &b); end # ignore calls to xdrill
   
-  # +output+ A String or Array of expected output. A Dream object will be created using this value
-  # +format+ Type of output comparison, one of: :string, :class
-  # +rcode+ Response Code value. For :cli this is the exit code. 
-  # +emsg+ A String or Array of expected error message output.
-  # +definition+ is a block which will be run on an instance of Dream
+  
   #
   # NOTE: This method is DSL-only. It's not intended to be used in OO syntax. 
-  def dream(output, format=nil, rcode=0, emsg=nil, &definition) 
-    if output.nil?
-      raise "No output or block for '#{dname}' (#{@name})" if definition.nil?
+  def dream(*args, &definition) 
+    if args.empty?
       dobj = Tryouts::Drill::Dream.from_block definition
     else
-      dobj = Tryouts::Drill::Dream.new(output)
-      dobj.format, dobj.rcode, dobj.emsg = format, rcode, emsg
+      if args.size == 1
+        dobj = Tryouts::Drill::Dream.new(args.shift)    # dream 'OUTPUT'
+      else
+        dobj = Tryouts::Drill::Dream.new(*args.reverse) # dream :form, 'OUTPUT'
+      end
     end
     @dream_catcher << dobj
     dobj

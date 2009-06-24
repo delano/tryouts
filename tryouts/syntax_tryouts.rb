@@ -1,19 +1,24 @@
 
 tryout "DSL Syntax", :api do
   
-  
   dream 4770744
-  drill "Dream above the drill" do
+  drill "can specify dream above the drill" do
     4770744
   end
   
-  drill "Dream in the drill", :fail do
-    dream [:heat, 2]
-    # ... some drill stuff
-    [:heat, 2]
+  dream :class, Array
+  drill "can pass based on output object class" do
+    [1,2,3]
   end
   
-  drill "Drills that return true are assumed to pass" do
+  dream :exception, NameError
+  drill "can pass based on exception class" do
+    dream
+    bad_method_call
+    nil
+  end
+  
+  drill "dreamless drills that return true will pass" do
     true
   end
   

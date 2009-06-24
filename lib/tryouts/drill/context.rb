@@ -9,12 +9,6 @@ class Tryouts
     class DrillContext
         # An ordered Hash of stashed objects. 
       attr_writer :stash
-        # A value used as the dream output that will overwrite a predefined dream
-      attr_writer :dream
-      attr_writer :format
-      attr_writer :rcode
-      attr_writer :emsg
-      attr_writer :output
 
       def initialize; @stash = Tryouts::HASH_TYPE.new; @has_dream = false; end
 

@@ -1,6 +1,8 @@
-= Tryouts - v0.5 BETA
+= Tryouts - v0.6 BETA
 
 Tryouts is a high-level testing library for your command-line applications and Ruby codes.
+
+NOTE: The DSL syntax has changed significantly from 0.5 and command-line app tests are currently disabled. 
 
 == Terminology
 
@@ -10,41 +12,6 @@ Tryouts is a bit different than other testing libraries. Test definitions are or
 * Drill: a test. 
 * Dream: the expected outcome of a drill. 
 
-
-== Testing a command-line application (a CLI)
-
-Tryouts tests command-line applications by comparing expected output with the actual output. Let's say we have an executable called mockout and we want to test the following commands:
-
-    $ bin/executable
-    $ bin/executable -f yaml
-    
-The tryout definition would look like this:
-
-    command :executable, "path/2/executable"
-    
-    tryout "Common Usage" do
-      drill  "No Command"
-      drill "YAML Output", :f, 'yaml'
-    end
-    
-And the expected output would be defined like this:
-
-    dream "No Command" do
-      output inline(%Q{
-            Date:                                   2009-02-16
-         Players:            d-bam, alberta, birds, condor man
-          Owners:            greg, rupaul, telly, prince kinko
-      })
-    end
-    dream "YAML Output" do
-      format :yaml
-      output ({
-        "Date" => "2009-02-16",
-        "Players" => ["d-bam", "alberta", "birds", "condor man"],
-        "Owners" => ["greg", "rupaul", "telly", "prince kinko"]
-      })
-    end
-    
 == Testing Ruby codes (an API)
 
 Tryouts employs the same approach for testing Ruby codes. The return value of the drill block is compared to the expectation defined by the dream. Here is an example of including dreams inside the tryout definition. 
@@ -52,16 +19,21 @@ Tryouts employs the same approach for testing Ruby codes. The return value of th
     library :caesars, LIBRARY_PATH
 
     tryout "Common Usage" do
-      dream "Some Maths", 3 
-      drill "Some Maths" do
+      dream 3
+      drill "Check the return value" do
         12 / 4
       end
         
-      dream "A Block", Proc, :class  # Test the class type instead of the value
-      drill "A Block" do
+      dream :class, :Proc
+      drill "Check the return value class" do
         Proc.new do
           :anything
         end
+      end
+      
+      dream :exception, NameError
+      drill "A test can pass based on the exception" do
+        raise NameError
       end
     end
 
@@ -74,23 +46,9 @@ This library is very new (est. 2009-05-19) and has not been vetted by the scruti
 * Unexpected errors. 
 
 
-== 3 Ways to define tryouts
-
-There are three ways to define an instance of this class:
-* In +_tryouts.rb+ files using the DSL syntax. One file per Tryouts object. 
-  * See: http://github.com/delano/tryouts/blob/master/tryouts/mockoutcli_tryouts.rb
-* In standalone ruby files using a hybrid DSL/OO syntax. Supports multiple 
-  Tryouts objects per file. 
-  * See: http://github.com/delano/tryouts/blob/master/tryouts/standalone_test.rb
-* With regular object-oriented syntax.
-  * See: http://tryouts.rubyforge.org/
-
 == On Threads
 
-Tryouts does some funky stuff to make it simple to write tests. This "funky 
-stuff" means that this library is *not thread-safe at definition-time*. However, once 
-all tryouts files are parsed (or in OO-syntax, once all objects are created), this
-class should be *thread-safe at drill-time*. 
+Tryouts does some funky stuff to make it simple to write tests. This "funky stuff" means that this library is *not thread-safe at definition-time*. However, once all tryouts files are parsed (or in OO-syntax, once all objects are created), this class should be *thread-safe at drill-time*. 
 
 == More Info
 
@@ -100,7 +58,7 @@ class should be *thread-safe at drill-time*.
 
 == Thanks
 
-* Everyone at Utrecht.rb 
+* Everyone at Utrecht.rb and Amsterdam.rb
 
 == Credits
 

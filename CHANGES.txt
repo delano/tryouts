@@ -3,10 +3,18 @@ TRYOUTS, CHANGES
 
 #### 0.6.0 (2009-06-24) ###############################
 
-* CHANGE: dream method is not available inside drill block. 
-* ADDED: dream is now available above drill blocks. 
+NOTE: External dreams files are no longer supported.
+NOTE: command testing (:cli) is disabled. 
 
-  
+* CHANGE: Removed all mention of external dreams files. 
+* CHANGE: dream method is not available inside drill block. 
+* CHANGE: rcode, emsg, backtrace renamed to ecode, error, trace
+* ADDED: dream is now available above drill blocks. 
+* ADDED: Better verbose and debugging output
+* ADDED: Cleaner test output
+* ADDED: drill success is now solely based on output. 
+
+
 #### 0.5.1 (2009-06-13) ###############################
 
 * ADDED: dream method is now available inside drill block

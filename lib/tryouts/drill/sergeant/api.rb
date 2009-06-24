@@ -9,30 +9,30 @@ class Tryouts; class Drill; module Sergeant
   #
   class API
     
-    # +return_value+ specify a return value. This will be 
+    attr_reader :opts
+    
+    # +opts+ is a Hash with the following optional keys:
+    #
+    # * +:output+ specify a return value. This will be 
     # used if no block is specified for the drill.
-    def initialize(return_value=nil)
-      @return_value = return_value
+    def initialize(opts={})
+      @opts = opts
     end
   
     def run(block, context, &inline)
-      
       # A Proc object takes precedence over an inline block. 
       runtime = (block.nil? ? inline : block)
       response = Tryouts::Drill::Reality.new
       if runtime.nil?
-        response.output = @return_value
+        response.output = @opts[:output]
       else
         begin
-          unless runtime.nil?
-            ret = context.instance_eval &runtime
-            response.output, response.rcode = ret, 0
-          end
-        rescue => ex
-          response.rcode = 1
-          response.output = ret
-          response.emsg = ex.message
-          response.backtrace = ex.backtrace
+          response.output = context.instance_eval &runtime
+        rescue => e
+          puts e.message, e.backtrace if Tryouts.debug? && Tryouts.verbose > 2
+          response.etype = e.class
+          response.error = e.message
+          response.trace = e.backtrace
         end
       end
       response

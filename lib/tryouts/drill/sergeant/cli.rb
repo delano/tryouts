@@ -25,21 +25,30 @@ class Tryouts; class Drill; module Sergeant
       response = Tryouts::Drill::Reality.new
       begin
         if runtime.nil?
-          ret = @rbox.send *rbox_args
+          ret = @rbox.send *@rbox_args
         else
           ret = @rbox.instance_eval &runtime
         end
-        response.rcode = ret.exit_code
-        response.output = ret.stdout.size == 1 ? ret.stdout.first : Array.new(ret.stdout)  # Cast the Rye::Rap object
-        response.emsg = ret.stderr unless ret.stderr.empty?
+        response.ecode = ret.exit_code
+        if ret.stdout.size == 1
+          response.output = ret.stdout.first 
+        else
+          response.output = Array.new(ret.stdout)  # Cast the Rye::Rap object
+        end
+        response.error = ret.stderr unless ret.stderr.empty?
       rescue Rye::CommandNotFound => ex
-        response.rcode = -2
-        response.emsg = "[#{@rbox.host}] Command not found: #{ex.message}"
-        response.backtrace = ex.backtrace
+        puts ex.message, ex.backtrace if Tryouts.debug? && Tryouts.verbose > 2
+        response.etype = ex.class
+        response.ecode = ex.exit_code
+        response.error = "[#{@rbox.host}] Command not found: #{ex.message}"
+        response.trace = ex.backtrace
       rescue Rye::CommandError => ex
-        response.rcode = ex.exit_code
+        puts ex.message, ex.backtrace if Tryouts.debug? && Tryouts.verbose > 2
+        response.etype = ex.class
+        response.ecode = ex.exit_code
         response.output = ex.stdout
-        response.emsg = ex.stderr
+        response.error = ex.stderr.join $/
+        response.trace = ex.backtrace
       end
       response
     end
