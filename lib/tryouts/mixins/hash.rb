@@ -33,7 +33,7 @@ class Hash
     end
   end
   
-  require 'digest/sha1'
+  
   
   def githash
     # http://stackoverflow.com/questions/552659/assigning-git-sha1s-without-git

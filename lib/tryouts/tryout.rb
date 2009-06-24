@@ -99,11 +99,12 @@ class Tryouts
         puts '%12s: %s' % ["returned", reality.output.inspect]
         puts '%12s: %s'.color(:red) % ["expected", "[nodream]"]
       else  
-        puts '%12s: %s' % ["returned", reality.output.inspect]
+        
         dreams.each do |dream|
-          c = dream == drill.reality ? :normal : :red
-          note = dream.format.nil? ? '' : "(#{dream.format})"
-          puts '%12s: %s %s'.color(c) % [ "expected", dream.output.inspect, note]
+          next if dream == drill.reality #? :normal : :red 
+          puts '%12s: %s'.color(:red) % ["returned", reality.comparison_value(dream).inspect]
+          puts '%12s: %s' % [ "expected", dream.output.inspect]
+          puts
         end
         unless reality.error.nil?
           puts '%12s: %s (%s)' % ["error", reality.error.inspect, reality.etype]
@@ -111,8 +112,8 @@ class Tryouts
         unless reality.trace.nil?
           trace = Tryouts.verbose > 1 ? reality.trace : [reality.trace.first]
           puts '%12s: %s' % ["trace", trace.join($/ + ' '*14)]
+          puts
         end
-        puts
       end
     end
     false

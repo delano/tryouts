@@ -35,12 +35,8 @@ class Tryouts::Drill
           reality.output < dream.output
         when :lte
           reality.output <= dream.output
-        when :respond_to?
-          reality.output.respond_to? dream.output 
-        when :kind_of?
-          reality.output.kind_of? dream.output
-        when :is_a?
-          reality.output.is_a? dream.output
+        when :respond_to?, :kind_of?, :is_a?
+          reality.output.send(dream.format, dream.output)
         else 
         
           if dream.format.nil?
@@ -98,8 +94,8 @@ class Tryouts::Drill
         return ""
       end
     
-      
     end
+    
   end
 
 
@@ -157,6 +153,25 @@ class Tryouts::Drill
     def ==(dream)
       return @answer unless @answer.nil?
       @answer = Response.compare(dream, self)
+    end
+    
+    def comparison_value(dream)
+      return @ret unless @ret.nil?
+      @ret = case dream.format
+      when :exception
+        @etype
+      when :respond_to?, :is_a?, :kind_of?
+        @output.send(dream.format, dream.output)
+      else 
+      
+        if @output.respond_to?(dream.format || '')
+          @output.send(dream.format)
+        else
+          @output
+        end
+      
+      end
+      
     end
   end
 

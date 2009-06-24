@@ -1,10 +1,13 @@
+
 require 'time'
 require 'sysinfo'
+require 'digest/sha1'
 require 'ostruct'
 require 'yaml'
+
 begin; require 'json'; rescue LoadError; end   # json may not be installed
 
-GYMNASIUM_HOME = File.join(Dir.pwd, 'tryouts')  ## also check try (for rye)
+GYMNASIUM_HOME = File.join(Dir.pwd, '{tryouts,try}')  ## also check try (for rye)
 GYMNASIUM_GLOB = File.join(GYMNASIUM_HOME, '**', '*_tryouts.rb')
 
 
