@@ -38,8 +38,8 @@ Tryouts employs the same approach for testing Ruby codes. The return value of th
         raise NameError
       end
       
-      dream //, :match
-      drill 
+      dream /\w\d\w \d\w\d/, :match
+      drill "Knows where Santa Claus lives", 'H0H 0H0'
     end
 
 

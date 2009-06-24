@@ -57,6 +57,11 @@ class Tryouts
     puts Tryouts::TRYOUT_MSG.bright % @name unless Tryouts.verbose < 0
     @drills.each do |drill|
       print Tryouts::DRILL_MSG % drill.name unless Tryouts.verbose < 0
+      if drill.skip?
+        puts "SKIP" if Tryouts.verbose >= 0
+        puts if Tryouts.verbose > 0
+        next
+      end
       drill.run DrillContext.new
       drill.success? ? @passed += 1 : @failed += 1
       next if Tryouts.verbose < 0
@@ -155,7 +160,10 @@ class Tryouts
     self.add_drill drill
   end
   # A quick way to comment out a drill
-  def xdrill(*args, &b); @dream_catcher.clear; end # ignore calls to xdrill
+  def xdrill(dname, *args, &b)
+    @dream_catcher.clear     # Otherwise the next drill will get them...
+    self.add_drill Tryouts::Drill.new(dname, :skip)
+  end
   
   
   #

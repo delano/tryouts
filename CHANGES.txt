@@ -9,7 +9,7 @@ NOTE: command testing (:cli) is still disabled.
 * ADDED: Hella better runtime error handling
 * ADDED: Better support for quiet (-q)
 * ADDED: Verbose output now displays each dream vs reality 
-
+* ADDED: Skipped drills now appear in the report 
 
 #### 0.6.2 (2009-06-24) ###############################
 

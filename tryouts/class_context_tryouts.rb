@@ -12,17 +12,19 @@ tryout "Setting class variables", :api do
     @@from_setup
   end
   
-  xdrill "can access class var created in setup (1.8 only)", 'Olivia', :to_s do
+  drill "can access class var created in setup (1.8 only)", 'Olivia' do
     @@from_setup.class.to_s
   end
   
-  drill "create class var", 'Olivia', :to_s  do
+  drill "create class var", 'Olivia'  do
     @@from_drill = Olivia.new
     @@from_drill.class.to_s
   end
   
-  drill "can access class var created in drill", 'Olivia', :to_s do
+  drill "can access class var created in drill", 'Olivia' do
     @@from_drill.class.to_s
   end
   
+  dream /\w\d\w \d\w\d/, :match
+  drill "Knows where Santa Claus lives", 'H0H 0H0'
 end

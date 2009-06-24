@@ -31,7 +31,7 @@ class Tryouts
   attr_reader :reality
       
   def initialize(name, dtype, *args, &drill)
-    @name, @dtype, @drill = name, dtype, drill
+    @name, @dtype, @drill, @skip = name, dtype, drill, false
     @dreams = []
     if @dtype == :cli
       @sergeant = Tryouts::Drill::Sergeant::CLI.new *args
@@ -39,6 +39,8 @@ class Tryouts
       default_output = drill.nil? ? args.shift : nil
       @sergeant = Tryouts::Drill::Sergeant::API.new default_output
       @dreams << Tryouts::Drill::Dream.new(*args) unless args.empty?
+    elsif @dtype == :skip
+      @skip = true
     else
       raise NoSergeant, "Weird drill sergeant: #{@dtype}"
     end
@@ -47,7 +49,9 @@ class Tryouts
     drill_args = [] if dtype == :cli && drill.is_a?(Proc)
     @reality = Tryouts::Drill::Reality.new
   end
-    
+  
+  def skip?; @skip; end
+  
   def run(context=nil)
     begin
       @reality = @sergeant.run @drill, context
