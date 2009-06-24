@@ -6,25 +6,22 @@ tryout "DSL Syntax", :api do
     4770744
   end
   
-  dream :class, Array
+  dream Array, :class
   drill "can pass based on output object class" do
     [1,2,3]
   end
   
-  dream :exception, NameError
+  dream NameError, :exception
   drill "can pass based on exception class" do
-    dream
     bad_method_call
-    nil
   end
   
   drill "dreamless drills that return true will pass" do
     true
   end
   
-  ##drill "will fail if given no path" do
-  ##  dream nil, 1, "wrong number of arguments (0 for 1)"
-  ##  Rudy::MetaData::Disk.new
-  ##end
+  drill "inline true values will pass", true
+  drill "can specify inline return values", :food, :food
+  drill "can specify regex format", 'Hi', /hi/i, :regex
   
 end
