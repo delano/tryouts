@@ -70,17 +70,12 @@ class Tryouts
       puts drill.success? ? "PASS".color(c).bright : "FAIL #{note}".color(c).bright
       if Tryouts.verbose > 1
         drill.dreams.each do |dream|
-          c = dream == drill.reality ? :green : :red
-          puts '%6s%s'.color(c) % ['', dream.test_to_string(drill.reality)]
+          #next if dream == drill.reality #? :normal : :red 
+          puts '%6s%s'.color(c) % ["", dream.test_to_string(drill.reality)]
         end
-        drill.reality.stash.each_pair do |n,v|
-          puts '%14s: %s' % [n,v.inspect]
-        end
-
       elsif Tryouts.verbose > 0
         puts '%6s%s'.color(c) % ['', drill.reality.output.inspect]
       end
-      
     end
     DrillContext.module_eval &clean if clean.is_a?(Proc)
   end
@@ -99,11 +94,16 @@ class Tryouts
         puts '%12s: %s' % ["returned", reality.output.inspect]
         puts '%12s: %s'.color(:red) % ["expected", "[nodream]"]
       else  
+
+        drill.reality.stash.each_pair do |n,v|
+          puts '%14s: %s' % [n,v.inspect]
+        end
         
         dreams.each do |dream|
-          next if dream == drill.reality #? :normal : :red 
-          puts '%12s: %s'.color(:red) % ["returned", reality.comparison_value(dream).inspect]
-          puts '%12s: %s' % [ "expected", dream.output.inspect]
+          next if dream == reality #? :normal : :red 
+          puts '%12s: %s'.color(:red) % ["test", dream.test_to_string(drill.reality)]
+          puts '%12s: %s' % ["returned", reality.comparison_value(dream).inspect]
+          puts '%12s: %s' % ["expected", dream.comparison_value.inspect]
           puts
         end
         unless reality.error.nil?

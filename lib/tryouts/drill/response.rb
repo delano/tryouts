@@ -133,6 +133,16 @@ class Tryouts::Drill
       return @test_string unless @test_string.nil?
       @test_string = Response.compare_string(self, reality)
     end
+    
+    def comparison_value
+      return @ret unless @ret.nil?
+      @ret = case @format
+      when :respond_to?, :is_a?, :kind_of?
+        true
+      else 
+        @output
+      end
+    end
   end
 
   # = Reality 
@@ -151,13 +161,11 @@ class Tryouts::Drill
     end
     
     def ==(dream)
-      return @answer unless @answer.nil?
-      @answer = Response.compare(dream, self)
+      Response.compare(dream, self)
     end
     
     def comparison_value(dream)
-      return @ret unless @ret.nil?
-      @ret = case dream.format
+      case dream.format
       when :exception
         @etype
       when :respond_to?, :is_a?, :kind_of?
@@ -169,9 +177,7 @@ class Tryouts::Drill
         else
           @output
         end
-      
       end
-      
     end
   end
 
