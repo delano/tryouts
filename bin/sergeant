@@ -17,7 +17,7 @@ require 'tryouts/cli'
 module TryoutsCLI
   extend Drydock
   
-  debug :on
+  debug :off
   default :run, :with_args
   
   global :q, :quiet, "Decrease output"

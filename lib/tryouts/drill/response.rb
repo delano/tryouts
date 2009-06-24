@@ -20,30 +20,43 @@ class Tryouts::Drill
       ##return false unless reality.error.nil? && reality.trace.nil?
       return true if reality.output == true and dream.nil?
       
-      case dream.format
-      when :exception
-        reality.etype == dream.output
-      when :match
-        reality.output.respond_to?(:match) &&
-        !reality.output.match(dream.output).nil?
-      when :gt
-        reality.output > dream.output
-      when :gte
-        reality.output >= dream.output
-      when :lt
-        reality.output < dream.output
-      when :lte
-        reality.output <= dream.output
-      else 
+      begin
+        case dream.format
+        when :exception
+          reality.etype == dream.output
+        when :match
+          reality.output.respond_to?(:match) &&
+          !reality.output.match(dream.output).nil?
+        when :gt
+          reality.output > dream.output
+        when :gte
+          reality.output >= dream.output
+        when :lt
+          reality.output < dream.output
+        when :lte
+          reality.output <= dream.output
+        when :respond_to?
+          reality.output.respond_to? dream.output 
+        when :kind_of?
+          reality.output.kind_of? dream.output
+        when :is_a?
+          reality.output.is_a? dream.output
+        else 
         
-        if dream.format.nil?
-          reality.output == dream.output
-        elsif reality.output.respond_to?(dream.format)
-          reality.output.send(dream.format) == dream.output
+          if dream.format.nil?
+            reality.output == dream.output
+          elsif reality.output.respond_to?(dream.format)
+            reality.output.send(dream.format) == dream.output
+          else 
+            false
+          end
+        
         end
-        
+      rescue => ex
+        puts ex.message, ex.backtrace if Tryouts.debug? 
+        reality.error, reality.trace, reality.etype = ex.message, ex.backtrace, ex.class
+        return false
       end
-      
     end
     
     def Response.compare_string(dream, reality)
@@ -53,25 +66,38 @@ class Tryouts::Drill
         return "#{reality.output.inspect} == true" 
       end
       
-      case dream.format
-      when :exception
-        "#{reality.etype} == #{dream.output}"
-      when :match
-        "#{reality.output.inspect}.match(#{dream.output.inspect})"
-      when :gt, :gte, :lt, :lte
-        op = {:gt=>'>',:gte=>'>=', :lt=>'<', :lte => '<='}.find { |i| i[0] == dream.format }
-        "#{reality.output.inspect} #{op[1]} #{dream.output.inspect}"
-      else 
+      begin
+        case dream.format
+        when :exception
+          "#{reality.etype} == #{dream.output}"
+        when :match
+          "#{reality.output.inspect}.match(#{dream.output.inspect})"
+        when :gt, :gte, :lt, :lte
+          op = {:gt=>'>',:gte=>'>=', :lt=>'<', :lte => '<='}.find { |i| i[0] == dream.format }
+          "#{reality.output.inspect} #{op[1]} #{dream.output.inspect}"
+        when :respond_to?
+          "#{reality.output.inspect}.respond_to? #{dream.output.inspect}"
+        when :kind_of?
+          "#{reality.output.inspect}.kind_of? #{dream.output.inspect}"
+        when :is_a?
+          "#{reality.output.inspect}.is_a? #{dream.output.inspect}"
+        else 
         
-        if dream.format.nil?
-          "#{reality.output.inspect} == #{dream.output.inspect}"
-        elsif reality.output.respond_to?(dream.format)
-          "#{reality.output.inspect}.#{dream.format} == #{dream.output.inspect}"
-        else
-          "#{reality.output.class}.has_method?(#{dream.format.inspect}) == false"
+          if dream.format.nil?
+            "#{reality.output.inspect} == #{dream.output.inspect}"
+          elsif reality.output.respond_to?(dream.format)
+            "#{reality.output.inspect}.#{dream.format} == #{dream.output.inspect}"
+          else
+            "#{reality.output.inspect}.respond_to?(#{dream.format.inspect}) == false"
+          end
+        
         end
-        
+      rescue => ex
+        puts ex.message, ex.backtrace if Tryouts.debug? 
+        reality.error, reality.trace, reality.etype = ex.message, ex.backtrace, ex.class
+        return ""
       end
+    
       
     end
   end

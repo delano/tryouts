@@ -247,8 +247,6 @@ class Tryouts
       if @@instances.has_key? to.group
         to = @@instances[to.group]
         to.instance_eval file_content, fpath
-      else
-        @@instances[to.group] = to
       end
       to.paths << fpath
     rescue SyntaxError, LoadError, Exception,
@@ -256,6 +254,7 @@ class Tryouts
       to.errors << ex
       Tryouts.failed = true
     end
+    @@instances[to.group] = to
     to
   end
   

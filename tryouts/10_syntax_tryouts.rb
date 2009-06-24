@@ -12,7 +12,7 @@ tryout "DSL Syntax", :api do
   end
   
   dream NameError, :exception
-  xdrill "can pass based on exception class" do
+  drill "can pass based on exception class" do
     bad_method_call
   end
   

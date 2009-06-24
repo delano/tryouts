@@ -96,15 +96,15 @@ class Tryouts
       puts $/, ' ' << title.color(:red).att(:reverse)
       
       if dreams.empty?
-        puts '%12s: %s'.color(:red) % ["expected", "[nodream]"]
         puts '%12s: %s' % ["returned", reality.output.inspect]
-      else
+        puts '%12s: %s'.color(:red) % ["expected", "[nodream]"]
+      else  
+        puts '%12s: %s' % ["returned", reality.output.inspect]
         dreams.each do |dream|
           c = dream == drill.reality ? :normal : :red
           note = dream.format.nil? ? '' : "(#{dream.format})"
           puts '%12s: %s %s'.color(c) % [ "expected", dream.output.inspect, note]
         end
-        puts '%12s: %s' % ["returned", reality.output.inspect]
         unless reality.error.nil?
           puts '%12s: %s (%s)' % ["error", reality.error.inspect, reality.etype]
         end

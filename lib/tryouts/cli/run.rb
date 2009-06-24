@@ -87,7 +87,7 @@ class Run < Drydock::Command
     else
       if Tryouts.verbose > 0
         elapsed = Time.now - start
-        puts "  Elapsed: %.3f seconds" % elapsed.to_f #if elapsed > 0.01
+        puts $/, "  Elapsed: %.3f seconds" % elapsed.to_f #if elapsed > 0.01
       end
       if (passed == 0 && failed == 0)
         puts DEV if Tryouts.verbose > 4

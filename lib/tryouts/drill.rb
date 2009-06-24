@@ -70,7 +70,12 @@ class Tryouts
   end
   
   def success?
-    @dreams.each { |d| return false unless d == @reality }
+    begin
+      @dreams.each { |d| return false unless d == @reality }
+    rescue => ex
+      puts ex.message, ex.backtrace if Tryouts.debug?
+      return false
+    end
     true
   end
   
