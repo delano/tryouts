@@ -12,7 +12,7 @@ tryout "Setting class variables", :api do
     @@from_setup
   end
   
-  drill "can access class var created in setup (1.8 only)", 'Olivia', :to_s do
+  xdrill "can access class var created in setup (1.8 only)", 'Olivia', :to_s do
     @@from_setup.class.to_s
   end
   

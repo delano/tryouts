@@ -33,7 +33,7 @@ class Run < Drydock::Command
   # Executes all tryouts that can be found from the current working directory. 
   def run
     Tryouts.enable_debug if Drydock.debug?
-    Tryouts.verbose = @global.verbose
+    Tryouts.verbose = @global.quiet ? -1 : @global.verbose
     
     puts "#{Tryouts.sysinfo.to_s} (#{RUBY_VERSION})" if Tryouts.verbose > 0
     
@@ -41,11 +41,16 @@ class Run < Drydock::Command
 
     passed, failed = 0, 0
     Tryouts.instances.each_pair do |group,tryouts_inst|
-      puts '', ' %-60s'.att(:reverse) % group
+      puts '', ' %-60s'.att(:reverse) % group  unless Tryouts.verbose < 0
       puts "  #{tryouts_inst.paths.join("\n  ")}" if Tryouts.verbose > 0
       tryouts_inst.tryouts.each_pair do |name,to|
-        to.run
-        to.report
+        begin
+          to.run
+          to.report
+        rescue SyntaxError, LoadError, Exception,
+               RuntimeError, NoMethodError, NameError => ex
+          tryouts_inst.errors << ex
+        end
         STDOUT.flush
         passed += to.passed
         failed += to.failed
@@ -63,22 +68,37 @@ class Run < Drydock::Command
       end
     end
     
-    
-    unless @global.quiet
+    if Tryouts.verbose < 0
+      if (passed == 0 && failed == 0)
+        exit -1
+      elsif failed == 0 && !Tryouts.failed?
+        puts "PASS"
+        exit 0
+      else
+        puts "FAIL"
+        exit 1
+      end
+    else
       if (passed == 0 && failed == 0)
         puts DEV if Tryouts.verbose > 4
         msg = " You didn't even try to acheive your dreams :[ "
-      elsif failed == 0
+        puts $/, msg.att(:reverse)
+        exit -1
+      elsif failed == 0 && !Tryouts.failed?
         puts PUG if Tryouts.verbose > 4
         msg = passed > 1 ? "All %s dreams" : "Your only dream"
         msg = (" #{msg} came true " % [passed+failed]).color(:green)
+        puts $/, msg.att(:reverse)
+        exit 0
       else
         puts BUG if Tryouts.verbose > 4
         score = (passed.to_f / (passed.to_f+failed.to_f)) * 100
         msg = " %s of %s dreams came true (%d%%) ".color(:red)
         msg = msg % [passed, passed+failed, score.to_i]
+        puts $/, msg.att(:reverse)
+        exit 1
       end
-      puts $/, msg.att(:reverse)
+      
     end
   end
   

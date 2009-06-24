@@ -4,8 +4,8 @@ TRYOUTS_HOME = File.expand_path(File.join(File.dirname(__FILE__), '..'))
 
 $:.unshift File.join(TRYOUTS_HOME, 'lib')
 
-#local_libs = %w{tryouts net-scp amazon-ec2 aws-s3 caesars drydock rye storable sysinfo annoy}
-#local_libs.each { |dir| $:.unshift File.join(TRYOUTS_HOME, '..', dir, 'lib') }
+local_libs = %w{tryouts net-scp amazon-ec2 aws-s3 caesars drydock rye storable sysinfo annoy}
+local_libs.each { |dir| $:.unshift File.join(TRYOUTS_HOME, '..', dir, 'lib') }
 
 require 'drydock'
 require 'tryouts'
@@ -58,3 +58,5 @@ module TryoutsCLI
   command :list => Tryouts::CLI::Run
   
 end
+
+Drydock.run!(ARGV, STDIN) if Drydock.run?

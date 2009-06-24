@@ -51,6 +51,8 @@ class Tryouts
   
   @@debug = false
   @@verbose = 0
+    # This will be true if any error occurred during any of the drills or parsing. 
+  @@failed = false  
   
   def self.debug?; @@debug; end
   def self.enable_debug; @@debug = true; end
@@ -59,6 +61,8 @@ class Tryouts
   def self.verbose; @@verbose; end
   def self.verbose=(v); @@verbose = (v == true) ? 1 : v; end
   
+  def self.failed?; @@failed; end
+  def self.failed=(v); @@failed = v; end
   
   # Returns +@@instances+
   def self.instances; @@instances; end
@@ -138,6 +142,7 @@ class Tryouts
     rescue SyntaxError, LoadError, Exception,
            RuntimeError, NoMethodError, NameError => ex
       @errors << ex
+      Tryouts.failed = true
     end
   end
   # Calls Tryouts#library on the current instance of Tryouts
@@ -186,6 +191,7 @@ class Tryouts
     rescue SyntaxError, LoadError, Exception,
            RuntimeError, NoMethodError, NameError => ex
       @errors << ex
+      Tryouts.failed = true
     end
     to
   end
@@ -238,6 +244,7 @@ class Tryouts
     rescue SyntaxError, LoadError, Exception,
            RuntimeError, NoMethodError, NameError => ex
       to.errors << ex
+      Tryouts.failed = true
     end
     to.paths << fpath
     @@instances[to.group] = to

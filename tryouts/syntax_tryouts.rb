@@ -12,7 +12,7 @@ tryout "DSL Syntax", :api do
   end
   
   dream NameError, :exception
-  drill "can pass based on exception class" do
+  drill "can pass based on exception class" d
     bad_method_call
   end
   
@@ -22,11 +22,11 @@ tryout "DSL Syntax", :api do
   
   drill "inline true values will pass too", true
   drill "can specify inline return values", :food, :food
-  drill "can specify regex format", 'mahir', /..hi./i, :regex
+  drill "can specify match format", 'mahir', /..hi./i, :match
   
   dream "big"
   dream String, :class
-  dream /\Ab.g\z/, :regex
+  dream /\Ab.g\z/, :match
   drill "can handle multiple dreams" do
     "big"
   end
@@ -35,4 +35,6 @@ tryout "DSL Syntax", :api do
   drill "can specify gte (greater than or equal to) format", 2, 2, :gte
   drill "can specify lt (less than) format", 1, 2, :lt
   drill "can specify lte (less then or equal to) format", 2, 2, :lte
+  
+  drill "can run arbitrary formats", [3,1,2], [1,2,3], :sort
 end

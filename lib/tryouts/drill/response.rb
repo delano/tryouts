@@ -19,18 +19,13 @@ class Tryouts::Drill
       ## I don't think this check is necessary or useful
       ##return false unless reality.error.nil? && reality.trace.nil?
       return true if reality.output == true and dream.nil?
-
+      
       case dream.format
-      when :class
-        reality.output.class == dream.output
       when :exception
         reality.etype == dream.output
-      when :regex
+      when :match
         reality.output.respond_to?(:match) &&
         !reality.output.match(dream.output).nil?
-      when :size
-        reality.output.respond_to?(:size) &&
-        reality.output.size == dream.output
       when :gt
         reality.output > dream.output
       when :gte
@@ -40,7 +35,42 @@ class Tryouts::Drill
       when :lte
         reality.output <= dream.output
       else 
-        reality.output == dream.output
+        
+        if dream.format.nil?
+          reality.output == dream.output
+        elsif reality.output.respond_to?(dream.format)
+          reality.output.send(dream.format) == dream.output
+        end
+        
+      end
+      
+    end
+    
+    def Response.compare_string(dream, reality)
+      return "[noreality]" if reality.nil?
+      
+      if reality.output == true and dream.nil?
+        return "#{reality.output.inspect} == true" 
+      end
+      
+      case dream.format
+      when :exception
+        "#{reality.etype} == #{dream.output}"
+      when :match
+        "#{reality.output.inspect}.match(#{dream.output.inspect})"
+      when :gt, :gte, :lt, :lte
+        op = {:gt=>'>',:gte=>'>=', :lt=>'<', :lte => '<='}.find { |i| i[0] == dream.format }
+        "#{reality.output.inspect} #{op[1]} #{dream.output.inspect}"
+      else 
+        
+        if dream.format.nil?
+          "#{reality.output.inspect} == #{dream.output.inspect}"
+        elsif reality.output.respond_to?(dream.format)
+          "#{reality.output.inspect}.#{dream.format} == #{dream.output.inspect}"
+        else
+          "#{reality.output.class}.has_method?(#{dream.format.inspect}) == false"
+        end
+        
       end
       
     end
@@ -74,6 +104,10 @@ class Tryouts::Drill
     
     def ==(reality)
       Response.compare(self, reality)
+    end
+    
+    def test_to_string(reality)
+      Response.compare_string(self, reality)
     end
   end
 

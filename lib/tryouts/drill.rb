@@ -14,7 +14,8 @@ class Tryouts
   require 'tryouts/drill/sergeant/api'
   
   class NoSergeant < Tryouts::Exception; end
-    
+  class UnknownFormat < Tryouts::Exception; end
+  
     # A symbol specifying the drill type. One of: :cli, :api
   attr_reader :dtype
     # The name of the drill. This should match the name used in the dreams file. 
@@ -49,7 +50,6 @@ class Tryouts
     
   def run(context=nil)
     begin
-      print Tryouts::DRILL_MSG % @name
       @reality = @sergeant.run @drill, context
       # Store the stash from the drill block
       @reality.stash = context.stash if context.respond_to? :stash

@@ -54,38 +54,50 @@ class Tryouts
   # Execute all Drill objects
   def run
     DrillContext.module_eval &setup if setup.is_a?(Proc)
-    puts Tryouts::TRYOUT_MSG.bright % @name
+    puts Tryouts::TRYOUT_MSG.bright % @name unless Tryouts.verbose < 0
     @drills.each do |drill|
+      print Tryouts::DRILL_MSG % drill.name unless Tryouts.verbose < 0
       drill.run DrillContext.new
+      drill.success? ? @passed += 1 : @failed += 1
+      next if Tryouts.verbose < 0
       note = drill.dreams.empty? ? '[nodream]' : ''
-      puts drill.success? ? "PASS".color(:green) : "FAIL #{note}".color(:red)
-      puts "      #{drill.reality.output.inspect}" if Tryouts.verbose > 0
+      c = drill.success? ? :green : :red
+      puts drill.success? ? "PASS".color(c).bright : "FAIL #{note}".color(c).bright
       if Tryouts.verbose > 1
+        drill.dreams.each do |dream|
+          c = dream == drill.reality ? :green : :red
+          puts '%6s%s'.color(c) % ['', dream.test_to_string(drill.reality)]
+        end
         drill.reality.stash.each_pair do |n,v|
           puts '%14s: %s' % [n,v.inspect]
         end
+
+      elsif Tryouts.verbose > 0
+        puts '%6s%s'.color(c) % ['', drill.reality.output.inspect]
       end
-      drill.success? ? @passed += 1 : @failed += 1
+      
     end
     DrillContext.module_eval &clean if clean.is_a?(Proc)
   end
   
   # Prints error output. If there are no errors, it prints nothing. 
   def report
+    return if Tryouts.verbose < 0
     return true if success?
     failed = @drills.select { |d| !d.success? }
     failed.each_with_index do |drill,index|
       dreams, reality = drill.dreams, drill.reality
-      title = ' %-59s' % %Q{ERROR #{index+1}/#{failed.size} "#{drill.name}"}
+      title = ' %-51s %2d/%-2d ' % [drill.name, index+1, failed.size]
       puts $/, ' ' << title.color(:red).att(:reverse)
       
       if dreams.empty?
-        puts '%12s: %s' % ["expected", "[nodream]"]
+        puts '%12s: %s'.color(:red) % ["expected", "[nodream]"]
         puts '%12s: %s' % ["returned", reality.output.inspect]
       else
         dreams.each do |dream|
+          c = dream == drill.reality ? :normal : :red
           note = dream.format.nil? ? '' : "(#{dream.format})"
-          puts '%12s: %s %s' % [ "expected", dream.output.inspect, note]
+          puts '%12s: %s %s'.color(c) % [ "expected", dream.output.inspect, note]
         end
         puts '%12s: %s' % ["returned", reality.output.inspect]
         unless reality.error.nil?
