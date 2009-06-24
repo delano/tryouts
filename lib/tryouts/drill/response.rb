@@ -27,6 +27,14 @@ class Tryouts::Drill
         reality.etype == dream.output
       when :regex
         !reality.output.match(dream.output).nil?
+      when :gt
+        reality.output > dream.output
+      when :gte
+        reality.output >= dream.output
+      when :lt
+        reality.output < dream.output
+      when :lte
+        reality.output <= dream.output
       else 
         reality.output == dream.output
       end

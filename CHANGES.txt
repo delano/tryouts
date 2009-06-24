@@ -7,7 +7,7 @@ NOTE: command testing (:cli) is still disabled.
 
 * CHANGE: dream arguments are now ordered: format, output
 * ADDED: One-liner drill syntax
-* ADDED: :regex dream format
+* ADDED: new dream formats: :regex, :gt, :gte, :lt, :lte
 * ADDED: Calls to xdrill now also clear the dream catcher
 * ADDED: Support for multiple dreams per drill
 

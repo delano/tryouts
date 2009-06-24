@@ -30,4 +30,9 @@ tryout "DSL Syntax", :api do
   drill "can handle multiple dreams" do
     "big"
   end
+  
+  drill "can specify gt (greater than) format", 2, 1, :gt
+  drill "can specify gte (greater than or equal to) format", 2, 2, :gte
+  drill "can specify lt (less than) format", 1, 2, :lt
+  drill "can specify lte (less then or equal to) format", 2, 2, :lte
 end
