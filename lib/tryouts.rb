@@ -1,6 +1,6 @@
 
+require 'sysinfo'
 require 'ostruct'
-require 'rye'
 require 'yaml'
 begin; require 'json'; rescue LoadError; end   # json may not be installed
 
@@ -29,7 +29,7 @@ class Tryouts
   # Raised when there is a problem loading or parsing a Tryouts::Drill::Dream object
   class BadDreams < Exception; end
   
-  VERSION = "0.6.0"
+  VERSION = "0.6.1"
   
   require 'tryouts/mixins'
   require 'tryouts/tryout'

@@ -1,6 +1,15 @@
 TRYOUTS, CHANGES
 
 
+#### 0.6.1 (2009-06-24) ###############################
+
+NOTE: command testing (:cli) is still disabled. 
+
+* FIXED: JRuby is now supported
+* FIXED: Now correctly requiring sysinfo library
+* CHANGE: Don't require rye until a CLI sergeant is created.
+
+
 #### 0.6.0 (2009-06-24) ###############################
 
 NOTE: External dreams files are no longer supported.
