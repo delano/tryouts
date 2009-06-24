@@ -109,11 +109,10 @@ class Tryouts
           puts '%12s: %s (%s)' % ["error", reality.error.inspect, reality.etype]
         end
         unless reality.trace.nil?
-          trace = Tryouts.verbose > 0 ? reality.trace : [reality.trace.first]
+          trace = Tryouts.verbose > 1 ? reality.trace : [reality.trace.first]
           puts '%12s: %s' % ["trace", trace.join($/ + ' '*14)]
-          puts
         end
-        
+        puts
       end
     end
     false

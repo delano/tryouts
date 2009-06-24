@@ -32,13 +32,18 @@ class Run < Drydock::Command
   # $ sergeant run [path/2/tryouts]
   # Executes all tryouts that can be found from the current working directory. 
   def run
+    start = Time.now
+    
     Tryouts.enable_debug if Drydock.debug?
     Tryouts.verbose = @global.quiet ? -1 : @global.verbose
-    
-    puts "#{Tryouts.sysinfo.to_s} (#{RUBY_VERSION})" if Tryouts.verbose > 0
+
+    if Tryouts.verbose > 0
+      print "Tryouts #{Tryouts::VERSION} -- "
+      print "#{Tryouts.sysinfo.to_s} (#{RUBY_VERSION}) -- "
+      puts "#{start.strftime("%Y-%m-%d %H:%M:%S")}"
+    end
     
     load_available_tryouts_files
-    puts Tryouts.instances.keys
     
     passed, failed = 0, 0
     Tryouts.instances.each_pair do |group,tryouts_inst|
@@ -80,6 +85,10 @@ class Run < Drydock::Command
         exit 1
       end
     else
+      if Tryouts.verbose > 0
+        elapsed = Time.now - start
+        puts "  Elapsed: %.3f seconds" % elapsed.to_f #if elapsed > 0.01
+      end
       if (passed == 0 && failed == 0)
         puts DEV if Tryouts.verbose > 4
         msg = " You didn't even try to acheive your dreams :[ "

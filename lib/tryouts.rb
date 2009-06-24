@@ -1,4 +1,4 @@
-
+require 'time'
 require 'sysinfo'
 require 'ostruct'
 require 'yaml'
