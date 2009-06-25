@@ -55,7 +55,6 @@ Tryouts employs the same approach for testing Ruby codes. The return value of th
       
     end
 
-
 === Benchmarks
 
 You can also use Tryouts to run benchmarks using a second parameter to the tryout method. This parameter determines which drill sergeant to use. 
@@ -85,6 +84,12 @@ You can also use Tryouts to run benchmarks using a second parameter to the tryou
    end
 
 The drill blocks for benchmarks return Tryouts::Stats objects.
+
+== Screenshots
+
+Here is an example of Tryouts output from a gibbler[http://github.com/delano/gibbler/blob/gibbler-0.2.1/tryouts/gibbler_tryouts.rb]:
+
+http://github.com/delano/tryouts/raw/gh-pages/screens/tryouts-1-failure.png
 
 
 == BETA Notice
