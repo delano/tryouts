@@ -17,9 +17,9 @@ Tryouts is a bit different than other testing libraries. Test definitions are or
 
 == Examples
 
-Tryouts employs the same approach for testing Ruby codes. The return value of the drill block is compared to the expectation defined by the dream. Here is an example of including dreams inside the tryout definition. 
+Tryouts are made up of one of more drills. The return value of the drill block is compared to the expectations defined by one or more dreams. The following is a complete overview of Tryouts syntax. 
 
-=== Testing Ruby Codes
+=== Testing Ruby Codes (:api)
 
     library :caesars, "../path/to/caesars/lib"
 
@@ -55,9 +55,9 @@ Tryouts employs the same approach for testing Ruby codes. The return value of th
       
     end
 
-=== Benchmarks
+=== Benchmarks (:benchmark)
 
-You can also use Tryouts to run benchmarks using a second parameter to the tryout method. This parameter determines which drill sergeant to use. 
+You can also use Tryouts to run benchmarks using a second parameter to the tryouts method. This parameter determines which drill sergeant to use. Here we specify <tt>:benchmark</tt> so each drill is timed while it's executed (see Tryouts::Drill::Sergeant::Benchmark):
 
    tryouts "Benchmark examples", :benchmark do
      
@@ -83,13 +83,19 @@ You can also use Tryouts to run benchmarks using a second parameter to the tryou
       
    end
 
-The drill blocks for benchmarks return Tryouts::Stats objects.
+The drill blocks in a benchmark Tryout return Tryouts::Stats objects.
 
 == Screenshots
 
-Here is an example of Tryouts output from a gibbler[http://github.com/delano/gibbler/blob/gibbler-0.2.1/tryouts/gibbler_tryouts.rb]:
+Here is an example of Tryouts output from a gibbler[http://github.com/delano/gibbler/blob/gibbler-0.2.1/tryouts/gibbler_tryouts.rb] tryout:
 
 http://github.com/delano/tryouts/raw/gh-pages/screens/tryouts-1-failure.png
+
+The drill that failed looks like this:
+
+    dream :to_gibble, :respond_to?
+    dream 'ab33b9dec202d136d0e695a3a7b06ee678134882', :to_gibble 
+    drill "Array", Array
 
 
 == BETA Notice
