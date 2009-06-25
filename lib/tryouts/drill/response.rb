@@ -30,6 +30,8 @@ class Tryouts::Drill
         when :proc
           dream.output.is_a?(Proc) &&
           reality.comparison_value(dream) == dream.comparison_value
+        when :mean, :sdev
+          reality.comparison_value(dream) <= dream.comparison_value
         when :gt
           reality.output > dream.output
         when :gte
@@ -74,6 +76,8 @@ class Tryouts::Drill
           test.arity > 0 ? "Proc.call(reality) == true" : "Proc.call == true"
         when :exception
           "#{reality.etype} == #{dream.output}"
+        when :mean, :sdev
+          "#{reality.comparison_value(dream)} <= #{dream.output}"
         when :match
           "#{reality.output.inspect}.match(#{dream.output.inspect})"
         when :gt, :gte, :lt, :lte, :ne
@@ -147,7 +151,7 @@ class Tryouts::Drill
       @ret = case @format
       when :gt, :gte, :lt, :lte, :ne
         op = {:gt=>'>',:gte=>'>=', :lt=>'<', :lte => '<=', :ne => '!='}.find { |i| i[0] == @format }
-        "#{op[1]} #{@output}"
+        @output
       when :proc
         true
       when :respond_to?, :is_a?, :kind_of?
