@@ -16,8 +16,8 @@ class Tryouts; class Drill; module Sergeant
     # * +reps+ Number of times to execute the block
     #
     def initialize(reps=1)
-      @reps = reps
-      p [:reps, reps]
+      @reps = 1..30.include?(reps) ? reps : 1
+      @stats = Tryouts::Stats.new
     end
   
     def run(block, context, &inline)
@@ -29,7 +29,12 @@ class Tryouts; class Drill; module Sergeant
       else
         begin
           
-          response.output = ::Benchmark.realtime &runtime
+          @reps.times do
+            run = ::Benchmark.realtime &runtime
+            @stats.sample run
+          end
+          
+          response.output = @stats
           
         rescue => e
           puts e.message, e.backtrace if Tryouts.verbose > 2

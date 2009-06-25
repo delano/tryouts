@@ -47,7 +47,7 @@ class Tryouts
     when :benchmark
       default_output, format, reps = *args 
       @sergeant = Tryouts::Drill::Sergeant::Benchmark.new reps || 1
-      @dreams << Tryouts::Drill::Dream.new(Float, :class)
+      @dreams << Tryouts::Drill::Dream.new(Tryouts::Stats, :class)
       unless default_output.nil?
         @dreams << Tryouts::Drill::Dream.new(default_output, format)
       end
@@ -85,7 +85,9 @@ class Tryouts
   end
   
   def flag
-    if success? 
+    if skip?
+      "SKIP"
+    elsif success? 
       "PASS".color(@clr).bright 
     else
       note = @dreams.empty? ? '[nodream]' : ''
@@ -120,7 +122,7 @@ class Tryouts
     
     @dreams.each do |dream|
       next if dream == reality #? :normal : :red 
-      out.puts '%12s: %s'.color(@clr) % ["failed", dream.test_to_string(@reality)]
+      out.puts '%12s: %s'.color(@clr) % ["drill", dream.test_to_string(@reality)]
       out.puts '%12s: %s' % ["returned", @reality.comparison_value(dream).inspect]
       out.puts '%12s: %s' % ["expected", dream.comparison_value.inspect]
       out.puts

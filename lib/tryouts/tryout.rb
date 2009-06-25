@@ -67,7 +67,7 @@ class Tryouts
         @failed += 1
       end
       puts drill.flag                           # PASS, FAIL, SKIP
-      puts drill.info if Tryouts.verbose > 0    
+      puts drill.info if Tryouts.verbose > 0 && !drill.skip?  
     end
     DrillContext.module_eval &clean if clean.is_a?(Proc)
   end

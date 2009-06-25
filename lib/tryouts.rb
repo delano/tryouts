@@ -37,6 +37,7 @@ class Tryouts
   require 'tryouts/mixins'
   require 'tryouts/tryout'
   require 'tryouts/drill'
+  require 'tryouts/stats'
   
   require 'tryouts/orderedhash'
   HASH_TYPE = (RUBY_VERSION =~ /1.9/) ? ::Hash : Tryouts::OrderedHash
@@ -142,7 +143,7 @@ class Tryouts
     $LOAD_PATH.unshift path unless path.nil?
     begin
       require @library.to_s
-    rescue SyntaxError, LoadError, Exception,
+    rescue SyntaxError, LoadError, Exception, TypeError, 
            RuntimeError, NoMethodError, NameError => ex
       @errors << ex
       Tryouts.failed = true
@@ -191,7 +192,7 @@ class Tryouts
     # Process the rest of the DSL
     begin
       to.from_block block if block
-    rescue SyntaxError, LoadError, Exception,
+    rescue SyntaxError, LoadError, Exception, TypeError,
            RuntimeError, NoMethodError, NameError => ex
       @errors << ex
       Tryouts.failed = true
@@ -252,7 +253,7 @@ class Tryouts
         to.instance_eval file_content, fpath
       end
       to.paths << fpath
-    rescue SyntaxError, LoadError, Exception,
+    rescue SyntaxError, LoadError, Exception, TypeError,
            RuntimeError, NoMethodError, NameError => ex
       to.errors << ex
       Tryouts.failed = true

@@ -53,7 +53,7 @@ class Run < Drydock::Command
         begin
           to.run
           to.report
-        rescue SyntaxError, LoadError, Exception,
+        rescue SyntaxError, LoadError, Exception, TypeError,
                RuntimeError, NoMethodError, NameError => ex
           tryouts_inst.errors << ex
         end

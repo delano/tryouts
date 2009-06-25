@@ -28,9 +28,8 @@ class Tryouts::Drill
           reality.output.respond_to?(:match) &&
           !reality.output.match(dream.output).nil?
         when :proc
-          test = dream.output
-          test.is_a?(Proc) &&
-          test.arity > 0 ? test.call(reality.output) : test.call
+          dream.output.is_a?(Proc) &&
+          reality.comparison_value(dream) == dream.comparison_value
         when :gt
           reality.output > dream.output
         when :gte
@@ -180,6 +179,9 @@ class Tryouts::Drill
     
     def comparison_value(dream)
       case dream.format
+      when :proc
+        test = dream.output
+        (test.arity > 0 ? test.call(@output) : test.call)
       when :exception
         @etype
       when :respond_to?, :is_a?, :kind_of?
