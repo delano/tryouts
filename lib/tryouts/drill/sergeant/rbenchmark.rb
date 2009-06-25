@@ -11,6 +11,8 @@ class Tryouts; class Drill; module Sergeant
   #
   # NOTE: It's a work in progress and currently not functioning
   #
+  # See also: http://www.graphpad.com/articles/interpret/Analyzing_two_groups/wilcoxon_matched_pairs.htm
+  #
   module RBenchmark
     
     VERSION = '0.7.0'

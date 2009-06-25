@@ -13,10 +13,10 @@ class Tryouts; class Drill; module Sergeant
     
     attr_reader :output
     
-    # * +reps+ Number of times to execute the block
+    # * +reps+ Number of times to execute drill (>= 0, <= 30). Default: 3
     #
-    def initialize(reps=1)
-      @reps = (1..30).include?(reps) ? reps : 1
+    def initialize(reps=nil)
+      @reps = (1..30).include?(reps) ? reps : 5
       @stats = Tryouts::Stats.new
     end
   

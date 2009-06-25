@@ -2,7 +2,7 @@
 
 Tryouts is a high-level testing library for your command-line applications and Ruby codes.
 
-NOTE: The DSL syntax has changed significantly from 0.5 and command-line app tests are currently disabled. 
+NOTE: The DSL syntax has changed significantly from 0.5 and command-line app testing is currently disabled. 
 
 == Syntax
 
@@ -13,34 +13,78 @@ Tryouts is a bit different than other testing libraries. Test definitions are or
 * Tryout: a set of drills (just like basketball tryouts is a set of drills)
 * Drill: a single test. 
 * Dream: the expected outcome of a drill. There's always one or more dream per drill. 
+* Drill Sergeant: The class responsible for executing a drill. One of: api, :benchmark
 
-== Testing Ruby codes (an API)
+== Examples
 
 Tryouts employs the same approach for testing Ruby codes. The return value of the drill block is compared to the expectation defined by the dream. Here is an example of including dreams inside the tryout definition. 
 
+=== Testing Ruby Codes
+
     library :caesars, "../path/to/caesars/lib"
 
-    tryout "Common Usage" do
-      dream 3
-      drill "Check the return value" do
+    tryouts "Common Usage" do
+    
+      # This drill block should return 3.
+      drill "Maths R Us", 3 do
         12 / 4
       end
-        
-      dream :Proc, :class
-      drill "Check the return value class" do
-        Proc.new do
-          :anything
-        end
+      
+      # You can specify a method to execute
+      # on the return value of the drill block. 
+      drill "We want a symbol", Symbol, :class do
+        orange.methods.first
       end
       
+      # Dreams can also be specified explicitly which is
+      # important b/c it's possible to specify multiple.
+      dream Array, :class
+      dream [:a, :b, :c]
+      drill "Should return a list of 3" do
+        Letters.list(3)
+      end
+      
+      # Drills can pass based on an exception too.
       dream NameError, :exception
-      drill "A test can pass based on the exception" do
+      drill "Something failed" do
         raise NameError
       end
       
-      dream /\w\d\w \d\w\d/, :match
-      drill "Knows where Santa Claus lives", 'H0H 0H0'
+      # We can even put simple drills on a single line. 
+      drill "Santa's postal code", 'H0H 0H0', /\w\d\w \d\w\d/, :match
+      
     end
+
+
+=== Benchmarks
+
+You can also use Tryouts to run benchmarks using a second parameter to the tryout method. This parameter determines which drill sergeant to use. 
+
+   tryouts "Benchmark examples", :benchmark do
+     
+     # We create an Array and store it in a class
+     # variable so it's available to other drills
+     drill "Create test array" do
+       @@array = (1..100000).map { rand }
+     end
+     
+     dream 3.0, :mean        # The mean should be <= 3.0 seconds
+     dream 0.1, :sdev        # and the standard deviation <= 0.1
+     drill("Array sort!") { @@array.dup.sort! }
+     
+     # You can also include a dream inline
+     drill("Array sort", 3.0, :mean) { @@array.dup.sort }
+     
+     # The 3rd argument is the number of times to 
+     # execute the drill block. The mean and sdev
+     # are calculate based on all iterations. The
+     # default is 5. 
+     dream 0.1, :sdev, 25    
+     drill("Array sort") { @@array.dup.sort }
+      
+   end
+
+The drill blocks for benchmarks return Tryouts::Stats objects.
 
 
 == BETA Notice
@@ -53,7 +97,7 @@ This library is very new (est. 2009-05-19) and has not been vetted by the scruti
 
 == On Threads
 
-Tryouts does some funky stuff to make it simple to write tests. This "funky stuff" means that this library is *not thread-safe at definition-time*. However, once all tryouts files are parsed (or in OO-syntax, once all objects are created), this class should be *thread-safe at drill-time*. 
+Tryouts does some funky stuff to make it simple to write tests. This "funky stuff" means that this library is <em>not thread-safe at definition-time</em>. However, once all tryouts files are parsed (or in OO-syntax, once all objects are created), this class should be <em>thread-safe at drill-time</em>. 
 
 == More Info
 
