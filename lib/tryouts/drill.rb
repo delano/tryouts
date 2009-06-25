@@ -12,7 +12,8 @@ class Tryouts
   require 'tryouts/drill/response'
   require 'tryouts/drill/sergeant/cli'
   require 'tryouts/drill/sergeant/api'
-  require 'tryouts/drill/sergeant/ben'
+  require 'tryouts/drill/sergeant/benchmark'
+  require 'tryouts/drill/sergeant/rbenchmark'
   
   class NoSergeant < Tryouts::Exception; end
   class UnknownFormat < Tryouts::Exception; end
@@ -31,7 +32,7 @@ class Tryouts
     # A Reality object (the actual output of the test)
   attr_reader :reality
   
-  @@valid_dtypes = [:cli, :api, :bm, :ben]
+  @@valid_dtypes = [:cli, :api, :benchmark]
   
   def initialize(name, dtype, *args, &drill)
     @name, @dtype, @drill, @skip = name, dtype, drill, false
@@ -43,14 +44,19 @@ class Tryouts
       default_output = drill.nil? ? args.shift : nil
       @sergeant = Tryouts::Drill::Sergeant::API.new default_output
       @dreams << Tryouts::Drill::Dream.new(*args) unless args.empty?
-    when :bm, :ben
-      @sergeant = Tryouts::Drill::Sergeant::Ben.new
-      @dreams << Tryouts::Drill::Dream.new(true)
+    when :benchmark
+      default_output, format, reps = *args 
+      @sergeant = Tryouts::Drill::Sergeant::Benchmark.new reps || 1
+      @dreams << Tryouts::Drill::Dream.new(Float, :class)
+      unless default_output.nil?
+        @dreams << Tryouts::Drill::Dream.new(default_output, format)
+      end
     when :skip
       @skip = true
     else
       raise NoSergeant, "Weird drill sergeant: #{@dtype}"
     end
+    @clr = :red
     # For CLI drills, a block takes precedence over inline args. 
     # A block will contain multiple shell commands (see Rye::Box#batch)
     drill_args = [] if dtype == :cli && drill.is_a?(Proc)
@@ -78,6 +84,65 @@ class Tryouts
     self.success?
   end
   
+  def flag
+    if success? 
+      "PASS".color(@clr).bright 
+    else
+      note = @dreams.empty? ? '[nodream]' : ''
+      "FAIL #{note}".color(@clr).bright
+    end
+  end
+    
+  def info
+    out = StringIO.new
+    if Tryouts.verbose > 1
+      if @dreams.empty?
+        out.puts '%6s%s'.color(@clr) % ['', @reality.output.inspect]
+      else
+        @dreams.each do |dream|
+          if dream != @reality
+            out.puts '%6s%s'.color(:red) % ['', @reality.output.inspect]
+          else
+            out.puts '%6s%s'.color(:green) % ["", dream.test_to_string(@reality)]
+          end
+        end
+      end
+    elsif Tryouts.verbose > 0
+      out.puts '%6s%s'.color(@clr) % ['', @reality.output.inspect]
+    end
+    out.rewind
+    out.read
+  end
+  
+  def report
+    return if skip?
+    out = StringIO.new
+    
+    @dreams.each do |dream|
+      next if dream == reality #? :normal : :red 
+      out.puts '%12s: %s'.color(@clr) % ["failed", dream.test_to_string(@reality)]
+      out.puts '%12s: %s' % ["returned", @reality.comparison_value(dream).inspect]
+      out.puts '%12s: %s' % ["expected", dream.comparison_value.inspect]
+      out.puts
+    end
+    
+    @reality.stash.each_pair do |n,v|
+      out.puts '%14s: %s' % [n,v.inspect]
+    end
+    
+    unless @reality.error.nil?
+      out.puts '%14s: %s' % [@reality.etype, @reality.error.to_s.split($/).join($/ + ' '*16)]
+    end
+    unless @reality.trace.nil?
+      trace = Tryouts.verbose > 1 ? @reality.trace : [@reality.trace.first]
+      out.puts '%14s  %s' % ['', trace.join($/ + ' '*16)]
+      out.puts
+    end
+    
+    out.rewind
+    out.read
+  end
+  
   def success?
     return false if @dreams.empty? && @reality.output != true
     begin
@@ -86,6 +151,7 @@ class Tryouts
       puts ex.message, ex.backtrace if Tryouts.debug?
       return false
     end
+    @clr = :green
     true
   end
   

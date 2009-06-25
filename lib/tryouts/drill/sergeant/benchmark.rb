@@ -4,21 +4,20 @@
 
 class Tryouts; class Drill; module Sergeant
   
-  # = API
+  # = Benchmark
   # 
-  # The sergeant responsible for running Ruby code (API) drills.
+  # The sergeant responsible for running benchmarks
   #
-  class Ben
+  class Benchmark
     require 'benchmark'
     
     attr_reader :output
     
-    # +opts+ is a Hash with the following optional keys:
+    # * +reps+ Number of times to execute the block
     #
-    # * +:output+ specify a return value. This will be 
-    # used if no block is specified for the drill.
-    def initialize(output=nil)
-      @output = output
+    def initialize(reps=1)
+      @reps = reps
+      p [:reps, reps]
     end
   
     def run(block, context, &inline)
@@ -30,9 +29,7 @@ class Tryouts; class Drill; module Sergeant
       else
         begin
           
-          Benchmark.bmbm &runtime
-          
-          response.output = true
+          response.output = ::Benchmark.realtime &runtime
           
         rescue => e
           puts e.message, e.backtrace if Tryouts.verbose > 2

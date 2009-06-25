@@ -1,6 +1,14 @@
 TRYOUTS, CHANGES
 
 
+#### 0.6.4 (2009-06-25) ###############################
+
+* ADDED: Tryouts::Drill::Sergeant::Benchmark
+* ADDED: new dream format: :proc
+    dream lambda { |x| x.real < 0.1 }, :proc
+    drill("array sort!") { @@array.dup.sort! }
+
+
 #### 0.6.3 (2009-06-25) ###############################
 
 NOTE: command testing (:cli) is still disabled.

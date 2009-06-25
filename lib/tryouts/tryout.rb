@@ -57,34 +57,17 @@ class Tryouts
     DrillContext.module_eval &setup if setup.is_a?(Proc)
     puts Tryouts::TRYOUT_MSG.bright % @name unless Tryouts.verbose < 0
     @drills.each do |drill|
-      print Tryouts::DRILL_MSG % drill.name unless Tryouts.verbose < 0
-      if drill.skip?
-        puts "SKIP" if Tryouts.verbose >= 0
-        puts if Tryouts.verbose > 0
-        @skipped += 1
-        next
-      end
+      print Tryouts::DRILL_MSG % "\"#{drill.name}\"" unless Tryouts.verbose < 0
       drill.run DrillContext.new
-      drill.success? ? @passed += 1 : @failed += 1
-      next if Tryouts.verbose < 0
-      note = drill.dreams.empty? ? '[nodream]' : ''
-      c = drill.success? ? :green : :red
-      puts drill.success? ? "PASS".color(c).bright : "FAIL #{note}".color(c).bright
-      if Tryouts.verbose > 1
-        if drill.dreams.empty?
-          puts '%6s%s'.color(c) % ['', drill.reality.output.inspect]
-        else
-          drill.dreams.each do |dream|
-            if dream != drill.reality
-              puts '%6s%s'.color(c) % ['', drill.reality.output.inspect]
-            else
-              puts '%6s%s'.color(:green) % ["", dream.test_to_string(drill.reality)]
-            end
-          end
-        end
-      elsif Tryouts.verbose > 0
-        puts '%6s%s'.color(c) % ['', drill.reality.output.inspect]
+      if drill.skip?
+        @skipped += 1
+      elsif drill.success?
+        @passed += 1
+      else
+        @failed += 1
       end
+      puts drill.flag                           # PASS, FAIL, SKIP
+      puts drill.info if Tryouts.verbose > 0    
     end
     DrillContext.module_eval &clean if clean.is_a?(Proc)
   end
@@ -92,40 +75,12 @@ class Tryouts
   # Prints error output. If there are no errors, it prints nothing. 
   def report
     return if Tryouts.verbose < 0
-    return true if success?
     failed = @drills.select { |d| !d.skip? && !d.success? }
     failed.each_with_index do |drill,index|
-      dreams, reality = drill.dreams, drill.reality
-      
-      unless dreams.empty?
-        title = ' %-51s %2d/%-2d ' % [drill.name, index+1, failed.size]
-        puts $/, ' ' << title.color(:red).att(:reverse)
-                
-        drill.reality.stash.each_pair do |n,v|
-          puts '%14s: %s' % [n,v.inspect]
-        end
-        
-        dreams.each do |dream|
-          next if dream == reality #? :normal : :red 
-          puts '%12s: %s'.color(:red) % ["test", dream.test_to_string(drill.reality)]
-          puts '%12s: %s' % ["returned", reality.comparison_value(dream).inspect]
-          puts '%12s: %s' % ["expected", dream.comparison_value.inspect]
-          puts
-        end
-        
-      end
-      
-      unless reality.error.nil?
-        puts '%14s: %s' % [reality.etype, reality.error.to_s.split($/).join($/ + ' '*16)]
-      end
-      unless reality.trace.nil?
-        trace = Tryouts.verbose > 1 ? reality.trace : [reality.trace.first]
-        puts '%14s  %s' % ['', trace.join($/ + ' '*16)]
-        puts
-      end
-      
+      title = ' %-51s %2d/%-2d ' % ["\"#{drill.name}\"", index+1, failed.size]
+      puts $/, ' ' << title.color(:red).att(:reverse)
+      puts drill.report
     end
-    false
   end
   
   # Did every Tryout finish successfully?
