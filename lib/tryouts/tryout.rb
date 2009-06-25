@@ -30,11 +30,10 @@ class Tryouts
     # A Hash of Dream objects for this Tryout. The keys are drill names. 
   attr_reader :dream_catcher
   
-  @@valid_dtypes = [:cli, :api]
      
   def initialize(name, dtype, command=nil, *args)
     raise "Must supply command for dtype :cli" if dtype == :cli && command.nil?
-    raise "#{dtype} is not a valid drill type" if !@@valid_dtypes.member?(dtype)
+    raise "#{dtype} is not a valid drill type" if !Drill.valid_dtype?(dtype)
     @name, @dtype, @command = name, dtype, command
     @drills, @dream_catcher = [], []
     @passed, @failed, @skipped = 0, 0, 0
@@ -117,11 +116,11 @@ class Tryouts
       end
       
       unless reality.error.nil?
-        puts '%12s: %s (%s)' % ["error", reality.error.inspect, reality.etype]
+        puts '%14s: %s' % [reality.etype, reality.error.to_s.split($/).join($/ + ' '*16)]
       end
       unless reality.trace.nil?
         trace = Tryouts.verbose > 1 ? reality.trace : [reality.trace.first]
-        puts '%12s: %s' % ["trace", trace.join($/ + ' '*14)]
+        puts '%14s  %s' % ['', trace.join($/ + ' '*16)]
         puts
       end
       

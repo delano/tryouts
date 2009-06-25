@@ -12,6 +12,7 @@ class Tryouts
   require 'tryouts/drill/response'
   require 'tryouts/drill/sergeant/cli'
   require 'tryouts/drill/sergeant/api'
+  require 'tryouts/drill/sergeant/ben'
   
   class NoSergeant < Tryouts::Exception; end
   class UnknownFormat < Tryouts::Exception; end
@@ -29,17 +30,23 @@ class Tryouts
   attr_reader :dreams
     # A Reality object (the actual output of the test)
   attr_reader :reality
-      
+  
+  @@valid_dtypes = [:cli, :api, :bm, :ben]
+  
   def initialize(name, dtype, *args, &drill)
     @name, @dtype, @drill, @skip = name, dtype, drill, false
     @dreams = []
-    if @dtype == :cli
+    case @dtype 
+    when :cli
       @sergeant = Tryouts::Drill::Sergeant::CLI.new *args
-    elsif @dtype == :api
+    when :api
       default_output = drill.nil? ? args.shift : nil
       @sergeant = Tryouts::Drill::Sergeant::API.new default_output
       @dreams << Tryouts::Drill::Dream.new(*args) unless args.empty?
-    elsif @dtype == :skip
+    when :bm, :ben
+      @sergeant = Tryouts::Drill::Sergeant::Ben.new
+      @dreams << Tryouts::Drill::Dream.new(true)
+    when :skip
       @skip = true
     else
       raise NoSergeant, "Weird drill sergeant: #{@dtype}"
@@ -49,6 +56,8 @@ class Tryouts
     drill_args = [] if dtype == :cli && drill.is_a?(Proc)
     @reality = Tryouts::Drill::Reality.new
   end
+  
+  def self.valid_dtype?(t); @@valid_dtypes.member?(t); end
   
   def skip?; @skip; end
   

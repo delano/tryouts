@@ -66,9 +66,10 @@ class Run < Drydock::Command
         title = '%-61s' % " RUNTIME ERRORS !?"
         puts $/, title.color(:red).att(:reverse).bright
         tryouts_inst.errors.each do |ex|
-          trace = Tryouts.verbose > 0 ? ex.backtrace : [ex.backtrace.first]
-          puts '%12s: %s (%s)' % ["error", ex.message.inspect, ex.class]
-          puts '%12s: %s' % ["trace", trace.join($/ + ' '*14)]
+          trace = Tryouts.verbose > 1 ? ex.backtrace : [ex.backtrace.first]
+          puts '%14s: %s' % [ex.class, ex.message.to_s.split($/).join($/ + ' '*16)]
+          puts
+          puts '%14s  %s' % ["", trace.join($/ + ' '*16)]
           puts 
         end
       end
