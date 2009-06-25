@@ -79,7 +79,7 @@ class Tryouts
             if dream != drill.reality
               puts '%6s%s'.color(c) % ['', drill.reality.output.inspect]
             else
-              puts '%6s%s'.color(c) % ["", dream.test_to_string(drill.reality)]
+              puts '%6s%s'.color(:green) % ["", dream.test_to_string(drill.reality)]
             end
           end
         end

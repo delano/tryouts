@@ -1,7 +1,7 @@
 TRYOUTS, CHANGES
 
 
-#### 0.6.3 (2009-06-24) ###############################
+#### 0.6.3 (2009-06-25) ###############################
 
 NOTE: command testing (:cli) is still disabled.
 
@@ -11,7 +11,7 @@ NOTE: command testing (:cli) is still disabled.
 * ADDED: Better support for quiet (-q)
 * ADDED: Verbose output now displays each dream vs reality 
 * ADDED: Skipped drills now appear in the report 
-* ADDED: != dream format: :ne
+* ADDED: new dream format: :ne (!=)
 
 
 #### 0.6.2 (2009-06-24) ###############################

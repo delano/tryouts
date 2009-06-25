@@ -1,7 +1,7 @@
 @spec = Gem::Specification.new do |s|
 	s.name = "tryouts"
   s.rubyforge_project = "tryouts"
-	s.version = "0.6.2"
+	s.version = "0.6.3"
 	s.summary = "Tryouts are high-level tests for your Ruby code. May all your dreams come true!"
 	s.description = s.summary
 	s.author = "Delano Mandelbaum"
@@ -24,8 +24,8 @@
   
   # = DEPENDENCIES =
   # Add all gem dependencies
-  s.add_dependency 'drydock', '>= 0.6.5'
   s.add_dependency 'rye', '>= 0.8.2'
+  s.add_dependency 'drydock', '>= 0.6.6'
   s.add_dependency 'sysinfo', '>= 0.5.1'
   
   # = MANIFEST =
@@ -64,12 +64,12 @@
     s.specification_version = 2
  
     if Gem::Version.new(Gem::RubyGemsVersion) >= Gem::Version.new('1.2.0') then
-      s.add_runtime_dependency(%q<RedCloth>, [">= 4.0.4"])
+      #s.add_runtime_dependency(%q<RedCloth>, [">= 4.0.4"])
     else
-      s.add_dependency(%q<RedCloth>, [">= 4.0.4"])
+      #s.add_dependency(%q<RedCloth>, [">= 4.0.4"])
     end
   else
-    s.add_dependency(%q<RedCloth>, [">= 4.0.4"])
+    #s.add_dependency(%q<RedCloth>, [">= 4.0.4"])
   end
   
 end
