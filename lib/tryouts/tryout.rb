@@ -55,9 +55,9 @@ class Tryouts
   # Execute all Drill objects
   def run
     DrillContext.module_eval &setup if setup.is_a?(Proc)
-    puts Tryouts::TRYOUT_MSG.bright % @name unless Tryouts.verbose < 0
+    puts "\n  %s ".bright % @name unless Tryouts.verbose < 0
     @drills.each do |drill|
-      print Tryouts::DRILL_MSG % "\"#{drill.name}\"" unless Tryouts.verbose < 0
+      print '   %-50s ' % "\"#{drill.name}\"" unless Tryouts.verbose < 0
       drill.run DrillContext.new
       if drill.skip?
         @skipped += 1

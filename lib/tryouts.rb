@@ -41,10 +41,6 @@ class Tryouts
   
   require 'tryouts/orderedhash'
   HASH_TYPE = (RUBY_VERSION =~ /1.9/) ? ::Hash : Tryouts::OrderedHash
-  
-  TRYOUT_MSG = "\n  %s "
-  DRILL_MSG  = '    %-50s '
-  DRILL_ERR  = '    %s: '
 
     # An Array of +_tryouts.rb+ file paths that have been loaded.
   @@loaded_files = []

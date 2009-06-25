@@ -111,6 +111,12 @@ class Tryouts
       end
     elsif Tryouts.verbose > 0
       out.puts '%6s%s'.color(@clr) % ['', @reality.output.inspect]
+      unless @reality.stash.empty?
+        @reality.stash.each_pair do |n,v|
+          out.puts '%18s: %s'.color(@clr) % [n,v.inspect]
+        end
+        out.puts
+      end
     end
     out.rewind
     out.read
@@ -126,10 +132,6 @@ class Tryouts
       out.puts '%12s: %s' % ["returned", @reality.comparison_value(dream).inspect]
       out.puts '%12s: %s' % ["expected", dream.comparison_value.inspect]
       out.puts
-    end
-    
-    @reality.stash.each_pair do |n,v|
-      out.puts '%14s: %s' % [n,v.inspect]
     end
     
     unless @reality.error.nil?

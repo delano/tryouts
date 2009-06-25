@@ -3,6 +3,7 @@ TRYOUTS, CHANGES
 
 #### 0.6.4 (2009-06-25) ###############################
 
+* FIXED: Stash wasn't being displayed in the drill report
 * ADDED: Tryouts::Drill::Sergeant::Benchmark
 * ADDED: Tryouts::Stats
 * ADDED: new dream formats: :mean and :sdev which compare with <=.
