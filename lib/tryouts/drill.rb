@@ -70,6 +70,7 @@ class Tryouts
   end
   
   def success?
+    return false if @dreams.empty? && @reality.output != true
     begin
       @dreams.each { |d| return false unless d == @reality }
     rescue => ex

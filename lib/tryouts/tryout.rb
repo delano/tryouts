@@ -21,6 +21,8 @@ class Tryouts
   attr_reader :passed
     # The number of dreams that did not come true (failed drills)
   attr_reader :failed
+    # The number of skipped drills
+  attr_reader :skipped
     # For drill type :cli, this is the name of the command to test. It
     # should be a valid method available to a Rye::Box object.
     # For drill type :api, this attribute is ignored. 
@@ -35,7 +37,7 @@ class Tryouts
     raise "#{dtype} is not a valid drill type" if !@@valid_dtypes.member?(dtype)
     @name, @dtype, @command = name, dtype, command
     @drills, @dream_catcher = [], []
-    @passed, @failed = 0, 0
+    @passed, @failed, @skipped = 0, 0, 0
   end
   
   ## ---------------------------------------  EXTERNAL API  -----
@@ -60,6 +62,7 @@ class Tryouts
       if drill.skip?
         puts "SKIP" if Tryouts.verbose >= 0
         puts if Tryouts.verbose > 0
+        @skipped += 1
         next
       end
       drill.run DrillContext.new
@@ -69,9 +72,16 @@ class Tryouts
       c = drill.success? ? :green : :red
       puts drill.success? ? "PASS".color(c).bright : "FAIL #{note}".color(c).bright
       if Tryouts.verbose > 1
-        drill.dreams.each do |dream|
-          #next if dream == drill.reality #? :normal : :red 
-          puts '%6s%s'.color(c) % ["", dream.test_to_string(drill.reality)]
+        if drill.dreams.empty?
+          puts '%6s%s'.color(c) % ['', drill.reality.output.inspect]
+        else
+          drill.dreams.each do |dream|
+            if dream != drill.reality
+              puts '%6s%s'.color(c) % ['', drill.reality.output.inspect]
+            else
+              puts '%6s%s'.color(c) % ["", dream.test_to_string(drill.reality)]
+            end
+          end
         end
       elsif Tryouts.verbose > 0
         puts '%6s%s'.color(c) % ['', drill.reality.output.inspect]
@@ -84,17 +94,14 @@ class Tryouts
   def report
     return if Tryouts.verbose < 0
     return true if success?
-    failed = @drills.select { |d| !d.success? }
+    failed = @drills.select { |d| !d.skip? && !d.success? }
     failed.each_with_index do |drill,index|
       dreams, reality = drill.dreams, drill.reality
-      title = ' %-51s %2d/%-2d ' % [drill.name, index+1, failed.size]
-      puts $/, ' ' << title.color(:red).att(:reverse)
       
-      if dreams.empty?
-        puts '%12s: %s' % ["returned", reality.output.inspect]
-        puts '%12s: %s'.color(:red) % ["expected", "[nodream]"]
-      else  
-
+      unless dreams.empty?
+        title = ' %-51s %2d/%-2d ' % [drill.name, index+1, failed.size]
+        puts $/, ' ' << title.color(:red).att(:reverse)
+                
         drill.reality.stash.each_pair do |n,v|
           puts '%14s: %s' % [n,v.inspect]
         end
@@ -106,15 +113,18 @@ class Tryouts
           puts '%12s: %s' % ["expected", dream.comparison_value.inspect]
           puts
         end
-        unless reality.error.nil?
-          puts '%12s: %s (%s)' % ["error", reality.error.inspect, reality.etype]
-        end
-        unless reality.trace.nil?
-          trace = Tryouts.verbose > 1 ? reality.trace : [reality.trace.first]
-          puts '%12s: %s' % ["trace", trace.join($/ + ' '*14)]
-          puts
-        end
+        
       end
+      
+      unless reality.error.nil?
+        puts '%12s: %s (%s)' % ["error", reality.error.inspect, reality.etype]
+      end
+      unless reality.trace.nil?
+        trace = Tryouts.verbose > 1 ? reality.trace : [reality.trace.first]
+        puts '%12s: %s' % ["trace", trace.join($/ + ' '*14)]
+        puts
+      end
+      
     end
     false
   end

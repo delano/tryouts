@@ -3,16 +3,40 @@ library :tryouts, File.expand_path(File.join(File.dirname(__FILE__), '..', 'lib'
 
 group "Mixins"
 
-test_hash = { :level1 => { :level2 => {} } }
+
+
+test_hash = { 
+  :level1 => { 
+    :level2 => {}, 
+    :apples => 1 
+   }, 
+  :help => [1, :a, 900001, Object.new, Hash],
+  :oranges => 90 
+}
+
+class ::SubHash < Hash; end
+class ::SubHash2 < Hash; end
+
+nub = ::SubHash2.new
+nub[:level1] = ::SubHash.new
+nub[:level1][:level2] = ::SubHash.new
 
 tryouts "Hash" do
+  setup do
+    
+  end
   
-  drill "knows the deepest point", test_hash, 3, :deepest_point
+  drill "knows the deepest point", test_hash.deepest_point, 3
   drill "has a last method", {}, :last, :respond_to?
+
+  drill "can calculate a SHA1 hash", test_hash.gash do
+    test_hash.gash
+  end
   
-  drill "Greater than or equal to", 2, 2, :gte
-  
-  dream :githash2, :respond_to?
-  dream '896cac2add25d7ad59256032d76568cdf93415eb2', :githash
-  drill "can calculate a SHA1 hash", test_hash
+  drill "different subclasses of hash have different gash", nub.gash, :ne do
+    sub = ::SubHash.new
+    sub[:level1] = ::SubHash.new
+    sub[:level1][:level2] = ::SubHash.new
+    sub.gash
+  end
 end

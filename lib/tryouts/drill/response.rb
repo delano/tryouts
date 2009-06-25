@@ -35,6 +35,8 @@ class Tryouts::Drill
           reality.output < dream.output
         when :lte
           reality.output <= dream.output
+        when :ne
+          reality.output != dream.output
         when :respond_to?, :kind_of?, :is_a?
           reality.output.send(dream.format, dream.output)
         else 
@@ -68,15 +70,15 @@ class Tryouts::Drill
           "#{reality.etype} == #{dream.output}"
         when :match
           "#{reality.output.inspect}.match(#{dream.output.inspect})"
-        when :gt, :gte, :lt, :lte
-          op = {:gt=>'>',:gte=>'>=', :lt=>'<', :lte => '<='}.find { |i| i[0] == dream.format }
+        when :gt, :gte, :lt, :lte, :ne
+          op = {:gt=>'>',:gte=>'>=', :lt=>'<', :lte => '<=', :ne => '!='}.find { |i| i[0] == dream.format }
           "#{reality.output.inspect} #{op[1]} #{dream.output.inspect}"
         when :respond_to?
-          "#{reality.output.inspect}.respond_to? #{dream.output.inspect}"
+          "#{reality.output.class}.respond_to? #{dream.output.inspect}"
         when :kind_of?
-          "#{reality.output.inspect}.kind_of? #{dream.output.inspect}"
+          "#{reality.output.class}.kind_of? #{dream.output.inspect}"
         when :is_a?
-          "#{reality.output.inspect}.is_a? #{dream.output.inspect}"
+          "#{reality.output.class}.is_a? #{dream.output.inspect}"
         else 
         
           if dream.format.nil?
@@ -170,9 +172,12 @@ class Tryouts::Drill
         @etype
       when :respond_to?, :is_a?, :kind_of?
         @output.send(dream.format, dream.output)
+      when nil
+        @output
       else 
-      
-        if @output.respond_to?(dream.format || '')
+        if @output.nil? 
+          @output
+        elsif @output.respond_to?(dream.format)
           @output.send(dream.format)
         else
           @output
