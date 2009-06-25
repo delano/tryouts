@@ -47,7 +47,7 @@ class Run < Drydock::Command
     
     passed, failed = 0, 0
     Tryouts.instances.each_pair do |group,tryouts_inst|
-      puts '', ' %-60s'.att(:reverse) % group  unless Tryouts.verbose < 0
+      puts '', ' %-80s'.att(:reverse) % group  unless Tryouts.verbose < 0
       puts "  #{tryouts_inst.paths.join("\n  ")}" if Tryouts.verbose > 0
       tryouts_inst.tryouts.each_pair do |name,to|
         begin
@@ -63,8 +63,8 @@ class Run < Drydock::Command
       end
       
       unless tryouts_inst.errors.empty?
-        title = '%-61s' % " RUNTIME ERRORS !?"
-        puts $/, title.color(:red).att(:reverse).bright
+        title = '%-79s' % " RUNTIME ERRORS !?"
+        puts $/, ' ' << title.color(:red).att(:reverse).bright
         tryouts_inst.errors.each do |ex|
           trace = Tryouts.verbose > 1 ? ex.backtrace : [ex.backtrace.first]
           puts '%14s: %s' % [ex.class, ex.message.to_s.split($/).join($/ + ' '*16)]

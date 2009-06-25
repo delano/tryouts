@@ -31,10 +31,10 @@ tryout "DSL Syntax", :api do
     "big"
   end
   
-  drill "can specify gt (greater than) format", 2, 1, :gt
-  drill "can specify gte (greater than or equal to) format", 2, 2, :gte
-  drill "can specify lt (less than) format", 1, 2, :lt
-  drill "can specify lte (less then or equal to) format", 2, 2, :lte
+  drill "can specify gt (>) format", 2, 1, :gt
+  drill "can specify gte (>=) format", 2, 2, :gte
+  drill "can specify lt (<) format", 1, 2, :lt
+  drill "can specify lte (<=) format", 2, 2, :lte
   
   drill "can run arbitrary formats", [3,1,2], [1,2,3], :sort
 end
