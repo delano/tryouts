@@ -1,23 +1,19 @@
 = Tryouts - v0.6 BETA
 
-Tryouts is a high-level testing library for your command-line applications and Ruby codes.
+Tryouts is a high-level testing library (DSL) for your Ruby codes.
 
-NOTE: The DSL syntax has changed significantly from 0.5 and command-line app testing is currently disabled. 
-
-== Syntax
-
-Tryouts is a bit different than other testing libraries. Test definitions are organized in a similar way as Shoulda tests (although the keywords in the syntax are different). 
+A tryout is made up of one of more drills. The return value of the drill block is compared to the expectations defined by one or more dreams. The goal is to achieve your dreams. 
 
 === Terminology
 
-* Tryout: a set of drills (just like basketball tryouts is a set of drills)
+* Tryout: a set of drills (think: basketball tryouts)
 * Drill: a single test. 
-* Dream: the expected outcome of a drill. There's always one or more dream per drill. 
-* Drill Sergeant: The class responsible for executing a drill. One of: api, :benchmark
+* Drill Sergeant: The class responsible for executing a drill.
+* Dream: the expected outcome of a drill. There's always one or more dream per drill.
 
 == Examples
 
-Tryouts are made up of one of more drills. The return value of the drill block is compared to the expectations defined by one or more dreams. The following is a complete overview of Tryouts syntax. 
+The examples below are a complete overview of Tryouts syntax. 
 
 === Testing Ruby Codes (:api)
 
@@ -57,12 +53,12 @@ Tryouts are made up of one of more drills. The return value of the drill block i
 
 === Benchmarks (:benchmark)
 
-You can also use Tryouts to run benchmarks using a second parameter to the tryouts method. This parameter determines which drill sergeant to use. Here we specify <tt>:benchmark</tt> so each drill is timed while it's executed (see Tryouts::Drill::Sergeant::Benchmark):
+You can also use Tryouts to run benchmarks. The tryouts method takes a second parameter which specifies which drill sergeant to use. Below we specify <tt>:benchmark</tt> so each drill is timed and executed multiple times.
 
    tryouts "Benchmark examples", :benchmark do
      
      # We create an Array and store it in a class
-     # variable so it's available to other drills
+     # variable so it's available to other drills.
      drill "Create test array" do
        @@array = (1..100000).map { rand }
      end
@@ -77,13 +73,13 @@ You can also use Tryouts to run benchmarks using a second parameter to the tryou
      # The 3rd argument is the number of times to 
      # execute the drill block. The mean and sdev
      # are calculate based on all iterations. The
-     # default is 5. 
-     dream 0.1, :sdev, 25    
+     # default is 5 and the maximum is 30.
+     dream 0.1, :sdev, 15    
      drill("Array sort") { @@array.dup.sort }
       
    end
 
-The drill blocks in a benchmark Tryout return Tryouts::Stats objects.
+The drill blocks in a benchmark Tryout return Tryouts::Stats objects. See: Tryouts::Drill::Sergeant::Benchmark
 
 == Screenshots
 
