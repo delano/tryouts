@@ -1,6 +1,11 @@
 TRYOUTS, CHANGES
 
 
+#### 0.7.2 (2009-06-??) ###############################
+
+* CHANGE: Reduced CLI width to 79
+
+
 #### 0.7.1 (2009-06-26) ###############################
 
 * FIXED: Updated manifest in gemspec

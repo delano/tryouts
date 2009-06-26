@@ -11,11 +11,11 @@ A tryout is made up of one of more drills. The return value of the drill block i
 * Drill Sergeant: The class responsible for executing a drill.
 * Dream: the expected outcome of a drill. There's always one or more dream per drill.
 
+
 == Installation ==
 
-{{{
     $ gem install tryouts
-}}}
+
 
 == Examples
 
@@ -102,10 +102,11 @@ The drill that failed looks like this:
 
 == BETA Notice
 
-This library is very new (est. 2009-05-19) and has not been vetted by the scrutiny of time. In particular you can expect:
+Tryouts is very new (est. 2009-05-19) and has not been vetted by the scrutiny of time. In particular you can expect:
 
 * The test definition syntax may change in future releases. 
 * Unexpected errors. 
+* Bugs! I love fixing bugs so if you find one let me know. 
 
 
 == On Threads

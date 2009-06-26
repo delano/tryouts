@@ -57,7 +57,7 @@ class Tryouts
     DrillContext.module_eval &setup if setup.is_a?(Proc)
     puts "\n  %s ".bright % @name unless Tryouts.verbose < 0
     @drills.each do |drill|
-      print '   %-70s ' % "\"#{drill.name}\"" unless Tryouts.verbose < 0
+      print '   %-69s ' % "\"#{drill.name}\"" unless Tryouts.verbose < 0
       drill.run DrillContext.new
       if drill.skip?
         @skipped += 1
@@ -77,7 +77,7 @@ class Tryouts
     return if Tryouts.verbose < 0
     failed = @drills.select { |d| !d.skip? && !d.success? }
     failed.each_with_index do |drill,index|
-      title = ' %-70s %2d/%-2d  ' % ["\"#{drill.name}\"", index+1, failed.size]
+      title = ' %-69s %2d/%-2d  ' % ["\"#{drill.name}\"", index+1, failed.size]
       puts $/, ' ' << title.color(:red).att(:reverse)
       puts drill.report
     end
