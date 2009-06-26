@@ -11,13 +11,23 @@ A tryout is made up of one of more drills. The return value of the drill block i
 * Drill Sergeant: The class responsible for executing a drill.
 * Dream: the expected outcome of a drill. There's always one or more dream per drill.
 
-
 == Installation
 
     $ gem install tryouts
 
 
-== Examples
+== NOTICE (2009-06-26): DSL Syntax Change
+
+The order of dream arguments has reversed between 0.7.1 and 0.7.2. It is now:
+
+* <tt>dream :method, 'Expected value'</tt>
+
+This is a return to the original syntax and I think it's the right way to go because it reads more naturally:
+
+* <tt>drill 'test name', 'return value', :class, String</tt>
+
+
+== Writing Tests
 
 The examples below are a complete overview of Tryouts syntax. 
 
@@ -86,6 +96,45 @@ You can also use Tryouts to run benchmarks. The tryouts method takes a second pa
    end
 
 The drill blocks in a benchmark Tryout return Tryouts::Stats objects. See: Tryouts::Drill::Sergeant::Benchmark
+
+== Running Tests
+
+Tryouts comes with an executable called <tt>sergeant</tt>. This is the drill sergeant that tells you what percentage of your dreams come true.
+
+    $ sergeant
+    
+    Gibbler Gazette                                                                
+
+     Basic syntax with SHA1 
+      "Object"                                                              PASS
+      "Class"                                                               PASS
+      ...
+      "Knows when an Hash has changed"                                      PASS
+
+    All 9 dreams came true 
+
+
+The sergeant looks in the current working directory for a <tt>tryouts</tt> directory and will automatically load all files ending in <tt>_tryouts.rb</tt>. 
+
+    $ ls -l tryouts/
+    01_mixins_tryouts.rb
+    10_syntax_tryouts.rb
+    20_cli_tryouts.rb
+    30_benchmark_tryouts.rb
+    50_class_context_tryouts.rb
+    
+You can also specify specific files to load:
+
+    $ sergeant any/file.rb
+
+Verbose mode gives you some extra information, including the return values from the drills. The more v's, the more information:
+
+    $ sergeant -v
+    
+In quiet mode, the sergeant returns only a PASS or FAIL message (in the case of a FAIL, it will also return a non-zero exit code): 
+
+    $ sergeant -q
+    PASS
 
 == Screenshots
 
