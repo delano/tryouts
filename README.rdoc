@@ -4,9 +4,7 @@ Tryouts is a high-level testing library for your command-line applications and R
 
 NOTE: The DSL syntax has changed significantly from 0.5 and command-line app testing is currently disabled. 
 
-== Syntax
-
-Tryouts is a bit different than other testing libraries. Test definitions are organized in a similar way as Shoulda tests (although the keywords in the syntax are different). 
+Tryouts are made up of one of more drills. The return value of the drill block is compared to the expectations defined by one or more dreams. The examples below are a complete overview of Tryouts syntax. 
 
 === Terminology
 
@@ -17,7 +15,6 @@ Tryouts is a bit different than other testing libraries. Test definitions are or
 
 == Examples
 
-Tryouts are made up of one of more drills. The return value of the drill block is compared to the expectations defined by one or more dreams. The following is a complete overview of Tryouts syntax. 
 
 === Testing Ruby Codes (:api)
 
@@ -110,19 +107,25 @@ This library is very new (est. 2009-05-19) and has not been vetted by the scruti
 
 Tryouts does some funky stuff to make it simple to write tests. This "funky stuff" means that this library is <em>not thread-safe at definition-time</em>. However, once all tryouts files are parsed (or in OO-syntax, once all objects are created), this class should be <em>thread-safe at drill-time</em>. 
 
+
 == More Info
 
 * Check out the sourcecodes[http://github.com/delano/tryouts]
 * Read the rdocs[http://tryouts.rubyforge.org/]
 * About Solutious[http://solutious.com/about/]
+* Inspiration[http://www.youtube.com/watch?v=iB9nhyosDVs]
+
 
 == Thanks
 
-* Everyone at Utrecht.rb and Amsterdam.rb
+* Everyone at Utrecht.rb and Amsterdam.rb for putting up with my Ruby questions :]
+* Sam Aaron (http://sam.aaron.name) for the early feedback. 
+
 
 == Credits
 
 * Delano (@solutious.com)
+
 
 == Related Projects
 
