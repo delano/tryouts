@@ -53,7 +53,7 @@ The examples below are a complete overview of Tryouts syntax.
       end
       
       # We can even put simple drills on a single line. 
-      drill "Santa's postal code", 'H0H 0H0', /\w\d\w \d\w\d/, :match
+      drill 'Small, fast, and furious', 'Muggsy Bogues', /Mug+sy Bogu?es/, :match
       
     end
 
