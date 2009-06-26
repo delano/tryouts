@@ -12,7 +12,7 @@ A tryout is made up of one of more drills. The return value of the drill block i
 * Dream: the expected outcome of a drill. There's always one or more dream per drill.
 
 
-== Installation ==
+== Installation
 
     $ gem install tryouts
 
