@@ -1,7 +1,7 @@
 @spec = Gem::Specification.new do |s|
 	s.name = "tryouts"
   s.rubyforge_project = "tryouts"
-	s.version = "0.7.0"
+	s.version = "0.7.1"
 	s.summary = "Tryouts are high-level tests for your Ruby code. May all your dreams come true!"
 	s.description = s.summary
 	s.author = "Delano Mandelbaum"
@@ -48,12 +48,20 @@
   lib/tryouts/drill/context.rb
   lib/tryouts/drill/response.rb
   lib/tryouts/drill/sergeant/api.rb
+  lib/tryouts/drill/sergeant/benchmark.rb
   lib/tryouts/drill/sergeant/cli.rb
+  lib/tryouts/drill/sergeant/rbenchmark.rb
   lib/tryouts/mixins.rb
   lib/tryouts/mixins/hash.rb
   lib/tryouts/orderedhash.rb
+  lib/tryouts/stats.rb
   lib/tryouts/tryout.rb
   tryouts.gemspec
+  tryouts/01_mixins_tryouts.rb
+  tryouts/10_syntax_tryouts.rb
+  tryouts/20_cli_tryouts.rb
+  tryouts/50_class_context_tryouts.rb
+  tryouts/standalone_test.rb
   )
   
   s.has_rdoc = true
