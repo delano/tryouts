@@ -136,11 +136,8 @@ class Tryouts
     if args.empty?
       dobj = Tryouts::Drill::Dream.from_block definition
     else
-      if args.size == 1
-        dobj = Tryouts::Drill::Dream.new(args.shift)  # dream 'OUTPUT'
-      else
-        dobj = Tryouts::Drill::Dream.new(*args)       # dream 'OUTPUT', :format
-      end
+      args = args.size == 1 ? [args.first] : args.reverse
+      dobj = Tryouts::Drill::Dream.new(*args)
     end
     @dream_catcher.push dobj
     dobj

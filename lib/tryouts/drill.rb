@@ -34,6 +34,17 @@ class Tryouts
   
   @@valid_dtypes = [:cli, :api, :benchmark]
   
+  # * +name+ The display name of this drill
+  # * +dtype+ A Symbol representing the drill type. One of: :api, :benchmark
+  # * +args+ These are dependent on the drill type. See the Sergeant classes
+  # * +&drill+ The body of the drill. The return value of this block 
+  #   is compared to the exepected output of the dreams. 
+  #
+  # The DSL syntax:
+  # * dream OUTPUT
+  # * dream FORMAT, OUTPUT
+  # * dream FORMAT, OUTPUT, REPS      (benchmark only)
+  #
   def initialize(name, dtype, *args, &drill)
     @name, @dtype, @drill, @skip = name, dtype, drill, false
     @dreams = []
@@ -42,14 +53,17 @@ class Tryouts
       @sergeant = Tryouts::Drill::Sergeant::CLI.new *args
     when :api
       default_output = drill.nil? ? args.shift : nil
+      dream_output, format = *(args.size == 1 ? args.first : args.reverse)
       @sergeant = Tryouts::Drill::Sergeant::API.new default_output
-      @dreams << Tryouts::Drill::Dream.new(*args) unless args.empty?
+      unless args.empty?
+        @dreams << Tryouts::Drill::Dream.new(dream_output, format)
+      end
     when :benchmark
-      default_output, format, reps = *args 
+      dream_output, format = *(args.size == 1 ? args.first : args.reverse)
       @sergeant = Tryouts::Drill::Sergeant::Benchmark.new reps || 1
       @dreams << Tryouts::Drill::Dream.new(Tryouts::Stats, :class)
-      unless default_output.nil?
-        @dreams << Tryouts::Drill::Dream.new(default_output, format)
+      unless dream_output.nil?
+        @dreams << Tryouts::Drill::Dream.new(dream_output, format)
       end
     when :skip
       @skip = true

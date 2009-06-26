@@ -20,7 +20,7 @@ tryouts "Hash" do
     
   end
   
-  drill "knows the deepest point", test_hash.deepest_point, 3
-  drill "has a last method", {}, :last, :respond_to?
+  drill "knows the deepest point", test_hash.deepest_point, 31
+  drill "has a last method", {}, :respond_to?, :last
 
 end

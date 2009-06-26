@@ -23,7 +23,7 @@ The examples below are a complete overview of Tryouts syntax.
 
 === Testing Ruby Codes (:api)
 
-    library :caesars, "../path/to/caesars/lib"
+    library :gibbler, "../path/to/gibbler/lib"
 
     tryouts "Common Usage" do
     
@@ -34,26 +34,26 @@ The examples below are a complete overview of Tryouts syntax.
       
       # You can specify a method to execute
       # on the return value of the drill block. 
-      drill "We want a symbol", Symbol, :class do
+      drill "We want a symbol", :class, Symbol do
         orange.methods.first
       end
       
       # Dreams can also be specified explicitly which is
       # important b/c it's possible to specify multiple.
-      dream Array, :class
+      dream :class, Array
       dream [:a, :b, :c]
       drill "Should return a list of 3" do
         Letters.list(3)
       end
       
       # Drills can pass based on an exception too.
-      dream NameError, :exception
+      dream :exception, NameError
       drill "Something failed" do
         raise NameError
       end
       
       # We can even put simple drills on a single line. 
-      drill 'Small, fast, and furious', 'Muggsy Bogues', /Mug+sy Bogu?es/, :match
+      drill 'Small, fast, and furious', 'Muggsy Bogues', :match, /Mug+sy Bogu?es/
       
     end
 
@@ -69,18 +69,18 @@ You can also use Tryouts to run benchmarks. The tryouts method takes a second pa
        @@array = (1..100000).map { rand }
      end
      
-     dream 3.0, :mean        # The mean should be <= 3.0 seconds
-     dream 0.1, :sdev        # and the standard deviation <= 0.1
+     dream :mean, 3.0        # The mean should be <= 3.0 seconds
+     dream :sdev, 0.1        # and the standard deviation <= 0.1
      drill("Array sort!") { @@array.dup.sort! }
      
      # You can also include a dream inline
-     drill("Array sort", 3.0, :mean) { @@array.dup.sort }
+     drill("Array sort", :mean, 3.0) { @@array.dup.sort }
      
      # The 3rd argument is the number of times to 
      # execute the drill block. The mean and sdev
      # are calculate based on all iterations. The
      # default is 5 and the maximum is 30.
-     dream 0.1, :sdev, 15    
+     dream :sdev, 0.1, 15    
      drill("Array sort") { @@array.dup.sort }
       
    end
@@ -95,9 +95,9 @@ http://github.com/delano/tryouts/raw/gh-pages/screens/tryouts-1-failure.png
 
 The drill that failed looks like this:
 
-    dream :to_gibble, :respond_to?
-    dream 'ab33b9dec202d136d0e695a3a7b06ee678134882', :to_gibble 
-    drill "Array", Array
+    dream :respond_to?, :to_gibble
+    dream :to_gibble, 'ab33b9dec202d136d0e695a3a7b06ee678134882'
+    drill Array, "Array"
 
 
 == BETA Notice

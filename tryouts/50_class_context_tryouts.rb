@@ -8,7 +8,7 @@ tryout "Setting class variables", :api do
     @from_setup = true
   end
   
-  drill "can't access class var created in setup (1.9 only)", NameError, :exception do
+  drill "can't access class var created in setup (1.9 only)", :exception, NameError do
     @@from_setup
   end
   
@@ -25,6 +25,5 @@ tryout "Setting class variables", :api do
     @@from_drill.class.to_s
   end
   
-  dream /\w\d\w \d\w\d/, :match
-  drill "Knows where Santa Claus lives", 'H0H 0H0'
+  drill 'Small, fast, and furious', 'Muggsy Bogues', :match, /Mug+sy Bogu?es/
 end

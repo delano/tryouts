@@ -1,8 +1,13 @@
 TRYOUTS, CHANGES
 
 
-#### 0.7.2 (2009-06-??) ###############################
+#### 0.7.2 (2009-06-26) ###############################
 
+NOTE: You will need to make a syntax change to your tryouts.
+OLD: dream OUTPUT, :format
+NEW: dream :format, OUTPUT
+
+* CHANGE: Order of dream arguments is reversed!
 * CHANGE: Reduced CLI width to 79
 
 
