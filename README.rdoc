@@ -1,4 +1,4 @@
-= Tryouts - v0.6 BETA
+= Tryouts - v0.7 BETA
 
 Tryouts is a high-level testing library (DSL) for your Ruby codes.
 

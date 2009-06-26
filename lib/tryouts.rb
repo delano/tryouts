@@ -32,7 +32,7 @@ class Tryouts
   # Raised when there is a problem loading or parsing a Tryouts::Drill::Dream object
   class BadDreams < Exception; end
   
-  VERSION = "0.6.3"
+  VERSION = "0.7.0"
   
   require 'tryouts/mixins'
   require 'tryouts/tryout'
