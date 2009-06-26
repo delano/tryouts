@@ -17,7 +17,7 @@
 # are not stored but instead all the values are calculated on the fly.
 class Tryouts
   class Stats
-    attr_reader :sum, :sumsq, :n, :min, :max
+    attr_reader :sum, :sumsq, :n, :min, :max, :name
 
     def initialize(name=:unknown)
       @name = name
@@ -33,6 +33,8 @@ class Tryouts
       @min = 0.0
       @max = 0.0
     end
+
+    def samples; @n; end
 
     # Adds a sampling to the calculations.
     def sample(s)
@@ -88,5 +90,7 @@ class Tryouts
       sample(now - @last_time)
       @last_time = now
     end
+    
+    
   end
 end

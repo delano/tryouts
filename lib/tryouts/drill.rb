@@ -32,7 +32,7 @@ class Tryouts
     # A Reality object (the actual output of the test)
   attr_reader :reality
   
-  @@valid_dtypes = [:cli, :api, :benchmark]
+  @@valid_dtypes = [:api, :benchmark]
   
   # * +name+ The display name of this drill
   # * +dtype+ A Symbol representing the drill type. One of: :api, :benchmark
@@ -59,8 +59,8 @@ class Tryouts
         @dreams << Tryouts::Drill::Dream.new(dream_output, format)
       end
     when :benchmark
-      dream_output, format = *(args.size == 1 ? args.first : args.reverse)
-      @sergeant = Tryouts::Drill::Sergeant::Benchmark.new reps || 1
+      dream_output, format, reps = *(args.size == 1 ? args.first : [args[1], args[0], args[2]])
+      @sergeant = Tryouts::Drill::Sergeant::Benchmark.new reps
       @dreams << Tryouts::Drill::Dream.new(Tryouts::Stats, :class)
       unless dream_output.nil?
         @dreams << Tryouts::Drill::Dream.new(dream_output, format)
@@ -77,6 +77,7 @@ class Tryouts
     @reality = Tryouts::Drill::Reality.new
   end
   
+  def self.valid_dtypes; @@valid_dtypes; end
   def self.valid_dtype?(t); @@valid_dtypes.member?(t); end
   
   def skip?; @skip; end
@@ -142,9 +143,9 @@ class Tryouts
     
     @dreams.each do |dream|
       next if dream == reality #? :normal : :red 
-      out.puts '%12s: %s'.color(@clr) % ["drill", dream.test_to_string(@reality)]
-      out.puts '%12s: %s' % ["returned", @reality.comparison_value(dream).inspect]
-      out.puts '%12s: %s' % ["expected", dream.comparison_value.inspect]
+      out.puts '%12s: %s'.color(@clr) % ["failed", dream.test_to_string(@reality)]
+      out.puts '%12s: %s' % ["drill", @reality.comparison_value(dream).inspect]
+      out.puts '%12s: %s' % ["dream", dream.comparison_value.inspect]
       out.puts
     end
     

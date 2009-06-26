@@ -25,7 +25,7 @@ The examples below are a complete overview of Tryouts syntax.
 
     library :gibbler, "../path/to/gibbler/lib"
 
-    tryouts "Common Usage" do
+    tryouts "Common Usage", :api do
     
       # This drill block should return 3.
       drill "Maths R Us", 3 do

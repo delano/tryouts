@@ -1,9 +1,6 @@
 
-library :tryouts, File.expand_path(File.join(File.dirname(__FILE__), '..', 'lib'))
 
 group "Mixins"
-
-
 
 test_hash = { 
   :level1 => { 
@@ -15,12 +12,12 @@ test_hash = {
 }
 
 
-tryouts "Hash" do
+tryouts "Hash", :api do
   setup do
     
   end
   
-  drill "knows the deepest point", test_hash.deepest_point, 31
-  drill "has a last method", {}, :respond_to?, :last
+  drill "knows the deepest point", test_hash.deepest_point, 3
+  drill "has a last method", {} #, :respond_to?, :last
 
 end

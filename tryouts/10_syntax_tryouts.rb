@@ -1,6 +1,10 @@
 
 tryout "DSL Syntax", :api do
   
+  drill "can specify a dream inline", 3 do
+    12 / 4
+  end
+    
   dream 4770744
   drill "can specify dream above the drill" do
     4770744

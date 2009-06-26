@@ -67,7 +67,7 @@ class Run < Drydock::Command
         puts $/, ' ' << title.color(:red).att(:reverse).bright
         tryouts_inst.errors.each do |ex|
           trace = Tryouts.verbose > 1 ? ex.backtrace : [ex.backtrace.first]
-          puts '%14s: %s' % [ex.class, ex.message.to_s.split($/).join($/ + ' '*16)]
+          puts '%4s%s: %s' % ['', ex.class, ex.message.to_s.split($/).join($/ + ' '*16)]
           puts
           puts '%14s  %s' % ["", trace.join($/ + ' '*16)]
           puts 

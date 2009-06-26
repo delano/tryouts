@@ -30,8 +30,17 @@ class Tryouts
   class Exception < RuntimeError; end
   # = BadDreams
   # Raised when there is a problem loading or parsing a Tryouts::Drill::Dream object
-  class BadDreams < Exception; end
+  class BadDream < Exception; end
   
+  class NoDrillType < Exception
+    attr_accessor :tname
+    def initialize(t); @tname = t; end
+    def message
+      vdt = Tryouts::Drill.valid_dtypes
+      "Tryout '#{@tname}' has no drill type. Should be: #{vdt.join(', ')}"
+    end
+  end
+    
   VERSION = "0.7.1"
   
   require 'tryouts/mixins'
@@ -167,7 +176,7 @@ class Tryouts
   
   # Create a new Tryout object and add it to the list for this Tryouts class. 
   # * +name+ is the name of the Tryout
-  # * +type+ is the default drill type for the Tryout. One of: :cli, :api
+  # * +dtype+ is the default drill type for the Tryout.
   # * +command+ when type is :cli, this is the name of the Rye::Box method that we're testing. Otherwise ignored. 
   # * +b+ is a block definition for the Tryout. See Tryout#from_block
   #
@@ -177,7 +186,7 @@ class Tryouts
     dtype ||= @dtype
     command ||= @command if dtype == :cli
     
-    raise "No drill type specified for #{name}." if dtype.nil?
+    raise NoDrillType, name if dtype.nil?
     
     to = find_tryout(name, dtype)
     if to.nil?
@@ -240,6 +249,7 @@ class Tryouts
     file_content = File.read(fpath)
     to = Tryouts.new
     begin
+      to.paths << fpath
       to.instance_eval file_content, fpath
       # After parsing the DSL, we'll know the group name.
       # If a Tryouts object already exists for that group
@@ -248,7 +258,6 @@ class Tryouts
         to = @@instances[to.group]
         to.instance_eval file_content, fpath
       end
-      to.paths << fpath
     rescue SyntaxError, LoadError, Exception, TypeError,
            RuntimeError, NoMethodError, NameError => ex
       to.errors << ex
