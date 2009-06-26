@@ -24,9 +24,9 @@
   
   # = DEPENDENCIES =
   # Add all gem dependencies
-  s.add_dependency 'rye', '>= 0.8.2'
-  s.add_dependency 'drydock', '>= 0.6.6'
-  s.add_dependency 'sysinfo', '>= 0.5.1'
+  s.add_dependency 'rye'
+  s.add_dependency 'drydock'
+  s.add_dependency 'sysinfo'
   
   # = MANIFEST =
   # The complete list of files to be included in the release. When GitHub packages your gem, 
