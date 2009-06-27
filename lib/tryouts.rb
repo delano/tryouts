@@ -262,6 +262,12 @@ class Tryouts
            RuntimeError, NoMethodError, NameError => ex
       to.errors << ex
       Tryouts.failed = true
+      # It's helpful to display the group name
+      file_content.match(/^group (.+?)$/) do |x,t|
+        # We use eval as a quick cheat so we don't have
+        # to parse all the various kinds of quotes.
+        to.group = eval x.captures.first
+      end
     end
     @@instances[to.group] = to
     to

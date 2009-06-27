@@ -49,7 +49,7 @@ class Tryouts::Drill
           if dream.format.nil?
             reality.output == dream.output
           elsif reality.output.respond_to?(dream.format)
-            reality.output.send(dream.format) == dream.output
+            reality.comparison_value(dream)  == dream.output
           else 
             false
           end

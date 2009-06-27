@@ -1,6 +1,11 @@
 TRYOUTS, CHANGES
 
 
+#### 0.7.3 (2009-06-??) ###############################
+
+* ADDED: Display Tryouts group name for runtime errors. 
+
+
 #### 0.7.2 (2009-06-26) ###############################
 
 NOTE: You will need to make a syntax change to your tryouts.
