@@ -140,11 +140,16 @@ class Tryouts
   # Require +name+. If +path+ is supplied, it will "require path". 
   # * +name+ The name of the library in question (required). Stored as a Symbol to +@library+.
   # * +path+ Add a path to the front of $LOAD_PATH (optional). Use this if you want to load
-  # a specific copy of the library. Otherwise, it loads from the system path.
-  def library(name=nil, path=nil)
+  #   a specific copy of the library. Otherwise, it loads from the system path. If the path 
+  #   in specified in multiple arguments they are joined and expanded.
+  #
+  #    library '/an/absolute/path'
+  #    library __FILE__, '..', 'lib'
+  #
+  def library(name=nil, *path)
     return @library if name.nil?
-    @library = name.to_sym
-    @dtype = :api
+    @library, @dtype = name.to_sym, :api
+    path = File.expand_path(File.join *path)
     $LOAD_PATH.unshift path unless path.nil?
     begin
       require @library.to_s

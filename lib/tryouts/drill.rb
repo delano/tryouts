@@ -112,26 +112,25 @@ class Tryouts
     
   def info
     out = StringIO.new
-    if Tryouts.verbose > 1
-      if @dreams.empty?
-        out.puts '%6s%s'.color(@clr) % ['', @reality.output.inspect]
-      else
-        @dreams.each do |dream|
-          if dream != @reality
-            out.puts '%6s%s'.color(:red) % ['', @reality.output.inspect]
-          else
-            out.puts '%6s%s'.color(:green) % ["", dream.test_to_string(@reality)]
-          end
-        end
-      end
-    elsif Tryouts.verbose > 0
+    if Tryouts.verbose > 0
       out.puts '%6s%s'.color(@clr) % ['', @reality.output.inspect]
       unless @reality.stash.empty?
         @reality.stash.each_pair do |n,v|
           out.puts '%18s: %s'.color(@clr) % [n,v.inspect]
         end
-        out.puts
       end
+    end
+    if Tryouts.verbose > 1
+
+      @dreams.each do |dream|
+        if dream != @reality
+          out.puts '%6s%s'.color(:red) % ['', @reality.output.inspect]
+        else
+          out.puts '%6s%s'.color(:green) % ["", dream.test_to_string(@reality)]
+        end
+      end  
+      out.puts
+    
     end
     out.rewind
     out.read
