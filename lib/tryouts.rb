@@ -249,6 +249,16 @@ class Tryouts
     tryout(args, &block)
   end
   
+  # This method does nothing. It provides a quick way to disable a tryout.
+  #
+  # NOTE: This is a DSL-only method and is not intended for OO use.
+  def xtryouts(*args, &block); end
+  # This method does nothing. It provides a quick way to disable a tryout.
+  #
+  # NOTE: this is a standalone DSL-syntax method.
+  def self.xtryouts(*args, &block); end
+  
+  
   # Parse a +_tryouts.rb+ file. See Tryouts::CLI::Run for an example. 
   #
   # NOTE: this is an OO syntax method
