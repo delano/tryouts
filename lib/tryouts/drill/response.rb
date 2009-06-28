@@ -195,7 +195,7 @@ class Tryouts::Drill
       else 
         if @output.nil? 
           @output
-        elsif @output.respond_to?(dream.format)
+        elsif @output.respond_to?(dream.format.to_sym)
           @output.send(dream.format)
         else
           @output

@@ -24,8 +24,6 @@ class Tryouts; class Drill; module Sergeant
       # A Proc object takes precedence over an inline block. 
       runtime = (block.nil? ? inline : block)
       response = Tryouts::Drill::Reality.new
-      # We always want to return the Stats object
-      response.output = @stats
       
       if runtime.nil?
         raise "We need a block to benchmark"
@@ -36,6 +34,10 @@ class Tryouts; class Drill; module Sergeant
             run = ::Benchmark.realtime &runtime
             @stats.sample run
           end
+          
+          # We add the output after we run the block so that
+          # that it'll remain nil if an exception was raised
+          response.output = @stats
           
         rescue => e
           puts e.message, e.backtrace if Tryouts.verbose > 2

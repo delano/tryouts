@@ -118,8 +118,10 @@ class Tryouts
     out = StringIO.new
     if Tryouts.verbose > 0
       if @dtype == :benchmark
-        mean, sdev, sum = @reality.output.mean, @reality.output.sdev, @reality.output.sum
-        out.puts '%6s%.4f (sdev:%.4f sum:%.4f)'.color(@clr) % ['', mean, sdev, sum]
+        unless @reality.output.nil?
+          mean, sdev, sum = @reality.output.mean, @reality.output.sdev, @reality.output.sum
+          out.puts '%6s%.4f (sdev:%.4f sum:%.4f)'.color(@clr) % ['', mean, sdev, sum]
+        end
       else
         out.puts '%6s%s'.color(@clr) % ['', @reality.output.inspect]
       end
@@ -133,7 +135,7 @@ class Tryouts
 
       @dreams.each do |dream|
         if dream != @reality
-          out.puts '%6s%s'.color(:red) % ['', @reality.output.inspect]
+          out.puts '%6s%s'.color(:red) % ['', dream.test_to_string(@reality)]
         else
           out.puts '%6s%s'.color(:green) % ["", dream.test_to_string(@reality)]
         end

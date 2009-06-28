@@ -59,4 +59,9 @@ module TryoutsCLI
   
 end
 
-Drydock.run!(ARGV, STDIN) if Drydock.run?
+begin
+  Drydock.run!(ARGV, STDIN) if Drydock.run?
+rescue Tryouts::Exception => ex
+  puts ex.message
+  puts ex.backtrace if Tryouts.debug?
+end

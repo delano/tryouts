@@ -6,6 +6,8 @@ TRYOUTS, CHANGES
 * ADDED: Display Tryouts group name for runtime errors. 
 * ADDED: Improved LoadError error message
 * ADDED: Print error messages for drills that PASS. 
+* ADDED: Better error handling when supplied tryouts file is not found
+
 
 #### 0.7.2 (2009-06-26) ###############################
 

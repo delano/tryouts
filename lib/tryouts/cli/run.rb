@@ -41,13 +41,14 @@ class Run < Drydock::Command
       print "Tryouts #{Tryouts::VERSION} -- "
       print "#{Tryouts.sysinfo.to_s} (#{RUBY_VERSION}) -- "
       puts "#{start.strftime("%Y-%m-%d %H:%M:%S")}"
+      puts
     end
     
     load_available_tryouts_files
     
     passed, failed = 0, 0
     Tryouts.instances.each_pair do |group,tryouts_inst|
-      puts '', ' %-79s'.att(:reverse) % group  unless Tryouts.verbose < 0
+      puts ' %-79s'.att(:reverse) % group  unless Tryouts.verbose < 0
       puts "  #{tryouts_inst.paths.join("\n  ")}" if Tryouts.verbose > 0
       tryouts_inst.tryouts.each_pair do |name,to|
         begin
@@ -147,6 +148,9 @@ private
     # If file paths were given, check those only. 
     unless @argv.empty?
       @argv.each do |file|
+        unless File.exists?(file)
+          raise Tryouts::Exception, "Not found: #{file}"
+        end
         file = File.join(file, '**', '*_tryouts.rb') if File.directory?(file)
         @tryouts_files += Dir.glob file
       end
