@@ -170,6 +170,10 @@ class Tryouts
     out.read
   end
   
+  def has_error?
+    !@reality.error.nil?
+  end
+  
   def success?
     return false if @dreams.empty? && @reality.output != true
     begin
