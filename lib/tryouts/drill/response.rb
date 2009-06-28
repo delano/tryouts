@@ -96,7 +96,7 @@ class Tryouts::Drill
           elsif reality.output.respond_to?(dream.format)
             "#{reality.output.inspect}.#{dream.format} == #{dream.output.inspect}"
           else
-            "#{reality.output.inspect}.respond_to?(#{dream.format.inspect}) == false"
+            "Unknown method #{dream.format.inspect} for #{reality.output.class} "
           end
         
         end

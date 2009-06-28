@@ -153,7 +153,10 @@ class Tryouts
     $LOAD_PATH.unshift path unless path.nil?
     begin
       require @library.to_s
-    rescue SyntaxError, LoadError, Exception, TypeError, 
+    rescue LoadError => ex
+      @errors << ex.exception("Cannot load library: #{@library} (#{path})")
+      Tryouts.failed = true
+    rescue SyntaxError, Exception, TypeError, 
            RuntimeError, NoMethodError, NameError => ex
       @errors << ex
       Tryouts.failed = true

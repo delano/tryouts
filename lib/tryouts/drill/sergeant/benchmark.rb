@@ -13,10 +13,10 @@ class Tryouts; class Drill; module Sergeant
     
     attr_reader :output
     
-    # * +reps+ Number of times to execute drill (>= 0, <= 30). Default: 3
+    # * +reps+ Number of times to execute drill (>= 0, <= 1000000). Default: 3
     #
     def initialize(reps=nil)
-      @reps = (1..30).include?(reps) ? reps : 5
+      @reps = (1..1000000).include?(reps) ? reps : 5
       @stats = Tryouts::Stats.new
     end
   
@@ -24,6 +24,9 @@ class Tryouts; class Drill; module Sergeant
       # A Proc object takes precedence over an inline block. 
       runtime = (block.nil? ? inline : block)
       response = Tryouts::Drill::Reality.new
+      # We always want to return the Stats object
+      response.output = @stats
+      
       if runtime.nil?
         raise "We need a block to benchmark"
       else
@@ -34,11 +37,8 @@ class Tryouts; class Drill; module Sergeant
             @stats.sample run
           end
           
-          response.output = @stats
-          
         rescue => e
           puts e.message, e.backtrace if Tryouts.verbose > 2
-          response.output = false
           response.etype = e.class
           response.error = e.message
           response.trace = e.backtrace

@@ -59,7 +59,11 @@ class Tryouts
         @dreams << Tryouts::Drill::Dream.new(dream_output, format)
       end
     when :benchmark
-      dream_output, format, reps = *(args.size == 1 ? args.first : [args[1], args[0], args[2]])
+      if args.size == 1
+        reps = args.first
+      else
+        dream_output, format, reps = args[1], args[0], args[2]
+      end
       @sergeant = Tryouts::Drill::Sergeant::Benchmark.new reps
       @dreams << Tryouts::Drill::Dream.new(Tryouts::Stats, :class)
       unless dream_output.nil?
@@ -113,7 +117,12 @@ class Tryouts
   def info
     out = StringIO.new
     if Tryouts.verbose > 0
-      out.puts '%6s%s'.color(@clr) % ['', @reality.output.inspect]
+      if @dtype == :benchmark
+        mean, sdev, sum = @reality.output.mean, @reality.output.sdev, @reality.output.sum
+        out.puts '%6s%.4f (sdev:%.4f sum:%.4f)'.color(@clr) % ['', mean, sdev, sum]
+      else
+        out.puts '%6s%s'.color(@clr) % ['', @reality.output.inspect]
+      end
       unless @reality.stash.empty?
         @reality.stash.each_pair do |n,v|
           out.puts '%18s: %s'.color(@clr) % [n,v.inspect]
