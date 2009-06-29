@@ -4,8 +4,11 @@ TRYOUTS, CHANGES
 #### 0.7.4 (2009-06-29) ###############################
 
 * FIXED: The stash method is now available to :benchmark drills
-* FIXED: Specifying a single argument to drill with a block now correctly parses the arg as the expected dream output. 
-  
+* FIXED: Specifying a single argument to drill with a block now 
+  correctly parses the arg as the expected dream output. 
+* CHANGE: Differentiated non-fatal error messages for successful drills
+* CHANGE: Context sensitive message for LoadErrors in Tryouts#library
+
 
 #### 0.7.3 (2009-06-27) ###############################
 

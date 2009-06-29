@@ -71,7 +71,7 @@ class Run < Drydock::Command
           
           puts '%4s%s: %s' % ['', ex.class, ex.message.to_s.split($/).join($/ + ' '*16)]
           puts
-
+          
           if [SyntaxError].member? ex.class
             # don't print anymore. 
           else

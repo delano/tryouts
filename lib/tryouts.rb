@@ -154,7 +154,11 @@ class Tryouts
     begin
       require @library.to_s
     rescue LoadError => ex
-      @errors << ex.exception("Cannot load library: #{@library} (#{path})")
+      newex = Tryouts::Exception.new(ex.message)
+      trace = ex.backtrace
+      trace.unshift @paths.last
+      newex.set_backtrace trace
+      @errors << newex
       Tryouts.failed = true
     rescue SyntaxError, Exception, TypeError, 
            RuntimeError, NoMethodError, NameError => ex
