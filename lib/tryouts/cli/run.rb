@@ -39,7 +39,7 @@ class Run < Drydock::Command
 
     if Tryouts.verbose > 0
       print "Tryouts #{Tryouts::VERSION} -- "
-      print "#{Tryouts.sysinfo.to_s} (#{RUBY_VERSION}) -- "
+      print "#{Tryouts.sysinfo.to_s}@#{RUBY_VERSION} -- "
       puts "#{start.strftime("%Y-%m-%d %H:%M:%S")}"
       puts
     end
