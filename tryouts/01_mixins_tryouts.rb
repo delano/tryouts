@@ -1,4 +1,4 @@
-
+library :tryouts, 'lib'
 
 group "Mixins"
 
@@ -18,6 +18,6 @@ tryouts "Hash", :api do
   end
   
   drill "knows the deepest point", test_hash.deepest_point, 3
-  drill "has a last method", {} #, :respond_to?, :last
+  drill "has a last method", {}, :respond_to?, :last
 
 end
