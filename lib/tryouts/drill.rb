@@ -53,9 +53,13 @@ class Tryouts
       @sergeant = Tryouts::Drill::Sergeant::CLI.new *args
     when :api
       default_output = drill.nil? ? args.shift : nil
-      dream_output, format = *(args.size == 1 ? args.first : args.reverse)
       @sergeant = Tryouts::Drill::Sergeant::API.new default_output
       unless args.empty?
+        if args.size == 1
+          dream_output, format = args.first, nil
+        else
+          dream_output, format = args[1], args[0]
+        end
         @dreams << Tryouts::Drill::Dream.new(dream_output, format)
       end
     when :benchmark
