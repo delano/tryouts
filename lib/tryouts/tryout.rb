@@ -85,8 +85,8 @@ class Tryouts
     success = @drills.select { |d| !d.skip? && d.success? }
     success.each do |drill,index|
       next unless drill.has_error?
-      title = ' %-69s ' % ["\"#{drill.name}\""]
-      puts $/, ' ' << title.color(:red).att(:reverse)
+      title = ' Non-fatal error in: %-69s ' % ["\"#{drill.name}\""]
+      puts $/, ' ' << title.color(:red)
       puts drill.report
     end
   end

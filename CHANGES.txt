@@ -7,7 +7,6 @@ TRYOUTS, CHANGES
 * FIXED: Specifying a single argument to drill with a block now correctly parses the arg as the expected dream output. 
   
 
-
 #### 0.7.3 (2009-06-27) ###############################
 
 * ADDED: Display Tryouts group name for runtime errors. 
