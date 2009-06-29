@@ -1,7 +1,7 @@
 TRYOUTS, CHANGES
 
 
-#### 0.7.3 (2009-06-??) ###############################
+#### 0.7.3 (2009-06-27) ###############################
 
 * ADDED: Display Tryouts group name for runtime errors. 
 * ADDED: Improved LoadError error message
