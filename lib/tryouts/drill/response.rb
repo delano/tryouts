@@ -193,9 +193,11 @@ class Tryouts::Drill
       when nil
         @output
       else 
-        if @output.nil? 
-          @output
-        elsif @output.respond_to?(dream.format.to_sym)
+        return nil if @output.nil? 
+        
+        if !dream.format.is_a?(Symbol)
+          "This dream format is not a Symbol: #{dream.format}"
+        elsif @output.respond_to?(dream.format)
           @output.send(dream.format)
         else
           @output
