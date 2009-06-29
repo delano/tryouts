@@ -3,6 +3,7 @@ TRYOUTS, CHANGES
 
 #### 0.7.3 (2009-06-27) ###############################
 
+* FIXED: The stash method is now available to :benchmark drills 
 * ADDED: Display Tryouts group name for runtime errors. 
 * ADDED: Improved LoadError error message
 * ADDED: Print error messages for drills that PASS. 

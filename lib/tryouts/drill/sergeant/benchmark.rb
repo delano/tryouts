@@ -31,7 +31,9 @@ class Tryouts; class Drill; module Sergeant
         begin
           
           @reps.times do
-            run = ::Benchmark.realtime &runtime
+            run = ::Benchmark.realtime {
+              context.instance_eval &runtime
+            }
             @stats.sample run
           end
           

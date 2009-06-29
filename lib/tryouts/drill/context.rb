@@ -2,7 +2,7 @@
 class Tryouts
   class Tryout
     
-    # All :api Drills are run within this context (not used for :cli). 
+    # All :api and :benchmark drills are run within this context. 
     # Each Drill is executed in a new instance of this class. That means
     # instance variables are not carried through, but class variables are. 
     # The before and after blocks are also run in this context.
