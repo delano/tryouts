@@ -8,12 +8,16 @@ tryout "Setting class variables", :api do
     @from_setup = true
   end
   
-  drill "can't access class var created in setup (1.9 only)", :exception, NameError do
-    @@from_setup
+  if Tryouts.sysinfo.ruby[1] == 9
+    drill "can't access class var created in setup (1.9 only)", :exception, NameError do
+      @@from_setup
+    end
   end
   
-  drill "can access class var created in setup (1.8 only)", 'Olivia' do
-    @@from_setup.class.to_s
+  if Tryouts.sysinfo.ruby[1] == 8
+    drill "can access class var created in setup (1.8 only)", 'Olivia' do
+      @@from_setup.class.to_s
+    end
   end
   
   drill "create class var", 'Olivia'  do
