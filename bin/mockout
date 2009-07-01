@@ -26,8 +26,10 @@ module DrillCLI
   end
   
   about "Returns PASS or FAIL"
+  option :p, :pass, "Always pass"
   command :test do |obj|
-    puts rand >= 0.4 ? "PASS" : "FAIL" unless obj.global.quiet
+    rate = obj.option.pass ? 0 : 0.4
+    puts rand >= rate ? "PASS" : "FAIL" unless obj.global.quiet
   end
   
   about "Prints current date in UTC"

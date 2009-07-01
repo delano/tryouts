@@ -17,7 +17,6 @@ class Tryouts; class Drill; module Sergeant
     attr_accessor :command
     
     def initialize(*args)
-      require 'rye'
       @command = args.shift
       @rbox_args = args
       @rbox = Rye::Box.new

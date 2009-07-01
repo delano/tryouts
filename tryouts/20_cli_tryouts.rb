@@ -7,13 +7,14 @@ command :mockout, MOCKOUT_PATH
 
 tryout "Mockouts", :cli do
   
+  # This fails. Rye problem?
   dream :class, Array
   dream []
   drill "No args"
   
   dream ["One line of content"]
   drill "can echo single argument", :echo, "One line of content"
-
+  
   dream ["Two lines", "of content"]
   drill "can echo single argument with line break", :echo, "Two lines#{$/}of content"
   
@@ -22,6 +23,11 @@ tryout "Mockouts", :cli do
   
   dream []
   drill "can be quiet", :q, :test
+  
+  dream ["PASS"]
+  drill "can execute via a block" do
+    mockout :test, :p
+  end
   
 end
 
