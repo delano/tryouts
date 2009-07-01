@@ -14,6 +14,8 @@ TRYOUTS, CHANGES
       "output value"
     end
 
+* CHANGE: Improved clarity of [nodream] error message
+
   
 #### 0.7.4 (2009-06-29) ###############################
 

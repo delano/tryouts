@@ -155,6 +155,8 @@ class Tryouts
     return if skip?
     out = StringIO.new
     
+    out.puts '%12s'.color(:red) % '[nodream]' if @dreams.empty?
+    
     @dreams.each do |dream|
       next if dream == reality #? :normal : :red 
       out.puts '%12s: %s'.color(@clr) % ["failed", dream.test_to_string(@reality)]
