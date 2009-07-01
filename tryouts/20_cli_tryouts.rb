@@ -25,7 +25,7 @@ MOCKOUT_PATH = File.join(TRYOUTS_HOME, "bin", "mockout")
 ##  drill "echo arguments", :info, :e, "not match reality"
 ##end
 ##
-##
+##  # NOTE: Dream blocks no longer use those methods, just the return value. 
 ##dreams "Common Usage" do
 ##  dream "No Comman" do
 ##    output inline(%Q{

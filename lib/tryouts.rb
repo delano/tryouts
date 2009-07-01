@@ -120,6 +120,7 @@ class Tryouts
   # in @@commands so it can be used as the default for drills
   def command(name=nil, path=nil)
     raise "command testing is temporarily disabled"
+    require 'rye'
     return @command if name.nil?
     @command = name.to_sym
     @dtype = :cli

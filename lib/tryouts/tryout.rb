@@ -141,11 +141,15 @@ class Tryouts
   #
   # NOTE: This method is DSL-only. It's not intended to be used in OO syntax. 
   def dream(*args, &definition) 
-    if args.empty?
-      dobj = Tryouts::Drill::Dream.from_block definition
-    else
+    if definition.nil?
       args = args.size == 1 ? [args.first] : args.reverse
       dobj = Tryouts::Drill::Dream.new(*args)
+    else
+      if args.size > 1
+        raise "Dreams with a block can take only one argument (#{@name})"
+      end
+      dobj = Tryouts::Drill::Dream.from_block definition
+      dobj.format = args.first if args.size == 1
     end
     @dream_catcher.push dobj
     dobj

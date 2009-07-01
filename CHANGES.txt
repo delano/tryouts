@@ -1,6 +1,20 @@
 TRYOUTS, CHANGES
 
+#### 0.7.5 (2009-07-??) ###############################
 
+* CHANGE: Dream definition block no longer support the rcode, 
+  output, format, and emsg methods. Now: the return value of
+  the block is used at the dream.output
+    
+    dream do
+      "output value"
+    end
+    
+    dream :format do
+      "output value"
+    end
+
+  
 #### 0.7.4 (2009-06-29) ###############################
 
 * FIXED: The stash method is now available to :benchmark drills

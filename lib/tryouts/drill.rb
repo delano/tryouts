@@ -32,7 +32,7 @@ class Tryouts
     # A Reality object (the actual output of the test)
   attr_reader :reality
   
-  @@valid_dtypes = [:api, :benchmark]
+  @@valid_dtypes = [:api, :cli, :benchmark]
   
   # * +name+ The display name of this drill
   # * +dtype+ A Symbol representing the drill type. One of: :api, :benchmark

@@ -124,7 +124,7 @@ class Tryouts::Drill
     end
     
     def from_block(definition)
-      instance_eval &definition
+      self.output = instance_eval &definition
       self
     end
     
