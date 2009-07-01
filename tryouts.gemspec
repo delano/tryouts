@@ -1,7 +1,7 @@
 @spec = Gem::Specification.new do |s|
 	s.name = "tryouts"
   s.rubyforge_project = "tryouts"
-	s.version = "0.7.4"
+	s.version = "0.8.0"
 	s.summary = "Basketball tryouts for your Ruby codes and command line apps. Go for it!"
 	s.description = s.summary
 	s.author = "Delano Mandelbaum"
@@ -17,7 +17,7 @@
   s.require_paths = %w[lib]  
   
   # Specific files to include rdocs from
-  s.extra_rdoc_files = %w[README.rdoc LICENSE.txt]
+  s.extra_rdoc_files = %w[README.rdoc LICENSE.txt CHANGES.txt]
   
   # Update --main to reflect the default page to display
   s.rdoc_options = ["--line-numbers", "--title", "Tryouts: #{s.summary}", "--main", "README.rdoc"]
@@ -62,7 +62,9 @@
   tryouts.gemspec
   tryouts/01_mixins_tryouts.rb
   tryouts/10_syntax_tryouts.rb
+  tryouts/15_dreams_tryouts.rb
   tryouts/20_cli_tryouts.rb
+  tryouts/30_benchmark_tryouts.rb
   tryouts/50_class_context_tryouts.rb
   tryouts/standalone_test.rb
   )

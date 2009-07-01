@@ -160,23 +160,23 @@ In quiet mode, the sergeant returns only a PASS or FAIL message (in the case of 
 
 === :api Tryouts
 
-http://github.com/delano/tryouts/raw/gh-pages/screens/tryouts-0.8-api.png
+http://delano.github.com/tryouts/screens/tryouts-0.8-api.png
 
-<i>from a gibbler[http://github.com/delano/gibbler/blob/gibbler-0.4/tryouts/10_basic_tryouts.rb]</i>
+<i>from gibbler[http://github.com/delano/gibbler/blob/master/tryouts/10_basic_tryouts.rb]</i>
 
 
 === :cli Tryouts (verbose)
 
-http://github.com/delano/tryouts/raw/gh-pages/screens/tryouts-0.8-cli.png
+http://delano.github.com/tryouts/screens/tryouts-0.8-cli.png
 
-<i>from a tryouts[http://github.com/delano/tryouts/blob/master/tryouts/20_cli_tryouts.rb]</i>
+<i>from tryouts[http://github.com/delano/tryouts/blob/master/tryouts/20_cli_tryouts.rb]</i>
 
 
 === :benchmark Tryouts (verbose)
 
-http://github.com/delano/tryouts/raw/gh-pages/screens/tryouts-0.8-benchmark.png
+http://delano.github.com/tryouts/screens/tryouts-0.8-benchmark.png
 
-<i>from a gibbler[http://github.com/delano/gibbler/blob/gibbler-0.4/tryouts/80_performance_tryouts.rb]</i>
+<i>from gibbler[http://github.com/delano/gibbler/blob/master/tryouts/80_performance_tryouts.rb]</i>
 
 == News
 
