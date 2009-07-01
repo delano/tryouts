@@ -1,6 +1,6 @@
-= Tryouts - v0.7 BETA
+= Tryouts - v0.8 BETA
 
-Tryouts is a high-level testing library (DSL) for your Ruby codes.
+Tryouts is a high-level testing library (DSL) for your Ruby codes and command-line applications.
 
 A tryout is made up of one of more drills. The return value of the drill block is compared to the expectations defined by one or more dreams. The goal is to achieve your dreams. 
 
@@ -16,7 +16,13 @@ A tryout is made up of one of more drills. The return value of the drill block i
     $ gem install tryouts
 
 
-== NOTICE (2009-06-26): DSL Syntax Change
+== Notices
+
+=== 2009-07-01: Drills for command-line applications
+
+Support for testing command-line applications has been re-introduced in 0.8. See example code further down in this README. 
+
+=== 2009-06-26: DSL Syntax Change
 
 The order of dream arguments has reversed between 0.7.1 and 0.7.2. It is now:
 
@@ -67,7 +73,38 @@ The examples below are a complete overview of Tryouts syntax.
       
     end
 
-=== Benchmarks (:benchmark)
+=== Testing Command-Line Applications (:cli)
+
+You can execute drills on command-line applications. 
+    
+    command :rudy, "path/2/rudy"
+    
+    tryouts "Rudy CLI", :cli do
+      
+      # We have specified the name of the command above so 
+      # we only need to specify the arguments in the drill.
+      # $ rudy myaddress -e
+      drill "can display my IP addresses", :myaddress, :e
+      
+      # The drill returns an Array of lines from STDOUT so
+      # we can use Array#grep to check the command output.
+      # If any lines match, this test will pass.
+      dream :grep, /No machines running/
+      drill "can call with no arguments"
+      
+      # Drills can also be defined with a block which gets
+      # executed via Rye::Box#batch. Methods in the block
+      # are executed as commands. The return value of the
+      # block is considered the test output. 
+      dream :match, /\d+\.\d+\.\d+\.\d+/
+      drill "can execute a block of commands" do
+        ret = rudy :q, :myaddress, :e
+        ret.first
+      end
+      
+    end
+
+=== Running Performance Benchmarks (:benchmark)
 
 You can also use Tryouts to run benchmarks. The tryouts method takes a second parameter which specifies which drill sergeant to use. Below we specify <tt>:benchmark</tt> so each drill is timed and executed multiple times.
 
