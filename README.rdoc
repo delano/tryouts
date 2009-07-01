@@ -16,23 +16,6 @@ A tryout is made up of one of more drills. The return value of the drill block i
     $ gem install tryouts
 
 
-== Notices
-
-=== 2009-07-01: Drills for command-line applications
-
-Support for testing command-line applications has been re-introduced in 0.8. See example code further down in this README. 
-
-=== 2009-06-26: DSL Syntax Change
-
-The order of dream arguments has reversed between 0.7.1 and 0.7.2. It is now:
-
-* <tt>dream :method, 'Expected value'</tt>
-
-This is a return to the original syntax and I think it's the right way to go because it reads more naturally:
-
-* <tt>drill 'test name', 'return value', :class, String</tt>
-
-
 == Writing Tests
 
 The examples below are a complete overview of Tryouts syntax. 
@@ -186,6 +169,23 @@ The drill that failed looks like this:
     drill Array, "Array"
 
 
+== News
+
+=== 2009-07-01: Drills for command-line applications
+
+Support for testing command-line applications has been re-introduced in 0.8. See example code further down in this README. 
+
+=== 2009-06-26: DSL Syntax Change
+
+The order of dream arguments has reversed between 0.7.1 and 0.7.2. It is now:
+
+* <tt>dream :method, 'Expected value'</tt>
+
+This is a return to the original syntax and I think it's the right way to go because it reads more naturally:
+
+* <tt>drill 'test name', 'return value', :class, String</tt>
+
+
 == BETA Notice
 
 Tryouts is very new (est. 2009-05-19) and has not been vetted by the scrutiny of time. In particular you can expect:
@@ -212,6 +212,7 @@ Tryouts does some funky stuff to make it simple to write tests. This "funky stuf
 
 * Everyone at Utrecht.rb and Amsterdam.rb for putting up with my Ruby questions :]
 * Sam Aaron (http://sam.aaron.name) for the early feedback. 
+* Kalin Harvey for the encouragement.
 
 
 == Credits
