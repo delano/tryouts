@@ -158,16 +158,25 @@ In quiet mode, the sergeant returns only a PASS or FAIL message (in the case of 
 
 == Screenshots
 
-Here is an example of Tryouts output from a gibbler[http://github.com/delano/gibbler/blob/gibbler-0.2.1/tryouts/gibbler_tryouts.rb] tryout:
+=== :api Tryouts
 
-http://github.com/delano/tryouts/raw/gh-pages/screens/tryouts-1-failure.png
+http://github.com/delano/tryouts/raw/gh-pages/screens/tryouts-0.8-api.png
 
-The drill that failed looks like this:
+<i>from a gibbler[http://github.com/delano/gibbler/blob/gibbler-0.4/tryouts/10_basic_tryouts.rb]</i>
 
-    dream :respond_to?, :to_gibble
-    dream :to_gibble, 'ab33b9dec202d136d0e695a3a7b06ee678134882'
-    drill Array, "Array"
 
+=== :cli Tryouts (verbose)
+
+http://github.com/delano/tryouts/raw/gh-pages/screens/tryouts-0.8-cli.png
+
+<i>from a tryouts[http://github.com/delano/tryouts/blob/master/tryouts/20_cli_tryouts.rb]</i>
+
+
+=== :benchmark Tryouts (verbose)
+
+http://github.com/delano/tryouts/raw/gh-pages/screens/tryouts-0.8-benchmark.png
+
+<i>from a gibbler[http://github.com/delano/gibbler/blob/gibbler-0.4/tryouts/80_performance_tryouts.rb]</i>
 
 == News
 
@@ -181,7 +190,7 @@ The order of dream arguments has reversed between 0.7.1 and 0.7.2. It is now:
 
 * <tt>dream :method, 'Expected value'</tt>
 
-This is a return to the original syntax and I think it's the right way to go because it reads more naturally:
+This is a return to the original syntax and I think it's the right way to go because it reads more naturally in the one-liner format:
 
 * <tt>drill 'test name', 'return value', :class, String</tt>
 

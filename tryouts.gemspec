@@ -2,7 +2,7 @@
 	s.name = "tryouts"
   s.rubyforge_project = "tryouts"
 	s.version = "0.7.4"
-	s.summary = "Tryouts are high-level tests for your Ruby code. May all your dreams come true!"
+	s.summary = "Basketball tryouts for your Ruby codes and command line apps. Go for it!"
 	s.description = s.summary
 	s.author = "Delano Mandelbaum"
 	s.email = "tryouts@solutious.com"
@@ -21,6 +21,9 @@
   
   # Update --main to reflect the default page to display
   s.rdoc_options = ["--line-numbers", "--title", "Tryouts: #{s.summary}", "--main", "README.rdoc"]
+  
+  ## NOTE: this is for Rudy conversion (incomplete)
+  ##rdoc '--line-numbers', '--title', "Tryouts: Basketball tryouts for your Ruby codes and command line apps. Go for it!", '--main', 'README.rdoc', 
   
   # = DEPENDENCIES =
   # Add all gem dependencies
