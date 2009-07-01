@@ -7,34 +7,42 @@ class Tryouts; class Drill; module Sergeant
   # The sergeant responsible for running command-line interface drills.
   #
   class CLI
-  
-    attr_reader :rbox
     
-      # An Array of arguments to be sent to +rbox.send(*rbox_args)+
+    attr_accessor :rbox
+    
+      # An Array of arguments to be sent to <tt>rbox.send(@command, *rbox_args)</tt>
     attr_accessor :rbox_args
     
+      # The command name to execute <tt>rbox.send(@command, *rbox_args)</tt>
+    attr_accessor :command
+    
     def initialize(*args)
+      require 'rye'
+      @command = args.shift
       @rbox_args = args
       @rbox = Rye::Box.new
     end
-  
+    
     # NOTE: Context is ignored for the CLI Sergeant. 
     def run(block, context=nil, &inline)
       # A Proc object takes precedence over an inline block. 
       runtime = (block.nil? ? inline : block)
       response = Tryouts::Drill::Reality.new
+      
+      if @command.nil?
+        response.command = '[block]'
+      else
+        response.command = '$ ' << @rbox.preview_command(@command, *@rbox_args)
+      end
+      
       begin
         if runtime.nil?
-          ret = @rbox.send *@rbox_args
+          ret = @rbox.send @command, *@rbox_args
         else
           ret = @rbox.instance_eval &runtime
         end
+        response.output = ret.stdout
         response.ecode = ret.exit_code
-        if ret.stdout.size == 1
-          response.output = ret.stdout.first 
-        else
-          response.output = Array.new(ret.stdout)  # Cast the Rye::Rap object
-        end
         response.error = ret.stderr unless ret.stderr.empty?
       rescue Rye::CommandNotFound => ex
         puts ex.message, ex.backtrace if Tryouts.verbose > 2

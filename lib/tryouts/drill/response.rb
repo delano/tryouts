@@ -44,6 +44,8 @@ class Tryouts::Drill
           reality.output != dream.output
         when :respond_to?, :kind_of?, :is_a?
           reality.output.send(dream.format, dream.output)
+        when :grep
+          !reality.output.grep(dream.output).empty?
         else 
         
           if dream.format.nil?
@@ -83,12 +85,10 @@ class Tryouts::Drill
         when :gt, :gte, :lt, :lte, :ne
           op = {:gt=>'>',:gte=>'>=', :lt=>'<', :lte => '<=', :ne => '!='}.find { |i| i[0] == dream.format }
           "#{reality.output.inspect} #{op[1]} #{dream.output.inspect}"
-        when :respond_to?
-          "#{reality.output.class}.respond_to? #{dream.output.inspect}"
-        when :kind_of?
-          "#{reality.output.class}.kind_of? #{dream.output.inspect}"
-        when :is_a?
-          "#{reality.output.class}.is_a? #{dream.output.inspect}"
+        when :respond_to?, :kind_of?, :is_a?
+          "#{reality.output.class}.#{dream.format} #{dream.output.inspect}"
+        when :grep
+          "!#{reality.output}.grep(#{dream.output.inspect}).empty?"
         else 
         
           if dream.format.nil?
@@ -156,6 +156,8 @@ class Tryouts::Drill
         true
       when :respond_to?, :is_a?, :kind_of?
         true
+      when :grep
+        @output
       else 
         @output
       end
@@ -173,6 +175,8 @@ class Tryouts::Drill
     attr_accessor :trace
     attr_accessor :ecode
     attr_accessor :etype
+      # For :cli drills only. Contains the shell command string. 
+    attr_accessor :command
     def initialize
       @stash = Tryouts::HASH_TYPE.new
     end
@@ -188,7 +192,7 @@ class Tryouts::Drill
         (test.arity > 0 ? test.call(@output) : test.call)
       when :exception
         @etype
-      when :respond_to?, :is_a?, :kind_of?
+      when :respond_to?, :is_a?, :kind_of?, :grep
         @output.send(dream.format, dream.output)
       when nil
         @output

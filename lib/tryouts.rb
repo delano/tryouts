@@ -119,8 +119,8 @@ class Tryouts
   # Add a shell command to Rye::Cmd and save the command name
   # in @@commands so it can be used as the default for drills
   def command(name=nil, path=nil)
-    raise "command testing is temporarily disabled"
     require 'rye'
+    #raise "command testing is temporarily disabled"
     return @command if name.nil?
     @command = name.to_sym
     @dtype = :cli

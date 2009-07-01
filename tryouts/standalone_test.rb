@@ -7,6 +7,8 @@
 # 
 # Usage: ruby tryouts/standalone_test.rb
 #
+
+## NOTE: BROKEN SINCE 0.6
  
 TRYOUTS_HOME = File.expand_path(File.join(File.dirname(__FILE__), '..'))
 TRYOUTS_LIB  = File.join(TRYOUTS_HOME, 'lib')

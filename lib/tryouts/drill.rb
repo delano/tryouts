@@ -48,8 +48,16 @@ class Tryouts
   def initialize(name, dtype, *args, &drill)
     @name, @dtype, @drill, @skip = name, dtype, drill, false
     @dreams = []
+    
+    # We create a default empty reality but if the drill runs correctly
+    # this reality gets replaced with the return value from the drill.
+    @reality = Tryouts::Drill::Reality.new
+    
     case @dtype 
     when :cli
+      # For CLI drills, a block takes precedence over inline args. 
+      # A block will contain multiple shell commands (see Rye::Box#batch)
+      args = [] if dtype == :cli && drill.is_a?(Proc)
       @sergeant = Tryouts::Drill::Sergeant::CLI.new *args
     when :api
       default_output = drill.nil? ? args.shift : nil
@@ -79,10 +87,8 @@ class Tryouts
       raise NoSergeant, "Weird drill sergeant: #{@dtype}"
     end
     @clr = :red
-    # For CLI drills, a block takes precedence over inline args. 
-    # A block will contain multiple shell commands (see Rye::Box#batch)
-    drill_args = [] if dtype == :cli && drill.is_a?(Proc)
-    @reality = Tryouts::Drill::Reality.new
+
+    
   end
   
   def self.valid_dtypes; @@valid_dtypes; end
@@ -126,6 +132,9 @@ class Tryouts
           mean, sdev, sum = @reality.output.mean, @reality.output.sdev, @reality.output.sum
           out.puts '%6s%.4f (sdev:%.4f sum:%.4f)'.color(@clr) % ['', mean, sdev, sum]
         end
+      elsif @dtype == :cli
+        out.puts '%6s%s'.color(@clr) % ['', @reality.command]
+        out.puts '%6s%s'.color(@clr) % ['', @reality.output.join($/ + ' '*6)]
       else
         out.puts '%6s%s'.color(@clr) % ['', @reality.output.inspect]
       end
