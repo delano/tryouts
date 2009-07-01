@@ -29,6 +29,12 @@ tryout "Mockouts", :cli do
     mockout :test, :p
   end
   
+  dream :match, /\d+\.\d+\.\d+\.\d+/
+  drill "can execute a block of commands" do
+    ret = rudy :q, :myaddress, :e
+    ret.first
+  end
+  
 end
 
 

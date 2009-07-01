@@ -37,12 +37,13 @@ class Tryouts; class Drill; module Sergeant
       begin
         if runtime.nil?
           ret = @rbox.send @command, *@rbox_args
+          response.output = ret.stdout
+          response.ecode = ret.exit_code
+          response.error = ret.stderr unless ret.stderr.empty?
         else
-          ret = @rbox.instance_eval &runtime
+          response.output = @rbox.instance_eval &runtime
         end
-        response.output = ret.stdout
-        response.ecode = ret.exit_code
-        response.error = ret.stderr unless ret.stderr.empty?
+
       rescue Rye::CommandNotFound => ex
         puts ex.message, ex.backtrace if Tryouts.verbose > 2
         response.etype = ex.class

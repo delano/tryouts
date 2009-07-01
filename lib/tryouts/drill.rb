@@ -134,7 +134,9 @@ class Tryouts
         end
       elsif @dtype == :cli
         out.puts '%6s%s'.color(@clr) % ['', @reality.command]
-        out.puts '%6s%s'.color(@clr) % ['', @reality.output.join($/ + ' '*6)]
+        output = @reality.output
+        output = output.join($/ + ' '*6) if output.kind_of?(Array)
+        out.puts '%6s%s'.color(@clr) % ['', output]
       else
         out.puts '%6s%s'.color(@clr) % ['', @reality.output.inspect]
       end
