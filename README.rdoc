@@ -13,7 +13,14 @@ A tryout is made up of one of more drills. The return value of the drill block i
 
 == Installation
 
+Via Rubygems, one of:
+
     $ gem install tryouts
+    $ gem install delano-tryouts
+
+or via download:
+* tryouts-latest.tar.gz[http://github.com/delano/tryouts/tarball/latest]
+* tryouts-latest.zip[http://github.com/delano/tryouts/zipball/latest]
 
 
 == Writing Tests

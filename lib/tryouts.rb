@@ -150,7 +150,7 @@ class Tryouts
   def library(name=nil, *path)
     return @library if name.nil?
     @library, @dtype = name.to_sym, :api
-    path = File.expand_path(File.join *path)
+    path = File.expand_path(File.join(*path))
     $LOAD_PATH.unshift path unless path.nil?
     begin
       require @library.to_s
@@ -304,7 +304,6 @@ class Tryouts
       inst.tryouts.each_pair do |name,to|
         to.run
         to.report
-        STDOUT.flush
       end
     end
   end
