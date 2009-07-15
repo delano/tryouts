@@ -20,6 +20,9 @@ class Tryouts::Drill
       ##return false unless reality.error.nil? && reality.trace.nil?
       return true if reality.output == true and dream.nil?
       
+      # Refactor like:
+      # http://github.com/why/hpricot/blob/master/lib/hpricot/elements.rb#L475
+      
       begin
         case dream.format
         when :exception

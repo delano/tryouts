@@ -4,7 +4,10 @@ require 'sysinfo'
 require 'digest/sha1'
 require 'ostruct'
 require 'yaml'
-require 'rye'
+
+## NOTE: Don't require rye here so
+## we can still run tryouts on the
+## development version. 
 
 begin; require 'json'; rescue LoadError; end   # json may not be installed
 
@@ -120,8 +123,8 @@ class Tryouts
   # Add a shell command to Rye::Cmd and save the command name
   # in @@commands so it can be used as the default for drills
   def command(name=nil, path=nil)
-    #raise "command testing is temporarily disabled"
     return @command if name.nil?
+    require 'rye'
     @command = name.to_sym
     @dtype = :cli
     Rye::Cmd.module_eval do
