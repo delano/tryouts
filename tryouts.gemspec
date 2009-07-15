@@ -1,8 +1,8 @@
 @spec = Gem::Specification.new do |s|
 	s.name = "tryouts"
   s.rubyforge_project = "tryouts"
-	s.version = "0.8.0"
-	s.summary = "Basketball tryouts for your Ruby codes and command line apps. Go for it!"
+	s.version = "0.8.1"
+	s.summary = "Tryouts is a high-level testing library (DSL) for your Ruby codes and command-line applications."
 	s.description = s.summary
 	s.author = "Delano Mandelbaum"
 	s.email = "tryouts@solutious.com"
@@ -75,14 +75,6 @@
   if s.respond_to? :specification_version then
     current_version = Gem::Specification::CURRENT_SPECIFICATION_VERSION
     s.specification_version = 2
- 
-    if Gem::Version.new(Gem::RubyGemsVersion) >= Gem::Version.new('1.2.0') then
-      #s.add_runtime_dependency(%q<RedCloth>, [">= 4.0.4"])
-    else
-      #s.add_dependency(%q<RedCloth>, [">= 4.0.4"])
-    end
-  else
-    #s.add_dependency(%q<RedCloth>, [">= 4.0.4"])
   end
   
 end
