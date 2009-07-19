@@ -6,6 +6,7 @@ TRYOUTS, CHANGES
 * CHANGE: Moved Drill and Reality to separate files. 
 * CHANGE: dream blocks are now lazy executed just before the
   drill is executed.
+  
 
 #### 0.8.1 (2009-07-14) ###############################
 
