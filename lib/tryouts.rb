@@ -34,9 +34,9 @@ class Tryouts
   class Exception < RuntimeError; end
   # = BadDreams
   # Raised when there is a problem loading or parsing a Tryouts::Drill::Dream object
-  class BadDream < Exception; end
-  
-  class NoDrillType < Exception
+  class BadDream < Tryouts::Exception; end
+  class TooManyArgs < Tryouts::Exception; end
+  class NoDrillType < Tryouts::Exception
     attr_accessor :tname
     def initialize(t); @tname = t; end
     def message

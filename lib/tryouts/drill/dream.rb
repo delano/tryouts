@@ -6,18 +6,19 @@ class Tryouts::Drill
   # Contains the expected response of a Drill
   #
   class Dream < Tryouts::Drill::Response
-  
-    def self.from_block(definition)
-      d = Tryouts::Drill::Dream.new
-      d.from_block definition
-      d
-    end
-  
-    def from_block(definition)
+    
+      # A proc which is run just before the associated drill. 
+      # The return value overrides <tt>@output</tt>. 
+    attr_accessor :output_block
+    
+    # Populates <tt>@output</tt> with the return value of
+    # <tt>output_block</tt> or <tt>&definition</tt> if provided. 
+    def execute_output_block(&definition)
+      definition ||= @output_block
+      return if definition.nil?
       self.output = instance_eval &definition
-      self
     end
-  
+    
     # Takes a String +val+ and splits the lines into an Array.
     def inline(val=nil)
       lines = (val.split($/) || [])

@@ -147,11 +147,11 @@ class Tryouts
       args = args.size == 1 ? [args.first] : args.reverse
       dobj = Tryouts::Drill::Dream.new(*args)
     else
-      if args.size > 1
-        raise "Dreams with a block can take only one argument (#{@name})"
-      end
-      dobj = Tryouts::Drill::Dream.from_block definition
+      msg = "Dreams with blocks take only 1 argument (Tryout: '#{@name}')"
+      raise TooManyArgs, msg if args.size > 1
+      dobj = Tryouts::Drill::Dream.new
       dobj.format = args.first if args.size == 1
+      dobj.output_block = definition
     end
     @dream_catcher.push dobj
     dobj

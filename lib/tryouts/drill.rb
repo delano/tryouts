@@ -10,8 +10,8 @@ class Tryouts
     
   require 'tryouts/drill/context'
   require 'tryouts/drill/response'
-  require 'tryouts/drill/response/dream'
-  require 'tryouts/drill/response/reality'
+  require 'tryouts/drill/dream'
+  require 'tryouts/drill/reality'
   require 'tryouts/drill/sergeant/cli'
   require 'tryouts/drill/sergeant/api'
   require 'tryouts/drill/sergeant/benchmark'
@@ -26,7 +26,6 @@ class Tryouts
   attr_reader :name
     # A Proc object which contains the drill logic. 
   attr_reader :drill
-  
     # A Sergeant object which executes the drill
   attr_reader :sergeant
     # An Array of Dream objects (the expected output of the test)
@@ -99,6 +98,9 @@ class Tryouts
   def skip?; @skip; end
   
   def run(context=nil)
+    unless @dreams.empty?
+      @dreams.each { |d| d.execute_output_block }
+    end
     begin
       @reality = @sergeant.run @drill, context
       # Store the stash from the drill block
