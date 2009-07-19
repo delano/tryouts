@@ -1,5 +1,11 @@
 TRYOUTS, CHANGES
 
+
+#### 0.8.2 (2009-07-19) ###############################
+
+* CHANGE: Moved Drill and Reality to separate files. 
+
+
 #### 0.8.1 (2009-07-14) ###############################
 
 * CHANGE: Fixed parentheses warning in tryouts.rb for Ruby 1.8

@@ -10,6 +10,8 @@ class Tryouts
     
   require 'tryouts/drill/context'
   require 'tryouts/drill/response'
+  require 'tryouts/drill/response/dream'
+  require 'tryouts/drill/response/reality'
   require 'tryouts/drill/sergeant/cli'
   require 'tryouts/drill/sergeant/api'
   require 'tryouts/drill/sergeant/benchmark'
