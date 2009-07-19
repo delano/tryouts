@@ -45,7 +45,7 @@ class Tryouts
     end
   end
     
-  VERSION = "0.8.2"
+  VERSION = "0.8.3"
   
   require 'tryouts/mixins'
   require 'tryouts/tryout'

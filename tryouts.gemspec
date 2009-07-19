@@ -1,7 +1,7 @@
 @spec = Gem::Specification.new do |s|
 	s.name = "tryouts"
   s.rubyforge_project = "tryouts"
-	s.version = "0.8.2"
+	s.version = "0.8.3"
 	s.summary = "Tryouts is a high-level testing library (DSL) for your Ruby codes and command-line applications."
 	s.description = s.summary
 	s.author = "Delano Mandelbaum"
@@ -49,6 +49,8 @@
   lib/tryouts/cli/run.rb
   lib/tryouts/drill.rb
   lib/tryouts/drill/context.rb
+  lib/tryouts/drill/dream.rb
+  lib/tryouts/drill/reality.rb
   lib/tryouts/drill/response.rb
   lib/tryouts/drill/sergeant/api.rb
   lib/tryouts/drill/sergeant/benchmark.rb
