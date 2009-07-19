@@ -8,7 +8,7 @@ command :mockout, MOCKOUT_PATH
 tryout "Mockouts", :cli do
   
   # This fails. Rye problem?
-  dream :class, Array
+  dream :class, Rye::Rap
   dream []
   drill "No args"
   
