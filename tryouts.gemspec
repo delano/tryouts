@@ -28,6 +28,7 @@
   # = DEPENDENCIES =
   # Add all gem dependencies
   s.add_dependency 'rye'
+  s.add_dependency 'attic'
   s.add_dependency 'drydock'
   s.add_dependency 'sysinfo'
   
@@ -64,6 +65,7 @@
   tryouts.gemspec
   tryouts/01_mixins_tryouts.rb
   tryouts/10_syntax_tryouts.rb
+  tryouts/14_set_tryouts.rb
   tryouts/15_dreams_tryouts.rb
   tryouts/20_cli_tryouts.rb
   tryouts/30_benchmark_tryouts.rb
