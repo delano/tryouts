@@ -30,13 +30,16 @@ class Tryouts
     # A Hash of Dream objects for this Tryout. The keys are drill names. 
   attr_reader :dream_catcher
   
+    # The instance of Drill::Context in which the drills will run in. 
+  attr_reader :drill_context
      
   def initialize(name, dtype, command=nil, *args)
     raise "Must supply command for dtype :cli" if dtype == :cli && command.nil?
     raise "#{dtype} is not a valid drill type" if !Drill.valid_dtype?(dtype)
     @name, @dtype, @command = name, dtype, command
-    @drills, @dream_catcher = [], []
+    @drills, @dream_catcher, @locals = [], [], {}
     @passed, @failed, @skipped = 0, 0, 0
+    @drill_context = DrillContext.new
   end
   
   ## ---------------------------------------  EXTERNAL API  -----
@@ -58,7 +61,7 @@ class Tryouts
     puts "\n  %s ".bright % @name unless Tryouts.verbose < 0
     @drills.each do |drill|
       print '   %-69s ' % "\"#{drill.name}\"" unless Tryouts.verbose < 0
-      drill.run DrillContext.new
+      drill.run @drill_context
       if drill.skip?
         @skipped += 1
       elsif drill.success?
@@ -109,7 +112,16 @@ class Tryouts
     d
   end
   
-  ## ---------------------------------------  EXTERNAL DSL  -----
+  ## ------------------------------------------------  DSL  -----
+  
+  # Define a method named +key+ for only the current instances of
+  # Tryout and DrillContext so it's not available anywhere else.
+  # The methods return +value+.  
+  def set(key, value)
+    self.meta_def( key )           { value }
+    @drill_context.meta_def( key ) { value }
+    value
+  end
   
   # A block to executed one time _before_ starting the drills
   def setup(&block)

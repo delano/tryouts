@@ -1,5 +1,6 @@
 
 require 'time'
+require 'attic'
 require 'sysinfo'
 require 'digest/sha1'
 require 'ostruct'
