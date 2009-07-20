@@ -201,19 +201,14 @@ http://delano.github.com/tryouts/screens/tryouts-0.8-benchmark.png
 
 == News
 
+=== 2009-07-20: New DSL keyword "set"
+
+The "set" keyword has been introduced in 0.8.4 for defining variables available only to the Tryout definition they were declared in. See Example 1. 
+
 === 2009-07-01: Drills for command-line applications
 
 Support for testing command-line applications has been re-introduced in 0.8. See example code further down in this README. 
 
-=== 2009-06-26: DSL Syntax Change
-
-The order of dream arguments has reversed between 0.7.1 and 0.7.2. It is now:
-
-* <tt>dream :method, 'Expected value'</tt>
-
-This is a return to the original syntax and I think it's the right way to go because it reads more naturally in the one-liner format:
-
-* <tt>drill 'test name', 'return value', :class, String</tt>
 
 
 == BETA Notice
