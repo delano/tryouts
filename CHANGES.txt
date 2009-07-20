@@ -5,6 +5,7 @@ TRYOUTS, CHANGES
 
 * CHANGE: "setup" and "clean" blocks now run in the same DrillContext
   instance as drills (so instance variables are now shared)
+* CHANGE: Non-fatal errors are now displayed only in verbose mode. 
 * ADDED: "set" keyword inside tryout definitions. 
 
 

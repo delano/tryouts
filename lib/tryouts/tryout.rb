@@ -84,13 +84,15 @@ class Tryouts
       puts $/, ' ' << title.color(:red).att(:reverse)
       puts drill.report
     end
-    # Print errors for successful runs too
-    success = @drills.select { |d| !d.skip? && d.success? }
-    success.each do |drill,index|
-      next unless drill.has_error?
-      title = ' Non-fatal error in: %-69s ' % ["\"#{drill.name}\""]
-      puts $/, ' ' << title.color(:red)
-      puts drill.report
+    if Tryouts.verbose > 0
+      # Print errors for successful runs too
+      success = @drills.select { |d| !d.skip? && d.success? }
+      success.each do |drill,index|
+        next unless drill.has_error?
+        title = ' Non-fatal error in: %-69s ' % ["\"#{drill.name}\""]
+        puts $/, ' ' << title.color(:red)
+        puts drill.report
+      end
     end
   end
   
