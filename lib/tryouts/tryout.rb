@@ -57,7 +57,7 @@ class Tryouts
   
   # Execute all Drill objects
   def run
-    DrillContext.module_eval &setup if setup.is_a?(Proc)
+    @drill_context.instance_eval &setup if setup.is_a?(Proc)
     puts "\n  %s ".bright % @name unless Tryouts.verbose < 0
     @drills.each do |drill|
       print '   %-69s ' % "\"#{drill.name}\"" unless Tryouts.verbose < 0
@@ -72,7 +72,7 @@ class Tryouts
       puts drill.flag                           # PASS, FAIL, SKIP
       puts drill.info if Tryouts.verbose > 0 && !drill.skip?  
     end
-    DrillContext.module_eval &clean if clean.is_a?(Proc)
+    @drill_context.instance_eval &clean if clean.is_a?(Proc)
   end
   
   # Prints error output. If there are no errors, it prints nothing. 
