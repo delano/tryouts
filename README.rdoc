@@ -32,36 +32,50 @@ The examples below are a complete overview of Tryouts syntax.
     library :gibbler, "../path/to/gibbler/lib"
 
     tryouts "Common Usage", :api do
-    
+
+      # Define variables available only within
+      # in the current tryout definition.
+      set :local_variable, 3
+      
+      setup do
+        # do stuff before all drills
+      end
+      
+      clean do 
+        # do stuff after all drills
+      end
+      
       # This drill block should return 3.
-      drill "Maths R Us", 3 do
+      drill "Maths R Us", local_variable do
         12 / 4
       end
-      
+
       # You can specify a method to execute
-      # on the return value of the drill block. 
+      # on the return value of the drill block.
       drill "We want a symbol", :class, Symbol do
-        orange.methods.first
+        Class.methods.first
       end
-      
+
       # Dreams can also be specified explicitly which is
       # important b/c it's possible to specify multiple.
       dream :class, Array
-      dream [:a, :b, :c]
+      dream ['b', 'c', 'd']
       drill "Should return a list of 3" do
-        Letters.list(3)
+        letters = 'a'..'z'
+        letters.to_a[1..local_variable]
       end
-      
+
       # Drills can pass based on an exception too.
       dream :exception, NameError
       drill "Something failed" do
         raise NameError
       end
-      
-      # We can even put simple drills on a single line. 
+
+      # We can even put simple drills on a single line.
       drill 'Small, fast, and furious', 'Muggsy Bogues', :match, /Mug+sy Bogu?es/
-      
+
     end
+
 
 === Testing Command-Line Applications (:cli)
 
