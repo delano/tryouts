@@ -39,14 +39,14 @@ class Tryouts; class Drill; module Sergeant
             }
           end
           
-          @stats[:run_total] = Tryouts::Stats.new
+          @stats[:rtotal] = Tryouts::Stats.new(:rtotal)
           @reps.times do
             tms = ::Benchmark.measure {
               context.instance_eval &runtime
             }
             process_tms(tms)
           end
-          @stats[:run_total].tick
+          @stats[:rtotal].tick
           
           # We add the output after we run the block so that
           # that it'll remain nil if an exception was raised

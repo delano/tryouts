@@ -135,9 +135,12 @@ class Tryouts
         unless @reality.output.nil?
           Sergeant::Benchmark.fields.each do |f|
             s = @reality.output[f]
-            args = [s.name, s.mean, s.min, s.max, s.sdev, s.sum]
-            out.puts '%6s: %.4f (min:%.4f max:%.4f sdev:%.4f sum:%.4f)'.color(@clr) % args
+            ar = [s.name, s.mean, s.min, s.max, s.sdev, s.sum]
+            pa = '%6s: %.4f (min:%.4f max:%.4f sdev:%.4f sum:%.4f)'.color(@clr)
+            out.puts pa % ar
           end
+          ar = ['', @reality.output[:rtotal].mean]
+          out.puts '%8s%3.4f (run time)'.color(@clr) % ar
         end
       elsif @dtype == :cli
         out.puts '%6s%s'.color(@clr) % ['', @reality.command]
