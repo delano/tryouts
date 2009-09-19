@@ -13,11 +13,13 @@ class Tryouts; class Drill; module Sergeant
     
     attr_reader :output
     
+    FIELDS = [:utime, :stime, :cutime, :cstime, :total, :real].freeze
+    
     # * +reps+ Number of times to execute drill (>= 0, <= 1000000). Default: 3
     #
     def initialize(reps=nil)
       @reps = (1..1000000).include?(reps) ? reps : 5
-      @stats = Tryouts::Stats.new
+      @stats = {}
     end
   
     def run(block, context, &inline)
@@ -30,12 +32,14 @@ class Tryouts; class Drill; module Sergeant
       else
         begin
           
+          @stats[:run_total] = Tryouts::Stats.new
           @reps.times do
-            run = ::Benchmark.realtime {
+            tms = ::Benchmark.measure {
               context.instance_eval &runtime
             }
-            @stats.sample run
+            process_tms(tms)
           end
+          @stats[:run_total].tick
           
           # We add the output after we run the block so that
           # that it'll remain nil if an exception was raised
@@ -50,6 +54,15 @@ class Tryouts; class Drill; module Sergeant
       end
       response
     end
+    
+    def process_tms(tms)
+      FIELDS.each do |f|
+        @stats[f] ||= Tryouts::Stats.new(f)
+        @stats[f].sample tms.send(f)
+      end
+    end
+    
+    def self.fields() FIELDS end
     
   end
 end; end; end

@@ -78,7 +78,7 @@ class Tryouts
         dream_output, format, reps = args[1], args[0], args[2]
       end
       @sergeant = Tryouts::Drill::Sergeant::Benchmark.new reps
-      @dreams << Tryouts::Drill::Dream.new(Tryouts::Stats, :class)
+      @dreams << Tryouts::Drill::Dream.new(Hash, :class)
       unless dream_output.nil?
         @dreams << Tryouts::Drill::Dream.new(dream_output, format)
       end
@@ -133,8 +133,11 @@ class Tryouts
     if Tryouts.verbose > 0
       if @dtype == :benchmark
         unless @reality.output.nil?
-          mean, sdev, sum = @reality.output.mean, @reality.output.sdev, @reality.output.sum
-          out.puts '%6s%.4f (sdev:%.4f sum:%.4f)'.color(@clr) % ['', mean, sdev, sum]
+          Sergeant::Benchmark.fields.each do |f|
+            stats = @reality.output[f]
+            args = [stats.name, stats.mean, stats.sdev, stats.sum]
+            out.puts '%6s: %.4f (sdev:%.4f sum:%.4f)'.color(@clr) % args
+          end
         end
       elsif @dtype == :cli
         out.puts '%6s%s'.color(@clr) % ['', @reality.command]
