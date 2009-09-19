@@ -17,6 +17,7 @@ NOTE: Benchmark tryouts must now use proc style dreams
 
 * CHANGE: Benchmark tryouts now display complex benchmark info
   (utime, stime, cutime, cstime, total, real)
+* CHANGE: Benchmark tryouts now run a brief warmup
 
 
 #### 0.8.4 (2009-07-20) ###############################

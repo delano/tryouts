@@ -19,6 +19,7 @@ class Tryouts; class Drill; module Sergeant
     #
     def initialize(reps=nil)
       @reps = (1..1000000).include?(reps) ? reps : 5
+      @warmups = reps < 10 ? 1 : 10
       @stats = {}
     end
   
@@ -31,6 +32,12 @@ class Tryouts; class Drill; module Sergeant
         raise "We need a block to benchmark"
       else
         begin
+          
+          @warmups.times do
+            tms = ::Benchmark.measure {
+              context.instance_eval &runtime
+            }
+          end
           
           @stats[:run_total] = Tryouts::Stats.new
           @reps.times do

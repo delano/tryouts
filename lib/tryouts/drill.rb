@@ -134,9 +134,9 @@ class Tryouts
       if @dtype == :benchmark
         unless @reality.output.nil?
           Sergeant::Benchmark.fields.each do |f|
-            stats = @reality.output[f]
-            args = [stats.name, stats.mean, stats.sdev, stats.sum]
-            out.puts '%6s: %.4f (sdev:%.4f sum:%.4f)'.color(@clr) % args
+            s = @reality.output[f]
+            args = [s.name, s.mean, s.min, s.max, s.sdev, s.sum]
+            out.puts '%6s: %.4f (min:%.4f max:%.4f sdev:%.4f sum:%.4f)'.color(@clr) % args
           end
         end
       elsif @dtype == :cli
