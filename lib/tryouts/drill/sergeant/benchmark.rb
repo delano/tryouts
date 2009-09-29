@@ -18,6 +18,7 @@ class Tryouts; class Drill; module Sergeant
     # * +reps+ Number of times to execute drill (>= 0, <= 1000000). Default: 3
     #
     def initialize(reps=nil)
+      reps = 1 if reps.nil?
       @reps = (1..1000000).include?(reps) ? reps : 5
       @warmups = reps < 10 ? 1 : 10
       @stats = {}

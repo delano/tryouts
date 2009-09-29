@@ -11,7 +11,7 @@ TRYOUTS, CHANGES
 * TODO: Clear stash between drills
 
 
-#### 0.8.5 (2009-09-19) ###############################
+#### 0.8.5 (2009-09-??) ###############################
 
 NOTE: Benchmark tryouts must now use proc style dreams
 
