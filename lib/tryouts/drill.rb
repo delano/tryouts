@@ -15,7 +15,7 @@ class Tryouts
   require 'tryouts/drill/sergeant/cli'
   require 'tryouts/drill/sergeant/api'
   require 'tryouts/drill/sergeant/benchmark'
-  require 'tryouts/drill/sergeant/rbenchmark'
+  #require 'tryouts/drill/sergeant/rbenchmark'
   
   class NoSergeant < Tryouts::Exception; end
   class UnknownFormat < Tryouts::Exception; end

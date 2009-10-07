@@ -1,10 +1,11 @@
 
 require 'time'
-require 'attic'
-require 'sysinfo'
 require 'digest/sha1'
-require 'ostruct'
-require 'yaml'
+
+autoload :Attic, 'attic'
+autoload :SysInfo, 'sysinfo'
+autoload :OpenStruct, 'ostruct'
+autoload :YAML, 'yaml'
 
 ## NOTE: Don't require rye here so
 ## we can still run tryouts on the
@@ -46,22 +47,29 @@ class Tryouts
     end
   end
     
-  VERSION = "0.8.4"
+  VERSION = "0.8.5"
   
   require 'tryouts/mixins'
   require 'tryouts/tryout'
   require 'tryouts/drill'
-  require 'tryouts/stats'
   
-  require 'tryouts/orderedhash'
-  HASH_TYPE = (RUBY_VERSION =~ /1.9/) ? ::Hash : Tryouts::OrderedHash
-
+  autoload :Stats, 'tryouts/stats'
+  
+  unless defined?(HASH_TYPE)
+    if RUBY_VERSION =~ /1.8/
+      require 'tryouts/orderedhash'
+      HASH_TYPE = Tryouts::OrderedHash
+    else
+      HASH_TYPE = Hash
+    end
+  end
+  
     # An Array of +_tryouts.rb+ file paths that have been loaded.
   @@loaded_files = []
     # An Hash of Tryouts instances stored under the name of the Tryouts subclass. 
   @@instances = HASH_TYPE.new
     # An instance of SysInfo
-  @@sysinfo = SysInfo.new
+  @@sysinfo = nil
   
   @@debug = false
   @@verbose = 0
@@ -81,7 +89,10 @@ class Tryouts
   # Returns +@@instances+
   def self.instances; @@instances; end
   # Returns +@@sysinfo+
-  def self.sysinfo;   @@sysinfo;   end
+  def self.sysinfo
+    @@sysinfo = SysInfo.new if @@sysinfo.nil?
+    @@sysinfo
+  end
   
     # The name of this group of Tryout objects
   attr_accessor :group

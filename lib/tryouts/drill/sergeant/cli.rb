@@ -1,4 +1,4 @@
-
+autoload :Rye, 'rye'           # Make sure rye is loaded
 
 class Tryouts; class Drill; module Sergeant
   
@@ -17,7 +17,6 @@ class Tryouts; class Drill; module Sergeant
     attr_accessor :command
     
     def initialize(*args)
-      require 'rye'           # Make sure rye is loaded
       @command = args.shift
       @rbox_args = args
       @rbox = Rye::Box.new
