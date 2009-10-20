@@ -2,7 +2,8 @@
 require 'time'
 require 'digest/sha1'
 
-autoload :Attic, 'attic'
+require 'attic'
+
 autoload :SysInfo, 'sysinfo'
 autoload :OpenStruct, 'ostruct'
 autoload :YAML, 'yaml'
