@@ -2,6 +2,11 @@
 
 library :rudy, 'path/2/rudy/lib'
 tryouts "Code", :api do
+  
+  setup do
+  end
+  
+  
   dream :class, Rudy::Disk
   dream :size, 1
   dream :device, '/dev/sdh'
@@ -37,13 +42,11 @@ end
 
 
 
-## Comment-style
-library :rudy, 'path/2/rudy/lib'
-tryouts "API", :api do
+
 
   # "has a default size and device"
   Rudy::Disk.new '/'                              # <Rudy::Disk>
-                                                  # obj.size == 1
+  #=>                                                 # obj.size == 1
                                                   # obj.device == '/dev/sdh'
                                                   # obj.path == '/'
                                                 
@@ -56,8 +59,20 @@ tryouts "API", :api do
   # "group contains new rules"
   group_name = "grp-9000"
   accountnum = Rudy::Huxtable.config.accounts.aws.accountnum
-  Rudy::AWS::EC2::Groups.get(group_name)          # <Rudy::AWS::EC2::Group>
-                                                  # obj.groups.has_key?("#{accountnum}:#{group_name}")
-end
+  obj = Rudy::AWS::EC2::Groups.get(group_name)
+  obj.class                                          #=> Rudy::AWS::EC2::Group
+  obj.groups.has_key?("#{accountnum}:#{group_name}") #=> true
+  obj.device                                         #=> '/dev/sdh'
+  
+  ### Context b ###
+  
+  obj.path                                           #=> '/'
 
 
+  Foo::bar()            #=> "asdf"
+  
+  result = Foo::bar()
+  result                #=> "asdf"
+
+# work with:
+# $ ruby -rubygems -Ilib ...
