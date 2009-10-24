@@ -1,1 +1,13 @@
-* 
+
+# Step 1: Parse basic core syntax test_tryouts.rb (with blocks)
+
+# Step 2: Failed expectations (CLI syntax)
+
+# Step 3: Allow def foo() at setup time (helpers?)
+
+
+# Nice to haves #
+
+* Allow expectation at end of line
+* Multiple expectations per test block
+
