@@ -9,6 +9,7 @@ require Pathname(__FILE__).dirname.parent + 'lib/nofw'
 # test expectation type matters
 'foo' + 'bar'
 #=> 'foobar'
+#=> 'foobar'
 
 # test expectation type matters
 'foo'.class
