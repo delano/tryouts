@@ -14,6 +14,7 @@ require 'tryouts'
 # test expectation type matters
 'foo' + 'bar'
 #=> 'foobar'
+#=> 'foobar'
 
 # test expectation type matters
 'foo'.class
