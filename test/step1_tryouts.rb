@@ -1,5 +1,10 @@
+# run me with
+#   ruby -rubygems -Ilib step1_tryouts.rb
+
 require 'pathname'
-require Pathname(__FILE__).dirname.parent + 'lib/nofw'
+require 'tryouts'
+
+#def foo() 'foo'; end
 
 
 # test matches result with expectation
@@ -21,11 +26,15 @@ require Pathname(__FILE__).dirname.parent + 'lib/nofw'
 
 #=> 'foo'
 
-## test ignores comments before expectations
+# test ignores comments before expectations
 'foo'
 # comment
 # comment
 #=> 'foo'
+
+# test allows whiny expectation markers for textmate users *sigh*
+'foo'
+# =>  'foo'
 
 ## test uses helper methods
 ## ( #foo is defined on top of file )
@@ -38,3 +47,23 @@ require Pathname(__FILE__).dirname.parent + 'lib/nofw'
 
 x = raise rescue 'foo'
 #=> 'foo'
+
+#begin
+#  raise
+#rescue
+#  'foo'
+#end
+##=> 'foo'
+
+## test handles multiple code lines
+## only only tests last line against expectation
+#str = ""
+#str << 'foo'
+#str << 'bar'
+#str
+##=> 'foobar'
+##
+### test failure
+##'this fails'
+###=> 'expectation not met'
+#
