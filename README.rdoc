@@ -7,12 +7,14 @@
 
 == Project Guidelines
 
-* Base test definition requires no extra syntax. 
+* Test definition requires no extra syntax. 
 * Extensions provide syntactic sugar and support for unit and behavioural tests. 
 
 
-== Syntax Example
-
+== Example 1 -- Basic syntax
+    
+    require 'tryouts'
+    
     # test matches result with expectation
     1 + 1
     #=> 2
@@ -27,6 +29,12 @@
 
     # test ignores blank lines before expectations
     'foo'
+
+== Example 2 -- Requiring libraries
+    
+    # Other libraries can be required before 'tryouts'
+    require 'ripper'
+    require 'tryouts'
 
 
 == Credits
