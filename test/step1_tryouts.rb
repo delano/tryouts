@@ -1,8 +1,6 @@
 require 'pathname'
 require Pathname(__FILE__).dirname.parent + 'lib/nofw'
 
-#def foo() 'foo'; end
-
 
 # test matches result with expectation
 1 + 1
@@ -39,23 +37,3 @@ require Pathname(__FILE__).dirname.parent + 'lib/nofw'
 
 x = raise rescue 'foo'
 #=> 'foo'
-
-#begin
-#  raise
-#rescue
-#  'foo'
-#end
-##=> 'foo'
-
-## test handles multiple code lines
-## only only tests last line against expectation
-#str = ""
-#str << 'foo'
-#str << 'bar'
-#str
-##=> 'foobar'
-##
-### test failure
-##'this fails'
-###=> 'expectation not met'
-#
