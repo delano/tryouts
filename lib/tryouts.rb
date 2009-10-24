@@ -3,17 +3,73 @@ require 'every'
 require 'ruby-debug'
 
 module Tryouts
+
   class Suite
   end
-  class Case
-    def tests
 
+  class Case
+    def initialize(str)
+      @str = str
+    end
+
+    def run
+      tests
+      #tests.map {|test| print (test.passed? ? '.' : 'F') }
+      #statuses = tests.map {|test| print (test.passed? ? '.' : 'F'); test.passed? }
+      #statuses.include?(false) ? 1 : 0
+
+      0
+    end
+
+    def tests
+      @tests ||= Tests.new(@str)
     end
   end
-  class Test
-    def initialize(code, expected)
+
+  class Tests < Array
+    def initialize(str)
+      self.replace extract_tests!(str)
     end
+
+    private
+    def extract_tests!(str)
+      tests = []
+      xflag = false
+      test_lines = []
+
+      str.each_line do |line|
+        line = line.strip
+        #if line =~ /^\s*#=>/
+        if line =~ /#\s?=>/
+          test_lines << line
+          xflag = true
+        elsif line.empty? && xflag
+          tests << Test.new(test_lines.join("\n"))
+          test_lines = [] #reset
+          xflag = false
+        else
+          test_lines << line
+        end
+      end
+
+      tests
+    end
+  end
+
+  class Test
+
+    attr_accessor :expected
+
+    def initialize(str)
+      @str = str
+    end
+
+    def to_s
+      @str
+    end
+
     class EvalContext
+
       class << self
         #attr_accessor :setup, :teardown
         def evaluate(str)
@@ -23,6 +79,7 @@ module Tryouts
           #@context.instance_eval(teardown)
         end
       end
+
       def require(*args)
         # noop
       end
@@ -31,7 +88,9 @@ module Tryouts
 end
 
 file = Pathname(caller.last.split(':').first)
-test_case = Tryouts::Case.run(file.read)
+line = caller.last.split(':').last.to_i
+str  = file.read.split("\n")[(line)..-1].join("\n")
+exit Tryouts::Case.new(str).run
 
 
 #test_case = Tryouts::Case.new( Pathname($0).read )
