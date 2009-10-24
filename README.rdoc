@@ -1,3 +1,42 @@
-= Tryouts v0.9
+= Tryouts v0.9 EXPERIMENTAL
+
+<i>A minimalist Ruby testing unframework.</i>
 
 <b>NOTE: Tryouts syntax changed between version 0.8 and 0.9. The old version is still available in the 0.8-FINAL branch.</b>
+
+
+== Project Guidelines
+
+* Base test definition requires no extra syntax. 
+* Extensions provide syntactic sugar and support for unit and behavioural tests. 
+
+
+== Syntax Example
+
+    # test matches result with expectation
+    1 + 1
+    #=> 2
+
+    # test expectation type matters
+    'foo' + 'bar'
+    #=> 'foobar'
+
+    # test expectation type matters
+    'foo'.class
+    #=> String
+
+    # test ignores blank lines before expectations
+    'foo'
+
+
+== Credits
+
+* cloudhead[http://github.com/cloudhead]
+* delano[http://github.com/delano]
+* mynyml[http://github.com/mynyml]
+
+== Thanks
+
+* Syntenic[http://syntenic.com/] for the hackfest venue. 
+
+<i>This collision was brought to you by Montreal.rb.</i>
