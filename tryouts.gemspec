@@ -1,7 +1,7 @@
 @spec = Gem::Specification.new do |s|
 	s.name = "tryouts"
   s.rubyforge_project = "tryouts"
-	s.version = "0.8.5"
+	s.version = "0.8.6"
 	s.summary = "Tryouts is a high-level testing library (DSL) for your Ruby codes and command-line applications."
 	s.description = s.summary
 	s.author = "Delano Mandelbaum"
@@ -28,7 +28,6 @@
   # = DEPENDENCIES =
   # Add all gem dependencies
   s.add_dependency 'rye'
-  s.add_dependency 'attic'
   s.add_dependency 'drydock'
   s.add_dependency 'sysinfo'
   

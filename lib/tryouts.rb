@@ -2,8 +2,6 @@
 require 'time'
 require 'digest/sha1'
 
-require 'attic'
-
 autoload :SysInfo, 'sysinfo'
 autoload :OpenStruct, 'ostruct'
 autoload :YAML, 'yaml'
@@ -48,7 +46,7 @@ class Tryouts
     end
   end
     
-  VERSION = "0.8.5"
+  VERSION = "0.8.6"
   
   require 'tryouts/mixins'
   require 'tryouts/tryout'
