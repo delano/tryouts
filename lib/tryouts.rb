@@ -2,9 +2,8 @@
 require 'time'
 require 'digest/sha1'
 
-autoload :SysInfo, 'sysinfo'
-autoload :OpenStruct, 'ostruct'
-autoload :YAML, 'yaml'
+require 'sysinfo'
+require 'yaml'
 
 ## NOTE: Don't require rye here so
 ## we can still run tryouts on the
