@@ -11,6 +11,10 @@ TRYOUTS, CHANGES
 * TODO: Clear stash between drills
 
 
+#### 0.8.7 (2010-02-15) ###############################
+
+* CHANGE: Removed hanna dependency
+
 #### 0.8.6 (2009-11-29) ###############################
 
 * CHANGE: Removed Attic dependency
