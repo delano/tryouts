@@ -1,3 +1,4 @@
+# See: http://yard.soen.ca/parser_arch.html
 require 'yard'
 include YARD::Parser::Ruby::Legacy
 sample = DATA.read
