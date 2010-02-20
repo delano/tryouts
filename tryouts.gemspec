@@ -57,7 +57,6 @@
   lib/tryouts/drill/sergeant/cli.rb
   lib/tryouts/drill/sergeant/rbenchmark.rb
   lib/tryouts/mixins.rb
-  lib/tryouts/mixins/hash.rb
   lib/tryouts/orderedhash.rb
   lib/tryouts/stats.rb
   lib/tryouts/tryout.rb
@@ -69,6 +68,8 @@
   tryouts/20_cli_tryouts.rb
   tryouts/30_benchmark_tryouts.rb
   tryouts/50_class_context_tryouts.rb
+  tryouts/X1_new_api_syntax.rb
+  tryouts/X2_new_cli_syntax.rb
   tryouts/standalone_test.rb
   )
   
