@@ -2,6 +2,7 @@
 require 'time'
 require 'digest/sha1'
 
+require 'attic'
 require 'sysinfo'
 require 'yaml'
 
@@ -45,7 +46,7 @@ class Tryouts
     end
   end
     
-  VERSION = "0.8.7"
+  VERSION = "0.8.8"
   
   require 'tryouts/mixins'
   require 'tryouts/tryout'

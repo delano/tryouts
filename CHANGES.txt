@@ -11,6 +11,12 @@ TRYOUTS, CHANGES
 * TODO: Clear stash between drills
 
 
+#### 0.8.8 (2010-02-20) ###############################
+
+* FIXED: Missing meta_def method (require attic)
+* CHANGE: Try not to use autoload for the required dependencies. [Diego Elio 'Flameeyes' Pettenò]
+
+
 #### 0.8.7 (2010-02-15) ###############################
 
 * CHANGE: Removed hanna dependency
