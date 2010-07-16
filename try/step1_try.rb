@@ -1,8 +1,3 @@
-# run me with
-#   ruby -rubygems -Ilib step1_tryouts.rb
-
-
-#def foo() 'foo'; end
 
 
 # TEST 1: test matches result with expectation

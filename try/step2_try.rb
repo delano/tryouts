@@ -1,3 +1,6 @@
+# run me with
+#   ruby -rubygems -Ilib step1_tryouts.rb
+
 
 
 a = 1

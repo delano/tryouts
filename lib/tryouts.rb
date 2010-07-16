@@ -2,6 +2,7 @@
 #p Pathname(caller.last.split(':').first)
 
 class Tryouts
+  @debug = false
   class Container; end
   class Expectation 
     attr_accessor :body, :expected_values, :desc, :container
@@ -24,13 +25,22 @@ class Tryouts
   end
   
   class << self
-  
-    def preparse(path)
+    attr_accessor :debug
+    def preparse(lines)
+      lines.each do |line|
+        next if ignore?(line)
+        eval(line) if line.match(/require/)
+        break if expectation?(line)
+      end
+    end
+    def parse(path)
       container = Container.new
       lines = File.readlines(path)
+      preparse lines
       tests = []
       lines.size.times do |idx|
         line = lines[idx]
+        puts '%d %s' % [idx line] if @debug
         if expectation? line
           body = find_body lines, idx
           next if body.nil? 
@@ -59,10 +69,9 @@ class Tryouts
     def find_expected_values lines, start
       expected = [lines[start]]
       offset = 1
-      while expectation?(lines[start+offset])
+      while (start+offset) < lines.size && expectation?(lines[start+offset])
         expected << lines[start+offset]
         offset += 1 
-        break (start+offset) > lines.size
       end
       expected.collect { |v| v.match(/^\#\s*=>\s*(.+)/); $1.chomp }
     end

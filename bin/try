@@ -14,5 +14,5 @@ else
 end
 
 paths.each do |path|  
-  Tryouts.preparse path
+  Tryouts.parse path
 end
