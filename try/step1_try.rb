@@ -2,7 +2,6 @@
 #   ruby -rubygems -Ilib step1_tryouts.rb
 
 require 'pathname'
-require 'tryouts'
 
 #def foo() 'foo'; end
 
@@ -12,8 +11,8 @@ require 'tryouts'
 #=> 2
 
 # test expectation type matters
-'foo' + 'bar'
-#=> 'foobar'
+'foo2' + 'bar'
+#=> 'foo2bar'
 #=> 'foobar'
 
 # test expectation type matters
@@ -28,8 +27,8 @@ require 'tryouts'
 
 # test ignores comments before expectations
 'foo'
-# comment
-# comment
+# ignored comment
+# ignored comment
 #=> 'foo'
 
 # test allows whiny expectation markers for textmate users *sigh*

@@ -1,142 +1,104 @@
-require 'pathname'
-begin
-  require 'ruby-debug'
-rescue LoadError, RuntimeError
-end
+#require 'pathname'
+#p Pathname(caller.last.split(':').first)
 
-module Tryouts
-
-  class Suite
-  end
-
-  class Case
-    def initialize(str)
-      @str = str
+class Tryouts
+  
+  class Expectation 
+    attr_accessor :value, :expected_values, :desc
+    attr_reader :results, :tests
+    def initialize(value, *expected_values)
+      @value, @expected_values = value, expected_values
+      @tests = []
     end
-
-    def run
-      tests
-      #tests.map {|test| print (test.passed? ? '.' : 'F') }
-      #statuses = tests.map {|test| print (test.passed? ? '.' : 'F'); test.passed? }
-      #statuses.include?(false) ? 1 : 0
-
-      0
+    def run_all
+      @results = expected_values.collect do |expectation|
+        str = '%s == %s' % [@value, expectation]
+        ret = eval(@value) == eval(expectation)
+        @tests << [str, ret]
+        ret
+      end
     end
-
-    def tests
-      @tests ||= Tests.new(@str)
+    def success?
+      @results.uniq == [true]
     end
   end
-
-  class Tests < Array
-    def initialize(str)
-      self.replace extract_tests!(str)
+  
+  class << self
+  
+    def preparse(path)
+      lines = File.readlines(path)
+      lines.size.times do |idx|
+        line = lines[idx]
+        if expectation? line
+          value = find_value lines, idx
+          next if value.nil?
+          expected_values = find_expected_values lines, idx
+          desc = find_description lines, idx
+          exp = Expectation.new value, *expected_values
+          exp.desc = desc
+          exp.run_all
+          puts exp.desc
+          puts exp.success? ? true : exp.tests
+          puts
+        end
+      end
     end
+    
 
     private
-    def extract_tests!(str)
-      tests = []
-      xflag = false
-      test_lines = []
-
-      str.each_line do |line|
-        line = line.strip
-        #if line =~ /^\s*#=>/
-        if line =~ /#\s?=>/
-          test_lines << line
-          xflag = true
-        elsif line.empty? && xflag
-          tests << Test.new(test_lines.join("\n"))
-          test_lines = [] #reset
-          xflag = false
-        else
-          test_lines << line
+    
+    def find_expected_values lines, start
+      expected = [lines[start]]
+      offset = 1
+      while expectation?(lines[start+offset])
+        expected << lines[start+offset]
+        offset += 1 
+        break (start+offset) > lines.size
+      end
+      expected.collect { |v| v.match(/^\#\s*=>\s*(.+)/); $1.chomp }
+    end
+    
+    def find_value lines, start
+      value = nil
+      offset = 1
+      until interesting?(lines[start-offset])
+        break if expectation?(lines[start-offset]) || (start-offset) < 0
+        offset += 1 
+      end
+      value = lines[start-offset].chomp if interesting?(lines[start-offset])
+      value
+    end
+    
+    def find_description lines, start
+      desc = []
+      offset = 1
+      offset += 1 until comment?(lines[start-offset]) || (start-offset) < 0
+      if comment?(lines[start-offset])
+        while comment?(lines[start-offset])
+          desc << lines[start-offset]
+          offset +=1 
         end
       end
-
-      tests
+      desc
     end
+    
+    def expectation? str
+      !ignore?(str) && str.strip.match(/^\#\s*=>/)
+    end
+    
+    def comment? str
+      !str.strip.match(/^\#/).nil?
+    end
+    
+    def interesting? str
+      !ignore?(str) && !expectation?(str) && !comment?(str)
+    end
+    
+    def ignore? str
+      str.strip.chomp.empty? || str.strip.match(/^\#\s*\w/)
+    end
+    
   end
-
-  class Test
-
-    attr_accessor :expected
-
-    def initialize(str)
-      @str = str
-    end
-
-    def to_s
-      @str
-    end
-
-    class EvalContext
-
-      class << self
-        #attr_accessor :setup, :teardown
-        def evaluate(str)
-          @context = new
-          #@context.instance_eval(setup)
-          @context.instance_eval(str)
-          #@context.instance_eval(teardown)
-        end
-      end
-
-      def require(*args)
-        # noop
-      end
-    end
-  end
+  
 end
-
-file = Pathname(caller.last.split(':').first)
-line = caller.last.split(':').last.to_i
-str  = file.read.split("\n")[(line)..-1].join("\n")
-exit Tryouts::Case.new(str).run
-
-
-#test_case = Tryouts::Case.new( Pathname($0).read )
-#test_case.tests.each {|test| puts test }
-
-
-
-__END__
-require 'pathname'
-require 'ruby-debug'
-
-class TestContext
-  class << self
-    attr_accessor :setup, :teardown
-  end
-  def self.eval(str)
-    @context ||= new
-    #@context.instance_eval(setup)
-    @context.instance_eval(str)
-    #@context.instance_eval(teardown)
-  end
-  def require(*args)
-    # noop
-  end
-end
-
-file = Pathname(caller.last.split(':').first)
-
-result, expected = nil, nil
-file.read.each_line do |line|
-  if line.match(/#=>/)
-    next if line.match(/#\s*#=>/)
-    expected = line.split('#=>').last.strip
-    passed = (result == TestContext.eval(expected))
-    print (passed ? '.' : 'F')
-  elsif line.strip.empty?
-    next
-  elsif line.match(/^\s*#/)
-    next
-  else
-    result = TestContext.eval(line)
-  end
-end
-
-puts
-exit
 

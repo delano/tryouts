@@ -1,0 +1,18 @@
+#!/usr/bin/ruby
+
+# Put our local lib in first place
+BASE_PATH = File.expand_path File.join(File.dirname(__FILE__), '..')
+lib_dir = File.join(BASE_PATH, 'lib')
+$:.unshift lib_dir
+
+require 'tryouts'
+
+if ARGV.empty?
+  paths = Dir.glob(File.join(Dir.pwd, '{try,tryouts}', '*_{try,tryouts}.rb'))
+else
+  paths = ARGV
+end
+
+paths.each do |path|  
+  Tryouts.preparse path
+end
