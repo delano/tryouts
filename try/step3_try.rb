@@ -1,7 +1,3 @@
-require 'pathname'
-require Pathname(__FILE__).dirname.parent + 'lib/nofw'
-
-def foo() 'foo'; end
 
 
 begin

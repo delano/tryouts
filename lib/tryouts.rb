@@ -2,42 +2,47 @@
 #p Pathname(caller.last.split(':').first)
 
 class Tryouts
-  
+  class Container; end
   class Expectation 
-    attr_accessor :value, :expected_values, :desc
+    attr_accessor :body, :expected_values, :desc, :container
     attr_reader :results, :tests
-    def initialize(value, *expected_values)
-      @value, @expected_values = value, expected_values
+    def initialize(body, *expected_values)
+      @body, @expected_values = body, expected_values
+      @expected_values.collect! { |exv| eval(exv) }
       @tests = []
     end
     def run_all
       @results = expected_values.collect do |expectation|
-        str = '%s == %s' % [@value, expectation]
-        ret = eval(@value) == eval(expectation)
-        @tests << [str, ret]
-        ret
+        ret = eval(body)
+        @tests << [ret, expectation]
+        ret == expectation
       end
     end
     def success?
-      @results.uniq == [true]
+      !@results.nil?  && @results.uniq == [true]
     end
   end
   
   class << self
   
     def preparse(path)
+      container = Container.new
       lines = File.readlines(path)
       lines.size.times do |idx|
         line = lines[idx]
         if expectation? line
-          value = find_value lines, idx
-          next if value.nil?
+          body = find_body lines, idx
+          next if body.nil? 
           expected_values = find_expected_values lines, idx
           desc = find_description lines, idx
-          exp = Expectation.new value, *expected_values
+          exp = Expectation.new body, *expected_values
           exp.desc = desc
-          exp.run_all
+          exp.container = container
           puts exp.desc
+          puts exp.body
+          p exp.expected_values
+          
+          exp.run_all
           puts exp.success? ? true : exp.tests
           puts
         end
@@ -58,15 +63,15 @@ class Tryouts
       expected.collect { |v| v.match(/^\#\s*=>\s*(.+)/); $1.chomp }
     end
     
-    def find_value lines, start
-      value = nil
+    def find_body lines, start
+      body = []
       offset = 1
-      until interesting?(lines[start-offset])
+      while interesting?(lines[start-offset])
         break if expectation?(lines[start-offset]) || (start-offset) < 0
+        body.unshift lines[start-offset].chomp
         offset += 1 
       end
-      value = lines[start-offset].chomp if interesting?(lines[start-offset])
-      value
+      body.join $/
     end
     
     def find_description lines, start

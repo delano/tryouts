@@ -6,63 +6,40 @@ require 'pathname'
 #def foo() 'foo'; end
 
 
-# test matches result with expectation
+# TEST 1: test matches result with expectation
 1 + 1
 #=> 2
 
-# test expectation type matters
-'foo2' + 'bar'
-#=> 'foo2bar'
-#=> 'foobar'
 
-# test expectation type matters
+# TEST 2: values can contain multiple lines
+a = 1
+b = 2
+a + b
+# => 3
+
+
+# TEST 3: test expectation type matters
 'foo'.class
 #=> String
 
-# test ignores blank lines before expectations
+
+# TEST 4: test ignores blank lines before expectations
 'foo'
 
 
 #=> 'foo'
 
-# test ignores comments before expectations
-'foo'
-# ignored comment
-# ignored comment
-#=> 'foo'
 
-# test allows whiny expectation markers for textmate users *sigh*
+# TEST 5: test allows whiny expectation markers for textmate users *sigh*
 'foo'
 # =>  'foo'
 
-## test uses helper methods
-## ( #foo is defined on top of file )
-#foo()
-##=> foo
 
-# test expectations can be commented out
+# TEST 6: test expectations can be commented out
 'foo'
 ##=> 'this would fail'
 
 x = raise rescue 'foo'
 #=> 'foo'
 
-#begin
-#  raise
-#rescue
-#  'foo'
-#end
-##=> 'foo'
 
-## test handles multiple code lines
-## only only tests last line against expectation
-#str = ""
-#str << 'foo'
-#str << 'bar'
-#str
-##=> 'foobar'
-##
-### test failure
-##'this fails'
-###=> 'expectation not met'
-#
