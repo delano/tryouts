@@ -28,6 +28,7 @@ class Tryouts
     def preparse(path)
       container = Container.new
       lines = File.readlines(path)
+      tests = []
       lines.size.times do |idx|
         line = lines[idx]
         if expectation? line
@@ -38,15 +39,18 @@ class Tryouts
           exp = Expectation.new body, *expected_values
           exp.desc = desc
           exp.container = container
-          puts exp.desc
-          puts exp.body
-          p exp.expected_values
-          
-          exp.run_all
-          puts exp.success? ? true : exp.tests
-          puts
+          tests << exp
         end
       end
+      results = tests.collect do |exp|
+        msg = [exp.desc, exp.body, exp.expected_values]
+        exp.run_all
+        color = exp.success? ? :green : :red
+        print Console.color(color, '.')
+        msg.join($/)
+        exp.success?
+      end
+      puts $/, "Passed #{results.select { |obj| obj == true}.size} of #{tests.size}"
     end
     
 
@@ -66,10 +70,10 @@ class Tryouts
     def find_body lines, start
       body = []
       offset = 1
-      while interesting?(lines[start-offset])
-        break if expectation?(lines[start-offset]) || (start-offset) < 0
+      while interesting?(lines[start-offset]) || !expectation?(lines[start-offset])
         body.unshift lines[start-offset].chomp
         offset += 1 
+        break if (start-offset) < 0
       end
       body.join $/
     end
@@ -80,11 +84,11 @@ class Tryouts
       offset += 1 until comment?(lines[start-offset]) || (start-offset) < 0
       if comment?(lines[start-offset])
         while comment?(lines[start-offset])
-          desc << lines[start-offset]
+          desc << lines[start-offset].chomp
           offset +=1 
         end
       end
-      desc
+      desc.join $/
     end
     
     def expectation? str
@@ -105,5 +109,60 @@ class Tryouts
     
   end
   
+  module Console
+    # ANSI escape sequence numbers for text attributes
+    ATTRIBUTES = {
+      :normal     => 0,
+      :bright     => 1,
+      :dim        => 2,
+      :underline  => 4,
+      :blink      => 5,
+      :reverse    => 7,
+      :hidden     => 8,
+      :default    => 0,
+    }.freeze unless defined? ATTRIBUTES
+
+    # ANSI escape sequence numbers for text colours
+    COLOURS = {
+      :black   => 30,
+      :red     => 31,
+      :green   => 32,
+      :yellow  => 33,
+      :blue    => 34,
+      :magenta => 35,
+      :cyan    => 36,
+      :white   => 37,
+      :default => 39,
+      :random  => 30 + rand(10).to_i
+    }.freeze unless defined? COLOURS
+
+    # ANSI escape sequence numbers for background colours
+    BGCOLOURS = {
+      :black   => 40,
+      :red     => 41,
+      :green   => 42,
+      :yellow  => 43,
+      :blue    => 44,
+      :magenta => 45,
+      :cyan    => 46,
+      :white   => 47,
+      :default => 49,
+      :random  => 40 + rand(10).to_i
+    }.freeze unless defined? BGCOLOURS
+    
+    def self.color(col, str)
+      '%s%s%s' % [style(col), str, default_style]
+    end
+    def self.style(col, bgcol=nil, att=nil)
+      valdor = []
+      valdor << COLOURS[col] if COLOURS.has_key?(col)
+      valdor << BGCOLOURS[bgcol] if BGCOLOURS.has_key?(bgcol)
+      valdor << ATTRIBUTES[att] if ATTRIBUTES.has_key?(att)
+      "\e[#{valdor.join(";")}m"   # => \e[8;34;42m  
+    end
+    def self.default_style
+      style(:default, :default, :default)
+    end
+  end
 end
 

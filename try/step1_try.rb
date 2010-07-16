@@ -1,7 +1,6 @@
 # run me with
 #   ruby -rubygems -Ilib step1_tryouts.rb
 
-require 'pathname'
 
 #def foo() 'foo'; end
 
