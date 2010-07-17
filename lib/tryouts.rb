@@ -4,20 +4,17 @@ require 'ostruct'
 
 class Tryouts
   @debug = false
-  class Cases < Array
-    def inspect
-      self.collect { |c|
-        c.inspect
-      }
-    end
-  end
-  class Case
+  class TestCase
     attr_reader :desc, :test, :exps
     def initialize(d,t,e)
       @desc, @test, @exps = d,t,e
     end
     def inspect
-      [@desc.inspect, @test.inspect, @exps.inspect].join($/)
+      [@desc.inspect, @test.to_s, @exps.inspect].join
+    end
+    def run
+      Tryouts.debug '-'*40, inspect
+      #puts $/, "Passed #{results.select { |obj| obj == true}.size} of #{tests.size}"
     end
   end
   class Section < Array
@@ -30,32 +27,19 @@ class Tryouts
     end
     def inspect
       range.to_a.zip(self).collect do |line|
-        '%-4d %s' % line
-      end
+        "%-4d %s\n" % line
+      end.join
     end
-  end
-  class Expectation 
-    attr_accessor :path, :line, :body, :expected_values, :desc, :container
-    attr_reader :results, :tests
-    attr_accessor :ret, :exp
-    def initialize(path, line, body, *expected_values)
-      @path, @line = path, line
-      @body, @expected_values = body, expected_values
-      @tests = []
+    def inspect_debug
+      range.to_a.zip(to_testcase).collect do |line|
+        "%-4d %s\n" % line
+      end.join
     end
-    def run_all
-      @results = expected_values.collect do |expectation|
-        sself = self
-        @container.class.module_eval do
-          sself.ret = eval(sself.body, binding, sself.path, sself.line)
-          sself.exp = eval(expectation, binding, sself.path, sself.line)
-        end
-        @tests << [ret, exp]
-        ret == exp
-      end
+    def to_s
+      self.join $/
     end
-    def success?
-      !@results.nil?  && @results.uniq == [true]
+    def to_testcase
+      self
     end
   end
   
@@ -67,7 +51,7 @@ class Tryouts
     def try path
       lines = preparse(path)
       cases = parse(lines)
-      #puts $/, "Passed #{results.select { |obj| obj == true}.size} of #{tests.size}"
+      cases.each { |t| t.run }
     end
     
     def preparse path
@@ -81,18 +65,18 @@ class Tryouts
       cases = []
       lines.size.times do |idx|
         skip_ahead -= 1 and next if skip_ahead > 0
-        line = lines[idx]
+        line = lines[idx].chomp
         #debug('%-4d %s' % [idx, line])
         if expectation? line
           offset = 0
           exps = Section.new idx+1
-          exps << line
+          exps << line.chomp
           while (idx+offset < lines.size)
             offset += 1
             this_line = lines[idx+offset]
             break if ignore?(this_line)
             if expectation?(this_line)
-              exps << this_line 
+              exps << this_line
               skip_ahead += 1
             end
             exps.last += 1
@@ -103,8 +87,8 @@ class Tryouts
           test = Section.new(idx)  # test start the line before the exp. 
           while (idx-offset >= 0)
             offset += 1
-            this_line = lines[idx-offset]
-            next if ignore?(this_line)
+            this_line = lines[idx-offset].chomp
+            test.unshift this_line if ignore?(this_line)
             buffer.unshift this_line if comment?(this_line)
             if test?(this_line)
               test.unshift(*buffer) && buffer.clear
@@ -119,12 +103,20 @@ class Tryouts
             end
           end
           
-          cases << Case.new( desc, test, exps)
+          cases << TestCase.new( desc, test, exps)
         end
       end
       cases
     end
-
+    
+    def msg *msg
+      STDOUT.puts *msg
+    end
+    
+    def debug *msg
+      STDERR.puts *msg if @debug
+    end
+    
     private
     
     def expectation? str
@@ -146,14 +138,7 @@ class Tryouts
     def test_begin? str
       !str.strip.match(/^\#+\s*TEST/i).nil?
     end
-    
-    def msg *msg
-      STDOUT.puts *msg
-    end
-    
-    def debug *msg
-      STDERR.puts *msg if @debug
-    end
+
     
   end
   

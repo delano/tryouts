@@ -10,6 +10,8 @@ require 'hexoid'
 a = 1
 b = 2
 a + b
+class A < Array
+end
 # => 3
 # => 2 + 1
 
