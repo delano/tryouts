@@ -48,13 +48,27 @@ class Tryouts
     end
     
     def parse lines
+      skip_ahead = 0
       lines.size.times do |idx|
+        skip_ahead -= 1 and next if skip_ahead > 0
         line = lines[idx]
         #debug('%-4d %s' % [idx, line])
         if expectation? line
           offset = 0
-
+          
+          exps = [line]
           # TODO: grab all expectations
+          while (idx+offset < lines.size)
+            offset += 1
+            this_line = lines[idx+offset]
+            break if ignore?(this_line)
+            if expectation?(this_line)
+              exps << this_line 
+              skip_ahead += 1
+            end
+          end
+          
+          offset = 0
           buffer, test, desc = [], [], []
           while (idx-offset >= 0)
             offset += 1
@@ -74,7 +88,7 @@ class Tryouts
           debug('---------------------------')
           debug(*desc)
           debug(*test)
-          debug(line)
+          debug(*exps)
         end
       end
       
@@ -95,7 +109,7 @@ class Tryouts
     end
     
     def ignore? str
-      str.strip.chomp.empty?
+      str.strip.chomp.empty? 
     end
     
     

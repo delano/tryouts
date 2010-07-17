@@ -11,7 +11,7 @@ a = 1
 b = 2
 a + b
 # => 3
-
+# => 2 + 1
 
 # TEST 3: test expectation type matters
 'foo'.class
