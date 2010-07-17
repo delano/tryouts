@@ -21,10 +21,10 @@ class Tryouts
     def to_s
       [@desc.to_s, @test.to_s, @exps.to_s].join
     end
-    def test
+    def test_proc
       create_proc @test.join("#{$/}  "), @test.path, @test.first
     end
-    def expectations
+    def exps_procs
       list = []
       @exps.each_with_index do |exp,idx| 
         exp =~ /\#+\s*=>\s*(.+)$/
@@ -35,8 +35,8 @@ class Tryouts
     def run
       Tryouts.debug '-'*40
       Tryouts.debug inspect, $/
-      test_value = @container.class.module_eval &test
-      results = expectations.collect { |exp| 
+      test_value = @container.class.module_eval &test_proc
+      results = exps_procs.collect { |exp| 
         ret = test_value == @container.class.module_eval(&exp) 
         color = ret ? :green : :red
         Tryouts.print Console.color(color, '.')
@@ -74,13 +74,19 @@ class Tryouts
     attr_accessor :debug
     attr_reader :cases
     
-    def try path
+    def run path
       cases = parse path
-      passed = cases.select { |t| 
-        t.run
-      }
-      msg $/, "Passed #{passed.size} of #{cases.size} tests"
-      passed.size == cases.size
+      failed = cases.select do |t| 
+        !t.run
+      end
+      
+      msg $/, $/
+      failed.each do |t|
+        msg t.test.path
+        msg Console.color(:red, t.inspect)
+      end
+      msg "Passed #{cases.size-failed.size} of #{cases.size} tests"
+      failed.empty?
     end
     
     def parse path

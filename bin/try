@@ -15,7 +15,7 @@ end
 
 #Tryouts.debug = true
 results = paths.collect do |path|  
-  Tryouts.try path
+  Tryouts.run path
 end
 
 exit (results.uniq == [true])

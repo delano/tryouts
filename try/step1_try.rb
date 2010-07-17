@@ -16,12 +16,12 @@ b = 2
 # => 2 + 1
 
 # TEST 3: test expectation type matters
-'foo'.class
+:'foo'.class
 #=> String
 
 
 # TEST 4: test ignores blank lines before expectations
-'foo'
+'foo2'
 
 
 #=> 'foo'
