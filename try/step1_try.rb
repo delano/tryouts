@@ -21,7 +21,7 @@ b = 2
 
 
 # TEST 4: test ignores blank lines before expectations
-'foo2'
+'foo'
 
 
 #=> 'foo'

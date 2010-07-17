@@ -43,7 +43,10 @@ class Tryouts
         ret
       }
       Tryouts.debug
-      results.uniq == [true]
+      @success = results.uniq == [true]
+    end
+    def failed?
+      @success != true
     end
     private
     def create_proc str, path, line
@@ -74,19 +77,31 @@ class Tryouts
     attr_accessor :debug
     attr_reader :cases
     
+    def run_all *paths
+      batches = paths.collect do |path|
+        run path
+      end
+      msg
+      all, failed = 0, 0
+      batches.each do |batch|
+        batch.each do |t|
+          all += 1
+          if t.failed?
+            msg if (failed += 1) == 1
+            msg t.test.path
+            msg Console.color(:red, '-'*40)
+            msg Console.color(:red, t.inspect)
+          end
+        end
+      end
+      msg Console.bright("Passed #{all-failed} of #{all} tests")
+      failed == 0
+    end
+    
     def run path
       cases = parse path
-      failed = cases.select do |t| 
-        !t.run
-      end
-      
-      msg $/, $/
-      failed.each do |t|
-        msg t.test.path
-        msg Console.color(:red, t.inspect)
-      end
-      msg "Passed #{cases.size-failed.size} of #{cases.size} tests"
-      failed.empty?
+      cases.each { |t| t.run }
+      cases
     end
     
     def parse path
@@ -219,18 +234,18 @@ class Tryouts
       :random  => 40 + rand(10).to_i
     }.freeze unless defined? BGCOLOURS
     
-    def self.color(col, str)
-      '%s%s%s' % [style(col), str, default_style]
+    def self.bright(str)
+      [style(ATTRIBUTES[:bright]), str, default_style].join
     end
-    def self.style(col, bgcol=nil, att=nil)
-      valdor = []
-      valdor << COLOURS[col] if COLOURS.has_key?(col)
-      valdor << BGCOLOURS[bgcol] if BGCOLOURS.has_key?(bgcol)
-      valdor << ATTRIBUTES[att] if ATTRIBUTES.has_key?(att)
-      "\e[#{valdor.join(";")}m"   # => \e[8;34;42m  
+    def self.color(col, str)
+      [style(COLOURS[col]), str, default_style].join
+    end
+    def self.style(*att)
+      # => \e[8;34;42m
+      "\e[%sm" % att.join(';')
     end
     def self.default_style
-      style(:default, :default, :default)
+      style(ATTRIBUTES[:default], ATTRIBUTES[:COLOURS], ATTRIBUTES[:BGCOLOURS])
     end
   end
 end

@@ -5,13 +5,12 @@
 
 a = 1
 b = 2
-a + b
+a + b + @a
 # => 3
 
 
 # multiple expectations
 'foo2' + 'bar'
-#=> 'foo2bar'
 #=> 'foobar'
 
 
