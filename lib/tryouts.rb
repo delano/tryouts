@@ -5,9 +5,15 @@ require 'ostruct'
 class Tryouts
   @debug = false
   class TestCase
+    class Container
+      def metaclass
+        class << self; end
+      end
+    end
     attr_reader :desc, :test, :exps
     def initialize(d,t,e)
       @desc, @test, @exps, @path = d,t,e
+      @container = Container.new.metaclass
     end
     def inspect
       [@desc.inspect, @test.inspect, @exps.inspect].join
@@ -25,6 +31,19 @@ class Tryouts
         list << create_proc($1, @exps.path, @exps.first+idx)
       end
       list
+    end
+    def run
+      Tryouts.debug '-'*40
+      Tryouts.debug inspect, $/
+      test_value = @container.class.module_eval &test
+      results = expectations.collect { |exp| 
+        ret = test_value == @container.class.module_eval(&exp) 
+        color = ret ? :green : :red
+        Tryouts.print Console.color(color, '.')
+        ret
+      }
+      Tryouts.debug
+      results.uniq == [true]
     end
     private
     def create_proc str, path, line
@@ -57,9 +76,11 @@ class Tryouts
     
     def try path
       cases = parse path
-      cases.each { |t| 
-        puts t.expectations
+      passed = cases.select { |t| 
+        t.run
       }
+      msg $/, "Passed #{passed.size} of #{cases.size} tests"
+      passed.size == cases.size
     end
     
     def parse path
@@ -107,10 +128,15 @@ class Tryouts
             end
           end
           
-          cases << TestCase.new( desc, test, exps)
+          cases << TestCase.new(desc, test, exps)
         end
       end
       cases
+    end
+    
+    def print str
+      STDOUT.print str
+      STDOUT.flush
     end
     
     def msg *msg

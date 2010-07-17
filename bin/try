@@ -13,7 +13,9 @@ else
   paths = ARGV
 end
 
-Tryouts.debug = true
-paths.each do |path|  
+#Tryouts.debug = true
+results = paths.collect do |path|  
   Tryouts.try path
 end
+
+exit (results.uniq == [true])

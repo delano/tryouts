@@ -7,11 +7,11 @@ require 'hexoid'
 
 ## TEST 2: comments and values can 
 ## contain multiple lines
-a = 1
-b = 2
-a + b
 class A < Array
-end 
+end
+@a = 1
+b = 2
+@a + b
 # => 3
 # => 2 + 1
 
