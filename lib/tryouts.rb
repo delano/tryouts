@@ -182,7 +182,7 @@ class Tryouts
        !@failed.nil? && @failed > 0
     end
     def setup
-      start = first.desc.first-1
+      start = first.desc.nil? first.test.first : first.desc.first-1
       Tryouts.eval lines[0..start-1].join, path, 0 if start > 0
     end
     def clean
