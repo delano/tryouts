@@ -1,11 +1,12 @@
-
+require 'hexoid'
 
 # TEST 1: test matches result with expectation
 1 + 1
 #=> 2
 
 
-# TEST 2: values can contain multiple lines
+# TEST 2: comments and values can 
+# contain multiple lines
 a = 1
 b = 2
 a + b

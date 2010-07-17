@@ -1,22 +1,29 @@
 #require 'pathname'
 #p Pathname(caller.last.split(':').first)
+require 'ostruct'
 
 class Tryouts
   @debug = false
   class Container; end
+  class Section < OpenStruct; end
   class Expectation 
-    attr_accessor :body, :expected_values, :desc, :container
+    attr_accessor :path, :line, :body, :expected_values, :desc, :container
     attr_reader :results, :tests
-    def initialize(body, *expected_values)
+    attr_accessor :ret, :exp
+    def initialize(path, line, body, *expected_values)
+      @path, @line = path, line
       @body, @expected_values = body, expected_values
-      @expected_values.collect! { |exv| eval(exv) }
       @tests = []
     end
     def run_all
       @results = expected_values.collect do |expectation|
-        ret = eval(body)
-        @tests << [ret, expectation]
-        ret == expectation
+        sself = self
+        @container.class.module_eval do
+          sself.ret = eval(sself.body, binding, sself.path, sself.line)
+          sself.exp = eval(expectation, binding, sself.path, sself.line)
+        end
+        @tests << [ret, exp]
+        ret == exp
       end
     end
     def success?
@@ -26,94 +33,78 @@ class Tryouts
   
   class << self
     attr_accessor :debug
-    def preparse(lines)
-      lines.each do |line|
-        next if ignore?(line)
-        eval(line) if line.match(/require/)
-        break if expectation?(line)
-      end
+    
+    def try path
+      lines = preparse(path)
+      source = parse(lines)
+      
+      #puts $/, "Passed #{results.select { |obj| obj == true}.size} of #{tests.size}"
     end
-    def parse(path)
-      container = Container.new
+    
+    def preparse path
+      debug "Loading #{path}"
       lines = File.readlines(path)
-      preparse lines
-      tests = []
+      lines
+    end
+    
+    def parse lines
       lines.size.times do |idx|
         line = lines[idx]
-        puts '%d %s' % [idx line] if @debug
+        #debug('%-4d %s' % [idx, line])
         if expectation? line
-          body = find_body lines, idx
-          next if body.nil? 
-          expected_values = find_expected_values lines, idx
-          desc = find_description lines, idx
-          exp = Expectation.new body, *expected_values
-          exp.desc = desc
-          exp.container = container
-          tests << exp
+          offset = 0
+
+          # TODO: grab all expectations
+          buffer, test, desc = [], [], []
+          while (idx-offset >= 0)
+            offset += 1
+            this_line = lines[idx-offset]
+            next if ignore?(this_line)
+            buffer.unshift this_line if comment?(this_line)
+            if test_content?(this_line)
+              test.unshift(*buffer) && buffer.clear
+              test.unshift this_line
+            end
+            if expectation?(this_line) || idx-offset == 0
+              desc.unshift *buffer
+              break 
+            end
+          end
+          
+          debug('---------------------------')
+          debug(*desc)
+          debug(*test)
+          debug(line)
         end
       end
-      results = tests.collect do |exp|
-        msg = [exp.desc, exp.body, exp.expected_values]
-        exp.run_all
-        color = exp.success? ? :green : :red
-        print Console.color(color, '.')
-        msg.join($/)
-        exp.success?
-      end
-      puts $/, "Passed #{results.select { |obj| obj == true}.size} of #{tests.size}"
+      
     end
-    
 
     private
-    
-    def find_expected_values lines, start
-      expected = [lines[start]]
-      offset = 1
-      while (start+offset) < lines.size && expectation?(lines[start+offset])
-        expected << lines[start+offset]
-        offset += 1 
-      end
-      expected.collect { |v| v.match(/^\#\s*=>\s*(.+)/); $1.chomp }
-    end
-    
-    def find_body lines, start
-      body = []
-      offset = 1
-      while interesting?(lines[start-offset]) || !expectation?(lines[start-offset])
-        body.unshift lines[start-offset].chomp
-        offset += 1 
-        break if (start-offset) < 0
-      end
-      body.join $/
-    end
-    
-    def find_description lines, start
-      desc = []
-      offset = 1
-      offset += 1 until comment?(lines[start-offset]) || (start-offset) < 0
-      if comment?(lines[start-offset])
-        while comment?(lines[start-offset])
-          desc << lines[start-offset].chomp
-          offset +=1 
-        end
-      end
-      desc.join $/
-    end
     
     def expectation? str
       !ignore?(str) && str.strip.match(/^\#\s*=>/)
     end
     
     def comment? str
-      !str.strip.match(/^\#/).nil?
+      !str.strip.match(/^\#/).nil? && !expectation?(str)
     end
     
-    def interesting? str
+    def test_content? str
       !ignore?(str) && !expectation?(str) && !comment?(str)
     end
     
     def ignore? str
-      str.strip.chomp.empty? || str.strip.match(/^\#\s*\w/)
+      str.strip.chomp.empty?
+    end
+    
+    
+    def msg *msg
+      STDOUT.puts *msg
+    end
+    
+    def debug *msg
+      STDERR.puts *msg if @debug
     end
     
   end

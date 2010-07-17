@@ -13,6 +13,7 @@ else
   paths = ARGV
 end
 
+Tryouts.debug = true
 paths.each do |path|  
-  Tryouts.parse path
+  Tryouts.try path
 end
