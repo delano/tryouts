@@ -34,7 +34,7 @@ class Tryouts
         end
       end
       if batches.size > 1
-        msg cformat('batches', batches.size-failed_batches, batches.size, :passed)
+        msg cformat(batches.size-failed_batches, batches.size, 'batches passed')
       end
       
       msg cformat(all-failed_tests, all, 'tests passed') if all-skipped > 0
@@ -182,10 +182,12 @@ class Tryouts
        !@failed.nil? && @failed > 0
     end
     def setup
-      start = first.desc.nil? first.test.first : first.desc.first-1
+      return if empty?
+      start = first.desc.nil? ? first.test.first : first.desc.first-1
       Tryouts.eval lines[0..start-1].join, path, 0 if start > 0
     end
     def clean
+      return if empty?
       last = first.exps.last+1
       if last < lines.size
         Tryouts.eval lines[last..-1].join, path, last
