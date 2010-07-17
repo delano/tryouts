@@ -7,19 +7,34 @@ class Tryouts
   class TestCase
     attr_reader :desc, :test, :exps
     def initialize(d,t,e)
-      @desc, @test, @exps = d,t,e
+      @desc, @test, @exps, @path = d,t,e
     end
     def inspect
       [@desc.inspect, @test.inspect, @exps.inspect].join
     end
-    def run
-      Tryouts.debug '-'*40, inspect
-      #puts $/, "Passed #{results.select { |obj| obj == true}.size} of #{tests.size}"
+    def to_s
+      [@desc.to_s, @test.to_s, @exps.to_s].join
+    end
+    def test
+      create_proc @test.join("#{$/}  "), @test.path, @test.first
+    end
+    def expectations
+      list = []
+      @exps.each_with_index do |exp,idx| 
+        exp =~ /\#+\s*=>\s*(.+)$/
+        list << create_proc($1, @exps.path, @exps.first+idx)
+      end
+      list
+    end
+    private
+    def create_proc str, path, line
+      eval("Proc.new {\n  #{str}\n}", binding, path, line)
     end
   end
   class Section < Array
-    attr_accessor :first, :last
-    def initialize start=0
+    attr_accessor :path, :first, :last
+    def initialize path, start=0
+      @path = path
       @first, @last = start, start
     end
     def range
@@ -30,16 +45,8 @@ class Tryouts
         "%-4d %s\n" % line
       end.join
     end
-    def inspect_debug
-      range.to_a.zip(to_testcase).collect do |line|
-        "%-4d %s\n" % line
-      end.join
-    end
     def to_s
-      self.join $/
-    end
-    def to_testcase
-      self
+      self.join($/) << $/
     end
   end
   
@@ -49,18 +56,15 @@ class Tryouts
     attr_reader :cases
     
     def try path
-      lines = preparse(path)
-      cases = parse(lines)
-      cases.each { |t| t.run }
+      cases = parse path
+      cases.each { |t| 
+        puts t.expectations
+      }
     end
     
-    def preparse path
+    def parse path
       debug "Loading #{path}"
-      lines = File.readlines(path)
-      lines
-    end
-    
-    def parse lines
+      lines = File.readlines path
       skip_ahead = 0
       cases = []
       lines.size.times do |idx|
@@ -69,7 +73,7 @@ class Tryouts
         #debug('%-4d %s' % [idx, line])
         if expectation? line
           offset = 0
-          exps = Section.new idx+1
+          exps = Section.new(path, idx+1)
           exps << line.chomp
           while (idx+offset < lines.size)
             offset += 1
@@ -83,8 +87,8 @@ class Tryouts
           end
           
           offset = 0
-          buffer, desc = Section.new, Section.new
-          test = Section.new(idx)  # test start the line before the exp. 
+          buffer, desc = Section.new(path), Section.new(path)
+          test = Section.new(path, idx)  # test start the line before the exp. 
           while (idx-offset >= 0)
             offset += 1
             this_line = lines[idx-offset].chomp

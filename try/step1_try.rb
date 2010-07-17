@@ -11,7 +11,7 @@ a = 1
 b = 2
 a + b
 class A < Array
-end
+end 
 # => 3
 # => 2 + 1
 
