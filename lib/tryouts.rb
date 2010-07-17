@@ -4,7 +4,22 @@ require 'ostruct'
 
 class Tryouts
   @debug = false
-  class Container; end
+  class Cases < Array
+    def inspect
+      self.collect { |c|
+        c.inspect
+      }
+    end
+  end
+  class Case
+    attr_reader :desc, :test, :exps
+    def initialize(d,t,e)
+      @desc, @test, @exps = d,t,e
+    end
+    def inspect
+      [@desc.inspect, @test.inspect, @exps.inspect].join($/)
+    end
+  end
   class Section < Array
     attr_accessor :first, :last
     def initialize start=0
@@ -44,13 +59,14 @@ class Tryouts
     end
   end
   
+  @cases = []
   class << self
     attr_accessor :debug
+    attr_reader :cases
     
     def try path
       lines = preparse(path)
-      source = parse(lines)
-      
+      cases = parse(lines)
       #puts $/, "Passed #{results.select { |obj| obj == true}.size} of #{tests.size}"
     end
     
@@ -62,6 +78,7 @@ class Tryouts
     
     def parse lines
       skip_ahead = 0
+      cases = []
       lines.size.times do |idx|
         skip_ahead -= 1 and next if skip_ahead > 0
         line = lines[idx]
@@ -102,13 +119,10 @@ class Tryouts
             end
           end
           
-          debug('---------------------------')
-          debug(desc.inspect)
-          debug(test.inspect)
-          debug(exps.inspect)
+          cases << Case.new( desc, test, exps)
         end
       end
-      
+      cases
     end
 
     private
