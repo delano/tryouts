@@ -15,5 +15,8 @@ end
 
 #Tryouts.debug = true
 
-exit Tryouts.run_all *paths
+
+#Tryouts.container = self
+
+exit Tryouts.run_all(*paths)
 

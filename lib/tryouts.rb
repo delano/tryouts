@@ -4,13 +4,15 @@ require 'ostruct'
 
 class Tryouts
   @debug = false
-  
+  @container = Class.new
   @cases = []
   class << self
-    attr_accessor :debug
+    attr_accessor :debug, :container
     attr_reader :cases
     
     def run_all *paths
+      container.send(:eval, "def foo() 1 end")
+      
       batches = paths.collect do |path|
         run path
       end
@@ -121,6 +123,16 @@ class Tryouts
       STDERR.puts *msg if @debug
     end
     
+    def eval(str, path, line)
+      begin
+        Kernel.eval str, @container.send(:binding), path, line
+      rescue SyntaxError, LoadError => ex
+        Tryouts.err Console.color(:red, ex.message),
+                    Console.color(:red, ex.backtrace.first)
+        nil
+      end
+    end
+    
     private
     
     def expectation? str
@@ -145,6 +157,109 @@ class Tryouts
 
     
   end
+  
+  class TestBatch < Array
+    class Container
+      def metaclass
+        class << self; end
+      end
+    end
+    attr_reader :path
+    attr_reader :failed
+    attr_reader :lines
+    def initialize(p,l)
+      @path, @lines = p, l
+      @container = Container.new.metaclass
+    end
+    def run
+      setup
+      ret = self.select { |tc| !tc.run } # select failed
+      @failed = ret.size unless ret.empty?
+      clean
+      !failed?
+    end
+    def failed?
+       !@failed.nil? && @failed > 0
+    end
+    def setup
+      start = first.desc.first-1
+      Tryouts.eval lines[0..start-1].join, path, 0 if start > 0
+    end
+    def clean
+      last = first.exps.last+1
+      if last < lines.size
+        Tryouts.eval lines[last..-1].join, path, last
+      end
+    end
+    def run?
+      !@failed.nil?
+    end
+  end
+  class TestCase
+    attr_reader :desc, :test, :exps
+    def initialize(d,t,e)
+      @desc, @test, @exps, @path = d,t,e
+    end
+    def inspect
+      [@desc.inspect, @test.inspect, @exps.inspect].join
+    end
+    def to_s
+      [@desc.to_s, @test.to_s, @exps.to_s].join
+    end
+    def test_proc
+      create_proc @test.join("#{$/}  "), @test.path, @test.first
+    end
+    def exps_procs
+      list = []
+      @exps.each_with_index do |exp,idx| 
+        exp =~ /\#+\s*=>\s*(.+)$/
+        list << [$1, @exps.path, @exps.first+idx]
+      end
+      list
+    end
+    def run
+      Tryouts.debug '-'*40
+      Tryouts.debug inspect, $/
+      test_value = Tryouts.eval @test.to_s, @test.path, @test.first
+      results = exps_procs.collect { |exp| 
+        ret = test_value == Tryouts.eval(*exp)
+        color = ret ? :green : :red
+        Tryouts.print Console.color(color, '.')
+        ret
+      }
+      Tryouts.debug
+      @success = results.uniq == [true]
+    end
+    def run?
+      !@success.nil?
+    end
+    def failed?
+      !@success.nil? && @success != true
+    end
+    private
+    def create_proc str, path, line
+      eval("Proc.new {\n  #{str}\n}", binding, path, line)
+    end
+  end
+  class Section < Array
+    attr_accessor :path, :first, :last
+    def initialize path, start=0
+      @path = path
+      @first, @last = start, start
+    end
+    def range
+      @first..@last
+    end
+    def inspect
+      range.to_a.zip(self).collect do |line|
+        "%-4d %s\n" % line
+      end.join
+    end
+    def to_s
+      self.join($/) << $/
+    end
+  end
+
   
   module Console
     # ANSI escape sequence numbers for text attributes
@@ -201,121 +316,6 @@ class Tryouts
       style(ATTRIBUTES[:default], ATTRIBUTES[:COLOURS], ATTRIBUTES[:BGCOLOURS])
     end
   end
-  
-  class TestBatch < Array
-    class Container
-      def metaclass
-        class << self; end
-      end
-    end
-    attr_reader :path
-    attr_reader :failed
-    attr_reader :lines
-    def initialize(p,l)
-      @path, @lines = p, l
-      @container = Container.new.metaclass
-    end
-    def run
-      begin
-        setup
-      rescue SyntaxError, LoadError => ex
-        Tryouts.err Console.color(:red, ex.message),
-                    Console.color(:red, ex.backtrace.first)
-        return @failed = size
-      end
-      ret = self.select { |tc| !tc.run } # select failed
-      @failed = ret.size unless ret.empty?
-      begin
-        clean
-      rescue SyntaxError, LoadError => ex
-        Tryouts.err Console.color(:red, ex.message),
-                    Console.color(:red, ex.backtrace.first)
-        return @failed = size
-      end
-      !failed?
-    end
-    def failed?
-       !@failed.nil? && @failed > 0
-    end
-    def setup
-      start = first.desc.first-1
-      if start > 0
-        eval(lines[0..start-1].join, binding, path, 1)
-      end
-    end
-    def clean
-      last = first.exps.last+1
-      if last < lines.size
-        eval(lines[last..-1].join, binding, path, last)
-      end
-    end
-    def run?
-      !@failed.nil?
-    end
-  end
-  class TestCase
-    attr_reader :desc, :test, :exps
-    def initialize(d,t,e)
-      @desc, @test, @exps, @path = d,t,e
-    end
-    def inspect
-      [@desc.inspect, @test.inspect, @exps.inspect].join
-    end
-    def to_s
-      [@desc.to_s, @test.to_s, @exps.to_s].join
-    end
-    def test_proc
-      create_proc @test.join("#{$/}  "), @test.path, @test.first
-    end
-    def exps_procs
-      list = []
-      @exps.each_with_index do |exp,idx| 
-        exp =~ /\#+\s*=>\s*(.+)$/
-        list << create_proc($1, @exps.path, @exps.first+idx)
-      end
-      list
-    end
-    def run
-      Tryouts.debug '-'*40
-      Tryouts.debug inspect, $/
-      test_value = @container.class.module_eval &test_proc
-      results = exps_procs.collect { |exp| 
-        ret = test_value == @container.class.module_eval(&exp) 
-        color = ret ? :green : :red
-        Tryouts.print Console.color(color, '.')
-        ret
-      }
-      Tryouts.debug
-      @success = results.uniq == [true]
-    end
-    def run?
-      !@success.nil?
-    end
-    def failed?
-      !@success.nil? && @success != true
-    end
-    private
-    def create_proc str, path, line
-      eval("Proc.new {\n  #{str}\n}", binding, path, line)
-    end
-  end
-  class Section < Array
-    attr_accessor :path, :first, :last
-    def initialize path, start=0
-      @path = path
-      @first, @last = start, start
-    end
-    def range
-      @first..@last
-    end
-    def inspect
-      range.to_a.zip(self).collect do |line|
-        "%-4d %s\n" % line
-      end.join
-    end
-    def to_s
-      self.join($/) << $/
-    end
-  end
+
 end
 

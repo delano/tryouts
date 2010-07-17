@@ -1,13 +1,11 @@
 require 'rubygems'
 require 'hexoid'
 
-def foo
-  1
-end
+POOP = 1
 
 # TEST 1: test matches result with expectation
-1 + foo
-#=> 2
+a = 1 + POOP
+#=> POOP * 2
 
 
 ## TEST 2: comments and values can 

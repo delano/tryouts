@@ -5,13 +5,14 @@
 
 a = 1
 b = 2
-a + b + @a
-# => 3
+a + b + 1
+# => 4
 
 
 # multiple expectations
-'foo2' + 'bar'
+'foo' + 'bar'
 #=> 'foobar'
+#=> :foobar.to_s
 
 
 # test ignores comments before expectations
