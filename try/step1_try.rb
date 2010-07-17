@@ -1,6 +1,6 @@
 require 'hexoid'
 
-# TEST 1: test matches result with expectation
+# poop 1: test matches result with expectation
 1 + 1
 #=> 2
 

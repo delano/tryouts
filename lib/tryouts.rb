@@ -5,7 +5,20 @@ require 'ostruct'
 class Tryouts
   @debug = false
   class Container; end
-  class Section < OpenStruct; end
+  class Section < Array
+    attr_accessor :first, :last
+    def initialize start=0
+      @first, @last = start, start
+    end
+    def range
+      @first..@last
+    end
+    def inspect
+      range.to_a.zip(self).collect do |line|
+        '%-4d %s' % line
+      end
+    end
+  end
   class Expectation 
     attr_accessor :path, :line, :body, :expected_values, :desc, :container
     attr_reader :results, :tests
@@ -55,9 +68,8 @@ class Tryouts
         #debug('%-4d %s' % [idx, line])
         if expectation? line
           offset = 0
-          
-          exps = [line]
-          # TODO: grab all expectations
+          exps = Section.new idx+1
+          exps << line
           while (idx+offset < lines.size)
             offset += 1
             this_line = lines[idx+offset]
@@ -66,20 +78,23 @@ class Tryouts
               exps << this_line 
               skip_ahead += 1
             end
+            exps.last += 1
           end
           
           offset = 0
-          buffer, test, desc = [], [], []
+          buffer, desc = Section.new, Section.new
+          test = Section.new(idx)  # test start the line before the exp. 
           while (idx-offset >= 0)
             offset += 1
             this_line = lines[idx-offset]
             next if ignore?(this_line)
             buffer.unshift this_line if comment?(this_line)
-            if test_content?(this_line)
+            if test?(this_line)
               test.unshift(*buffer) && buffer.clear
               test.unshift this_line
             end
-            if expectation?(this_line) || idx-offset == 0
+            if test_begin?(this_line) || expectation?(this_line) || idx-offset == 0
+              test.first = idx-offset+buffer.size+1
               desc.unshift *buffer
               break 
             end
@@ -87,8 +102,8 @@ class Tryouts
           
           debug('---------------------------')
           debug(*desc)
-          debug(*test)
-          debug(*exps)
+          debug(test.inspect)
+          debug(exps.inspect)
         end
       end
       
@@ -101,15 +116,19 @@ class Tryouts
     end
     
     def comment? str
-      !str.strip.match(/^\#/).nil? && !expectation?(str)
+      !str.strip.match(/^\#+/).nil? && !expectation?(str)
     end
     
-    def test_content? str
+    def test? str
       !ignore?(str) && !expectation?(str) && !comment?(str)
     end
     
     def ignore? str
-      str.strip.chomp.empty? || !str.strip.match(/^\#\#\s*=>/).nil? 
+      str.to_s.strip.chomp.empty?
+    end
+    
+    def test_begin? str
+      !str.strip.match(/^\#+\s*TEST/i).nil?
     end
     
     def msg *msg
