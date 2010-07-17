@@ -219,7 +219,13 @@ class Tryouts
       end
       ret = self.select { |tc| !tc.run } # select failed
       @failed = ret.size unless ret.empty?
-      clean
+      begin
+        clean
+      rescue SyntaxError, LoadError => ex
+        Tryouts.err Console.color(:red, ex.message),
+                    Console.color(:red, ex.backtrace.first)
+        return @failed = size
+      end
       !failed?
     end
     def failed?
@@ -227,11 +233,15 @@ class Tryouts
     end
     def setup
       start = first.desc.first-1
-      if (start) > 0
+      if start > 0
         eval(lines[0..start-1].join, binding, path, 1)
       end
     end
     def clean
+      last = first.exps.last+1
+      if last < lines.size
+        eval(lines[last..-1].join, binding, path, last)
+      end
     end
     def run?
       !@failed.nil?

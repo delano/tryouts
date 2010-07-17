@@ -1,4 +1,4 @@
-
+require 'rubygems'
 require 'hexoid'
 
 # TEST 1: test matches result with expectation
@@ -39,5 +39,6 @@ b = 2
 
 x = raise rescue 'foo'
 #=> 'foo'
+
 
 
