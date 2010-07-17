@@ -4,88 +4,6 @@ require 'ostruct'
 
 class Tryouts
   @debug = false
-  class TestBatch < Array
-    attr_reader :path
-    attr_reader :failed
-    def initialize(p)
-      @path = p
-      @failed = 0
-    end
-    def run
-      ret = self.select { |tc| !tc.run } # select failed
-      @failed += 1 unless ret.empty?
-    end
-    def failed?
-      @failed > 0
-    end
-  end
-  class TestCase
-    class Container
-      def metaclass
-        class << self; end
-      end
-    end
-    attr_reader :desc, :test, :exps
-    def initialize(d,t,e)
-      @desc, @test, @exps, @path = d,t,e
-      @container = Container.new.metaclass
-    end
-    def inspect
-      [@desc.inspect, @test.inspect, @exps.inspect].join
-    end
-    def to_s
-      [@desc.to_s, @test.to_s, @exps.to_s].join
-    end
-    def test_proc
-      create_proc @test.join("#{$/}  "), @test.path, @test.first
-    end
-    def exps_procs
-      list = []
-      @exps.each_with_index do |exp,idx| 
-        exp =~ /\#+\s*=>\s*(.+)$/
-        list << create_proc($1, @exps.path, @exps.first+idx)
-      end
-      list
-    end
-    def run
-      Tryouts.debug '-'*40
-      Tryouts.debug inspect, $/
-      test_value = @container.class.module_eval &test_proc
-      results = exps_procs.collect { |exp| 
-        ret = test_value == @container.class.module_eval(&exp) 
-        color = ret ? :green : :red
-        Tryouts.print Console.color(color, '.')
-        ret
-      }
-      Tryouts.debug
-      @success = results.uniq == [true]
-    end
-    def failed?
-      @success != true
-    end
-    private
-    def create_proc str, path, line
-      eval("Proc.new {\n  #{str}\n}", binding, path, line)
-    end
-  end
-  class Section < Array
-    attr_accessor :path, :first, :last
-    def initialize path, start=0
-      @path = path
-      @first, @last = start, start
-    end
-    def range
-      @first..@last
-    end
-    def inspect
-      range.to_a.zip(self).collect do |line|
-        "%-4d %s\n" % line
-      end.join
-    end
-    def to_s
-      self.join($/) << $/
-    end
-  end
   
   @cases = []
   class << self
@@ -97,11 +15,14 @@ class Tryouts
         run path
       end
       msg
-      all, failed_batches, failed_tests = 0, 0, 0
+      all, skipped, failed_batches, failed_tests = 0, 0, 0, 0
       batches.each do |batch|
         failed_batches += 1 if batch.failed?
         batch.each do |t|
+          
           all += 1
+          skipped += 1 unless t.run?
+
           if t.failed?
             msg if (failed_tests += 1) == 1
             msg t.test.path
@@ -111,14 +32,17 @@ class Tryouts
         end
       end
       if batches.size > 1
-        msg cformat('batches', batches.size-failed_batches, batches.size)
+        msg cformat('batches', batches.size-failed_batches, batches.size, :passed)
       end
-        msg cformat('tests', all-failed_tests, all)
+      
+      msg cformat(all-failed_tests, all, 'tests passed') if all-skipped > 0
+      msg cformat(skipped, all, 'tests skipped') if skipped > 0
+      
       failed_batches == 0
     end
     
     def cformat(*args)
-      Console.bright '%10s: %3d of %3d passed' % args
+      Console.bright '%3d of %d %s' % args
     end
     
     def run path
@@ -131,7 +55,7 @@ class Tryouts
       debug "Loading #{path}"
       lines = File.readlines path
       skip_ahead = 0
-      batch = TestBatch.new path
+      batch = TestBatch.new path, lines
       lines.size.times do |idx|
         skip_ahead -= 1 and next if skip_ahead > 0
         line = lines[idx].chomp
@@ -185,6 +109,12 @@ class Tryouts
     
     def msg *msg
       STDOUT.puts *msg
+    end
+    
+    def err *msg
+      msg.each do |line|
+        STDERR.puts Console.color :red, line
+      end
     end
     
     def debug *msg
@@ -269,6 +199,112 @@ class Tryouts
     end
     def self.default_style
       style(ATTRIBUTES[:default], ATTRIBUTES[:COLOURS], ATTRIBUTES[:BGCOLOURS])
+    end
+  end
+  
+  class TestBatch < Array
+    attr_reader :path
+    attr_reader :failed
+    attr_reader :lines
+    def initialize(p,l)
+      @path, @lines = p, l
+    end
+    def run
+      begin
+        setup
+      rescue SyntaxError, LoadError => ex
+        Tryouts.err Console.color(:red, ex.message),
+                    Console.color(:red, ex.backtrace.first)
+        return @failed = size
+      end
+      ret = self.select { |tc| !tc.run } # select failed
+      @failed = ret.size unless ret.empty?
+      clean
+      !failed?
+    end
+    def failed?
+       !@failed.nil? && @failed > 0
+    end
+    def setup
+      start = first.desc.first-1
+      if (start) > 0
+        eval(lines[0..start-1].join, binding, path, 1)
+      end
+    end
+    def clean
+    end
+    def run?
+      !@failed.nil?
+    end
+  end
+  class TestCase
+    class Container
+      def metaclass
+        class << self; end
+      end
+    end
+    attr_reader :desc, :test, :exps
+    def initialize(d,t,e)
+      @desc, @test, @exps, @path = d,t,e
+      @container = Container.new.metaclass
+    end
+    def inspect
+      [@desc.inspect, @test.inspect, @exps.inspect].join
+    end
+    def to_s
+      [@desc.to_s, @test.to_s, @exps.to_s].join
+    end
+    def test_proc
+      create_proc @test.join("#{$/}  "), @test.path, @test.first
+    end
+    def exps_procs
+      list = []
+      @exps.each_with_index do |exp,idx| 
+        exp =~ /\#+\s*=>\s*(.+)$/
+        list << create_proc($1, @exps.path, @exps.first+idx)
+      end
+      list
+    end
+    def run
+      Tryouts.debug '-'*40
+      Tryouts.debug inspect, $/
+      test_value = @container.class.module_eval &test_proc
+      results = exps_procs.collect { |exp| 
+        ret = test_value == @container.class.module_eval(&exp) 
+        color = ret ? :green : :red
+        Tryouts.print Console.color(color, '.')
+        ret
+      }
+      Tryouts.debug
+      @success = results.uniq == [true]
+    end
+    def run?
+      !@success.nil?
+    end
+    def failed?
+      !@success.nil? && @success != true
+    end
+    private
+    def create_proc str, path, line
+      eval("Proc.new {\n  #{str}\n}", binding, path, line)
+    end
+  end
+  class Section < Array
+    attr_accessor :path, :first, :last
+    def initialize path, start=0
+      @path = path
+      @first, @last = start, start
+    end
+    def range
+      @first..@last
+    end
+    def inspect
+      range.to_a.zip(self).collect do |line|
+        "%-4d %s\n" % line
+      end.join
+    end
+    def to_s
+      self.join($/) << $/
     end
   end
 end

@@ -1,3 +1,4 @@
+
 require 'hexoid'
 
 # TEST 1: test matches result with expectation
