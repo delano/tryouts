@@ -109,9 +109,8 @@ class Tryouts
     end
     
     def ignore? str
-      str.strip.chomp.empty? 
+      str.strip.chomp.empty? || !str.strip.match(/^\#\#\s*=>/).nil? 
     end
-    
     
     def msg *msg
       STDOUT.puts *msg
