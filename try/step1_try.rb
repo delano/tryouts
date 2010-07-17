@@ -4,8 +4,8 @@ require 'hexoid'
 POOP = 1
 
 # TEST 1: test matches result with expectation
-a = 1 + POOP
-#=> POOP * 2
+@a = 1 + POOP
+#=> @a
 
 
 ## TEST 2: comments and values can 
