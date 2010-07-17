@@ -96,12 +96,14 @@ class Tryouts
             if test_begin?(this_line) || expectation?(this_line) || idx-offset == 0
               test.first = idx-offset+buffer.size+1
               desc.unshift *buffer
+              desc.last = test.first-1
+              desc.first = desc.last-desc.size+1
               break 
             end
           end
           
           debug('---------------------------')
-          debug(*desc)
+          debug(desc.inspect)
           debug(test.inspect)
           debug(exps.inspect)
         end
