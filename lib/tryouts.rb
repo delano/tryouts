@@ -10,7 +10,7 @@ class Tryouts
       @desc, @test, @exps = d,t,e
     end
     def inspect
-      [@desc.inspect, @test.to_s, @exps.inspect].join
+      [@desc.inspect, @test.inspect, @exps.inspect].join
     end
     def run
       Tryouts.debug '-'*40, inspect
