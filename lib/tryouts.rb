@@ -4,6 +4,21 @@ require 'ostruct'
 
 class Tryouts
   @debug = false
+  class TestBatch < Array
+    attr_reader :path
+    attr_reader :failed
+    def initialize(p)
+      @path = p
+      @failed = 0
+    end
+    def run
+      ret = self.select { |tc| !tc.run } # select failed
+      @failed += 1 unless ret.empty?
+    end
+    def failed?
+      @failed > 0
+    end
+  end
   class TestCase
     class Container
       def metaclass
@@ -82,33 +97,41 @@ class Tryouts
         run path
       end
       msg
-      all, failed = 0, 0
+      all, failed_batches, failed_tests = 0, 0, 0
       batches.each do |batch|
+        failed_batches += 1 if batch.failed?
         batch.each do |t|
           all += 1
           if t.failed?
-            msg if (failed += 1) == 1
+            msg if (failed_tests += 1) == 1
             msg t.test.path
             msg Console.color(:red, '-'*40)
             msg Console.color(:red, t.inspect)
           end
         end
       end
-      msg Console.bright("Passed #{all-failed} of #{all} tests")
-      failed == 0
+      if batches.size > 1
+        msg cformat('batches', batches.size-failed_batches, batches.size)
+      end
+        msg cformat('tests', all-failed_tests, all)
+      failed_batches == 0
+    end
+    
+    def cformat(*args)
+      Console.bright '%10s: %3d of %3d passed' % args
     end
     
     def run path
-      cases = parse path
-      cases.each { |t| t.run }
-      cases
+      batch = parse path
+      batch.run
+      batch
     end
     
     def parse path
       debug "Loading #{path}"
       lines = File.readlines path
       skip_ahead = 0
-      cases = []
+      batch = TestBatch.new path
       lines.size.times do |idx|
         skip_ahead -= 1 and next if skip_ahead > 0
         line = lines[idx].chomp
@@ -149,10 +172,10 @@ class Tryouts
             end
           end
           
-          cases << TestCase.new(desc, test, exps)
+          batch << TestCase.new(desc, test, exps)
         end
       end
-      cases
+      batch
     end
     
     def print str

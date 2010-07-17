@@ -16,7 +16,7 @@ b = 2
 # => 2 + 1
 
 # TEST 3: test expectation type matters
-:'foo'.class
+'foo'.class
 #=> String
 
 
