@@ -11,9 +11,7 @@
 * Extensions provide syntactic sugar and support for unit and behavioural tests. 
 
 
-== Example 1 -- Basic syntax
-    
-    require 'tryouts'
+== Basic syntax
     
     # test matches result with expectation
     1 + 1
@@ -30,12 +28,10 @@
     # test ignores blank lines before expectations
     'foo'
 
-== Example 2 -- Requiring libraries
-    
-    # Other libraries can be required before 'tryouts'
-    require 'ripper'
-    require 'tryouts'
+== Running Tests
 
+    $ try
+    $ try path/2/test.rb
 
 == Credits
 
