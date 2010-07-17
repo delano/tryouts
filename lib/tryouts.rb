@@ -203,11 +203,17 @@ class Tryouts
   end
   
   class TestBatch < Array
+    class Container
+      def metaclass
+        class << self; end
+      end
+    end
     attr_reader :path
     attr_reader :failed
     attr_reader :lines
     def initialize(p,l)
       @path, @lines = p, l
+      @container = Container.new.metaclass
     end
     def run
       begin
@@ -248,15 +254,9 @@ class Tryouts
     end
   end
   class TestCase
-    class Container
-      def metaclass
-        class << self; end
-      end
-    end
     attr_reader :desc, :test, :exps
     def initialize(d,t,e)
       @desc, @test, @exps, @path = d,t,e
-      @container = Container.new.metaclass
     end
     def inspect
       [@desc.inspect, @test.inspect, @exps.inspect].join

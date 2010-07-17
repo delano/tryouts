@@ -1,8 +1,12 @@
 require 'rubygems'
 require 'hexoid'
 
+def foo
+  1
+end
+
 # TEST 1: test matches result with expectation
-1 + 1
+1 + foo
 #=> 2
 
 
