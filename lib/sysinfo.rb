@@ -1,5 +1,4 @@
 require 'socket'
-require 'storable'
 require 'time'
 
 # = SysInfo
@@ -7,7 +6,7 @@ require 'time'
 # A container for the platform specific system information. 
 # Portions of this code were originally from Amazon's EC2 AMI tools, 
 # specifically lib/platform.rb. 
-class SysInfo < Storable
+class SysInfo
   unless defined?(IMPLEMENTATIONS)
     VERSION = "0.7.3".freeze
     IMPLEMENTATIONS = [
@@ -55,22 +54,22 @@ class SysInfo < Storable
     ].freeze
   end
 
-  field :vm => String
-  field :os => String
-  field :impl => String
-  field :arch => String
-  field :hostname => String
-  field :ipaddress_internal => String
-  #field :ipaddress_external => String
-  field :uptime => Float
+  attr_reader :vm
+  attr_reader :os
+  attr_reader :impl
+  attr_reader :arch
+  attr_reader :hostname
+  attr_reader :ipaddress_internal
+  attr_reader :uptime
   
-  field :paths
-  field :tmpdir
-  field :home
-  field :shell
-  field :user
-  field :ruby
+  attr_reader :paths
+  attr_reader :tmpdir
+  attr_reader :home
+  attr_reader :shell
+  attr_reader :user
+  attr_reader :ruby
   
+  attr_reader :attr_names
   alias :implementation :impl
   alias :architecture :arch
 
