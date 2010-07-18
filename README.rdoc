@@ -1,42 +1,116 @@
-= Tryouts v0.9 EXPERIMENTAL
+= Tryouts v2.0 ALPHA
 
-<i>A minimalist Ruby testing unframework.</i>
+<i>Put your Ruby tests in the comments.</i>
 
-<b>NOTE: Tryouts syntax changed between version 0.8 and 0.9. The old version is still available in the 0.8-FINAL branch.</b>
-
-
-== Project Guidelines
-
-* Test definition requires no extra syntax. 
-* Extensions provide syntactic sugar and support for unit and behavioural tests. 
+<b>NOTE: Tryouts syntax changed 0.x. The old version is still available in the 0.8-FINAL branch.</b>
 
 
 == Basic syntax
     
-    # test matches result with expectation
-    1 + 1
+    ## A very simple test
+      1 + 1
     #=> 2
 
-    # test expectation type matters
-    'foo' + 'bar'
+    ## The test description can spread
+    ## across multiple lines. The same
+    ## is true for test definitions.
+      a = 'foo' 
+      b = 'bar'
+      a + b
     #=> 'foobar'
 
-    # test expectation type matters
-    'foo'.class
+    ## A test will pass when its return
+    ## value equals the expectation. 
+      'foo'.class
     #=> String
 
-    # test ignores blank lines before expectations
-    'foo'
+    ## The expectations are evaluated.
+      1 + 1
+    #=> 1 + 1
+    
+    ## Here's an example of testing errors
+      begin
+        raise RuntimeError
+      rescue RuntimeError
+        :success
+      end
+    #=> :success
 
+
+== Setup / Cleanup
+
+All code before the first test definition is assumed to be setup code. All code after the last definition is assumed to be cleanup code. Here is an example:
+  
+    
+    # This is called after all tests
+    require 'gibbler'
+    Gibbler.digest_type = Digest::SHA256
+    
+    ## A Symbol can gibbler
+      :anything.gibbler
+    #=> '754f87ca720ec256633a286d9270d68478850b2abd7b0ae65021cb769ae70c08'
+    
+    # This will be called after all tests
+    Gibbler.digest_type = Digest::SHA1
+    
+    
 == Running Tests
 
-    $ try
+Try ships with a command-line tool called <tt>try</tt>. When called with no arguments, it will look for files ending with _try.rb in the current directory, or in the subfolder try.
+
+    $ bin/try 
+    Ruby 1.8.7 @ Sun Jul 18 11:55:06 -0400 2010          
+
+    try/step1_try.rb                                             PASS
+    try/step2_try.rb                                             PASS
+    try/step3_try.rb                                             PASS
+    try/step4_try.rb                                             SKIP
+
+     12 of 12 tests passed
+      3 of 3 batches passed (1 skipped)
+    
+You can also supply a specific file to test.
+
     $ try path/2/test.rb
 
+If all tests pass, try exits with a 0. Otherwise it exists with the number of tests that failed. 
+
+    $ bin/try 
+    Ruby 1.8.7 @ Sun Jul 18 14:16:00 -0400 2010          
+
+    try/step1_try.rb                                             PASS
+    try/step2_try.rb                                             FAIL
+
+    ## some addition                                           
+    6    a = 10
+    7    b = 2
+    8    a + b + 1
+    9    # => 4
+         13 != 4
+
+    # test ignores comments before expectations                
+    19   'foo'
+    20   # ignored comment
+    21   # ignored comment
+    22   #=> 'foo2'
+         "foo" != "foo2"
+
+    try/step3_try.rb                                             PASS
+    try/step4_try.rb                                             SKIP
+
+     10 of 12 tests passed
+      2 of 3 batches passed (1 skipped)
+    
+    $ echo $?
+    2
+    
 == Credits
 
-* cloudhead[http://github.com/cloudhead]
 * delano[http://github.com/delano]
+
+With help from:
+
+* cloudhead[http://github.com/cloudhead]
 * mynyml[http://github.com/mynyml]
 
 == Thanks

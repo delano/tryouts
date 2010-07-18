@@ -2,6 +2,28 @@
 #p Pathname(caller.last.split(':').first)
 require 'ostruct'
 
+unless defined?(TRYOUTS_LIB_HOME)
+  TRYOUTS_LIB_HOME = File.expand_path File.dirname(__FILE__) 
+end
+
+class Tryouts
+  module VERSION
+    def self.to_s
+      load_config
+      [@version[:MAJOR], @version[:MINOR], @version[:PATCH]].join('.')
+    end
+    def self.inspect
+      load_config
+      [@version[:MAJOR], @version[:MINOR], @version[:PATCH], @version[:BUILD]].join('.')
+    end
+    def self.load_config
+      require 'yaml'
+      @version ||= YAML.load_file(File.join(TRYOUTS_LIB_HOME, '..', 'VERSION.yml'))
+    end
+  end
+end
+
+
 class Tryouts
   @debug = false
   @container = Class.new

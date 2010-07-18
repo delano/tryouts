@@ -2,8 +2,8 @@
 #   ruby -rubygems -Ilib step1_tryouts.rb
 
 
-
-a = 1
+## some addition
+a = 10
 b = 2
 a + b + 1
 # => 4
@@ -19,7 +19,7 @@ a + b + 1
 'foo'
 # ignored comment
 # ignored comment
-#=> 'foo'
+#=> 'foo2'
 
 
 ## test uses helper methods
