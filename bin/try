@@ -7,11 +7,12 @@ $:.unshift lib_dir
 
 require 'tryouts'
 
+# Help out the requires in the tryouts
+[File.join(Dir.pwd, 'lib'), File.join(Dir.pwd, '..', 'lib')].each do |dir|
+  $:.unshift dir
+end
+
 if ARGV.empty?
-  # Help out the requires in the tryouts
-  [File.join(Dir.pwd, 'lib'), File.join(Dir.pwd, '..', 'lib')].each do |dir|
-    $:.unshift dir
-  end
   paths = Dir.glob(File.join(Dir.pwd, '{try,tryouts}', '*_{try,tryouts}.rb'))
   paths += Dir.glob(File.join(Dir.pwd, '*_{try,tryouts}.rb'))
 else
@@ -19,8 +20,6 @@ else
 end
 
 #Tryouts.debug = true
-
-
 #Tryouts.container = self
 
 exit Tryouts.run_all(*paths)

@@ -104,6 +104,12 @@ class Tryouts
               test.unshift(*buffer) && buffer.clear
               test.unshift this_line
             end
+            if test_begin?(this_line)
+              while test_begin?(lines[idx-(offset+1)].chomp)
+                offset += 1
+                buffer.unshift lines[idx-offset].chomp
+              end
+            end
             if test_begin?(this_line) || idx-offset == 0 || expectation?(this_line)
               adjust = expectation?(this_line) ? 2 : 1
               test.first = idx-offset+buffer.size+adjust
@@ -175,8 +181,9 @@ class Tryouts
     end
     
     def test_begin? str
-      !str.strip.match(/^\#+\s*TEST/i).nil? ||
-      !str.strip.match(/^\#\#+\s*\w/i).nil?
+      ret = !str.strip.match(/^\#+\s*TEST/i).nil? ||
+      !str.strip.match(/^\#\#+[\s\w]+/i).nil?
+      ret
     end
 
     
