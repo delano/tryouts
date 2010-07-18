@@ -9,38 +9,50 @@ class Tryouts
   class << self
     attr_accessor :debug, :container
     attr_reader :cases
+    def debug?() @debug == true end
     
     def run_all *paths
-      container.send(:eval, "def foo() 1 end")
-      
       batches = paths.collect do |path|
         run path
       end
       msg
-      all, skipped, failed_batches, failed_tests = 0, 0, 0, 0
+      all, skipped_tests, failed_tests = 0, 0, 0
+      skipped_batches, failed_batches = 0, 0
+      
       batches.each do |batch|
+        skipped_batches += 1 if !batch.run?
         failed_batches += 1 if batch.failed?
         batch.each do |t|
+          if t.failed? && failed_tests == 0
+            #msg Console.reverse(" %-60s" % 'Errors')
+          end
           
           all += 1
-          skipped += 1 unless t.run?
+          skipped_tests += 1 unless t.run?
 
           if t.failed?
             msg if (failed_tests += 1) == 1
-            msg t.test.path
-            msg Console.color(:red, '-'*40)
-            msg Console.color(:red, t.inspect)
+            msg Console.reverse(' %-60s ' % [t.test.path])
+            msg t.inspect
+            msg Console.color(:red, t.failed.join), $/
           end
         end
       end
+      
+      if all > 0
+        suffix = 'tests passed'
+        suffix << " (#{skipped_tests} skipped)" if skipped_tests > 0
+        msg cformat(all-failed_tests-skipped_tests, all-skipped_tests, suffix) if all-skipped_tests > 0
+      end
       if batches.size > 1
-        msg cformat(batches.size-failed_batches, batches.size, 'batches passed')
+        if batches.size-skipped_batches > 0
+          suffix = "batches passed"
+          suffix << " (#{skipped_batches} skipped)" if skipped_batches > 0
+          msg cformat(batches.size-skipped_batches-failed_batches, batches.size-skipped_batches, suffix)
+        end  
       end
       
-      msg cformat(all-failed_tests, all, 'tests passed') if all-skipped > 0
-      msg cformat(skipped, all, 'tests skipped') if skipped > 0
-      
-      failed_batches == 0
+      failed_tests # 0 means success
     end
     
     def cformat(*args)
@@ -54,7 +66,7 @@ class Tryouts
     end
     
     def parse path
-      debug "Loading #{path}"
+      #debug "Loading #{path}"
       lines = File.readlines path
       skip_ahead = 0
       batch = TestBatch.new path, lines
@@ -71,7 +83,7 @@ class Tryouts
             this_line = lines[idx+offset]
             break if ignore?(this_line)
             if expectation?(this_line)
-              exps << this_line
+              exps << this_line.chomp
               skip_ahead += 1
             end
             exps.last += 1
@@ -198,7 +210,7 @@ class Tryouts
     end
   end
   class TestCase
-    attr_reader :desc, :test, :exps
+    attr_reader :desc, :test, :exps, :failed, :passed
     def initialize(d,t,e)
       @desc, @test, @exps, @path = d,t,e
     end
@@ -208,35 +220,37 @@ class Tryouts
     def to_s
       [@desc.to_s, @test.to_s, @exps.to_s].join
     end
-    def test_proc
-      create_proc @test.join("#{$/}  "), @test.path, @test.first
-    end
-    def exps_procs
-      list = []
-      @exps.each_with_index do |exp,idx| 
-        exp =~ /\#+\s*=>\s*(.+)$/
-        list << [$1, @exps.path, @exps.first+idx]
-      end
-      list
-    end
     def run
-      Tryouts.debug '-'*40
+      Tryouts.debug '%s:%d' % [@test.path, @test.first]
       Tryouts.debug inspect, $/
       test_value = Tryouts.eval @test.to_s, @test.path, @test.first
-      results = exps_procs.collect { |exp| 
-        ret = test_value == Tryouts.eval(*exp)
+      @passed, @failed = [], []
+      exps.each_with_index { |exp,idx| 
+        exp =~ /\#+\s*=>\s*(.+)$/
+        exp_value = Tryouts.eval($1, @exps.path, @exps.first+idx)
+        ret = test_value == exp_value
         color = ret ? :green : :red
-        Tryouts.print Console.color(color, '.')
+        if ret
+          @passed << '     %s == %s' % [test_value, exp_value] 
+        else
+          @failed << '     %s != %s' % [test_value, exp_value] 
+        end
+        if Tryouts.debug?
+          Tryouts.debug Console.color(color, @passed.join)
+        else
+          Tryouts.print Console.color(color, '.')
+        end
+        
         ret
       }
       Tryouts.debug
-      @success = results.uniq == [true]
+      @failed.empty?
     end
     def run?
-      !@success.nil?
+      !@failed.nil?
     end
     def failed?
-      !@success.nil? && @success != true
+      !@failed.nil? && !@failed.empty?
     end
     private
     def create_proc str, path, line
@@ -306,6 +320,9 @@ class Tryouts
     
     def self.bright(str)
       [style(ATTRIBUTES[:bright]), str, default_style].join
+    end
+    def self.reverse(str)
+      [style(ATTRIBUTES[:reverse]), str, default_style].join
     end
     def self.color(col, str)
       [style(COLOURS[col]), str, default_style].join

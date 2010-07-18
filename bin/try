@@ -8,7 +8,12 @@ $:.unshift lib_dir
 require 'tryouts'
 
 if ARGV.empty?
+  # Help out the requires in the tryouts
+  [File.join(Dir.pwd, 'lib'), File.join(Dir.pwd, '..', 'lib')].each do |dir|
+    $:.unshift dir
+  end
   paths = Dir.glob(File.join(Dir.pwd, '{try,tryouts}', '*_{try,tryouts}.rb'))
+  paths += Dir.glob(File.join(Dir.pwd, '*_{try,tryouts}.rb'))
 else
   paths = ARGV
 end
