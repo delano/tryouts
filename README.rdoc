@@ -1,6 +1,6 @@
 = Tryouts v2.0 ALPHA
 
-<i>Put your Ruby tests in the comments.</i>
+<i>Put your Ruby tests in comments.</i>
 
 <b>NOTE: Tryouts syntax changed 0.x. The old version is still available in the 0.8-FINAL branch.</b>
 
@@ -36,6 +36,7 @@
       end
     #=> :success
 
+For real world examples, see the Gibbler[github.com/delano/gibbler/tree/master/try/] tryouts.
 
 == Setup / Cleanup
 
@@ -73,7 +74,7 @@ You can also supply a specific file to test.
 
     $ try path/2/test.rb
 
-If all tests pass, try exits with a 0. Otherwise it exists with the number of tests that failed. 
+If all tests pass, try exits with a 0. Otherwise it exits with the number of tests that failed. 
 
     $ bin/try 
     Ruby 1.8.7 @ Sun Jul 18 14:16:00 -0400 2010          
