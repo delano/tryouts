@@ -15,13 +15,24 @@ class Tryouts
       batches = paths.collect do |path|
         run path
       end
-      msg
+      
       all, skipped_tests, failed_tests = 0, 0, 0
       skipped_batches, failed_batches = 0, 0
       
       batches.each do |batch|
-        skipped_batches += 1 if !batch.run?
-        failed_batches += 1 if batch.failed?
+        if !batch.run?
+          skipped_batches += 1 
+          status = "SKIP"
+        elsif batch.failed?
+          failed_batches += 1 
+          status = Console.color(:red, "FAIL").bright
+        else
+          status = Console.color(:green, "PASS").bright
+        end
+        
+        path = batch.path.gsub(/#{Dir.pwd}\/?/, '')
+        
+        msg '%-60s %s' % [path, status]
         batch.each do |t|
           if t.failed? && failed_tests == 0
             #msg Console.reverse(" %-60s" % 'Errors')
@@ -32,13 +43,13 @@ class Tryouts
 
           if t.failed?
             msg if (failed_tests += 1) == 1
-            msg Console.reverse(' %-60s ' % [t.test.path])
-            msg t.inspect
+            msg Console.reverse(' %s ' % [t.desc.to_s])
+            msg t.test.inspect, t.exps.inspect
             msg Console.color(:red, t.failed.join($/)), $/
           end
         end
       end
-      
+      msg
       if all > 0
         suffix = 'tests passed'
         suffix << " (#{skipped_tests} skipped)" if skipped_tests > 0
@@ -251,18 +262,11 @@ class Tryouts
         exp =~ /\#+\s*=>\s*(.+)$/
         exp_value = Tryouts.eval($1, @exps.path, @exps.first+idx)
         ret = test_value == exp_value
-        color = ret ? :green : :red
         if ret
           @passed << '     %s == %s' % [test_value.inspect, exp_value.inspect] 
         else
           @failed << '     %s != %s' % [test_value.inspect, exp_value.inspect] 
         end
-        if Tryouts.debug?
-          Tryouts.debug Console.color(color, @passed.join)
-        else
-          Tryouts.print Console.color(color, '.')
-        end
-        
         ret
       }
       Tryouts.debug
@@ -294,12 +298,13 @@ class Tryouts
       end.join
     end
     def to_s
-      self.join($/) << $/
+      self.join($/)
     end
   end
 
   
   module Console
+    
     # ANSI escape sequence numbers for text attributes
     ATTRIBUTES = {
       :normal     => 0,
@@ -340,15 +345,50 @@ class Tryouts
       :random  => 40 + rand(10).to_i
     }.freeze unless defined? BGCOLOURS
     
+    module InstanceMethods
+      def bright
+        Console.bright(self)
+      end
+      def reverse
+        Console.reverse(self)
+      end
+      def color(col)
+        Console.color(col, self)
+      end
+      def att(col)
+        Console.att(col, self)
+      end
+      def bgcolor(col)
+        Console.bgcolor(col, self)
+      end
+    end
+    
     def self.bright(str)
-      [style(ATTRIBUTES[:bright]), str, default_style].join
+      str = [style(ATTRIBUTES[:bright]), str, default_style].join
+      str.extend Console::InstanceMethods
+      str
     end
     def self.reverse(str)
-      [style(ATTRIBUTES[:reverse]), str, default_style].join
+      str = [style(ATTRIBUTES[:reverse]), str, default_style].join
+      str.extend Console::InstanceMethods
+      str
     end
     def self.color(col, str)
-      [style(COLOURS[col]), str, default_style].join
+      str = [style(COLOURS[col]), str, default_style].join
+      str.extend Console::InstanceMethods
+      str
     end
+    def self.att(name, str)
+      str = [style(ATTRIBUTES[name]), str, default_style].join
+      str.extend Console::InstanceMethods
+      str
+    end
+    def self.bgcolor(col, str)
+      str = [style(ATTRIBUTES[col]), str, default_style].join
+      str.extend Console::InstanceMethods
+      str
+    end
+    private
     def self.style(*att)
       # => \e[8;34;42m
       "\e[%sm" % att.join(';')
