@@ -34,7 +34,7 @@ class Tryouts
             msg if (failed_tests += 1) == 1
             msg Console.reverse(' %-60s ' % [t.test.path])
             msg t.inspect
-            msg Console.color(:red, t.failed.join), $/
+            msg Console.color(:red, t.failed.join($/)), $/
           end
         end
       end
@@ -182,11 +182,14 @@ class Tryouts
     def initialize(p,l)
       @path, @lines = p, l
       @container = Container.new.metaclass
+      @run = false
     end
     def run
+      return if empty?
       setup
       ret = self.select { |tc| !tc.run } # select failed
-      @failed = ret.size unless ret.empty?
+      @failed = ret.size
+      @run = true
       clean
       !failed?
     end
@@ -206,7 +209,7 @@ class Tryouts
       end
     end
     def run?
-      !@failed.nil?
+      @run
     end
   end
   class TestCase
