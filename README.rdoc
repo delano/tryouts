@@ -69,6 +69,13 @@ If all tests pass, try exits with a 0. Otherwise it exits with the number of tes
 
 http://delano.github.com/tryouts/screens/tryouts-2.0-failure.png
 
+== Installation
+
+One of:
+
+    $ gem install tryouts
+    
+    
 
 == Credits
 
