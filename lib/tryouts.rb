@@ -6,9 +6,16 @@ class Tryouts
   @debug = false
   @container = Class.new
   @cases = []
+  @sysinfo = nil
   class << self
     attr_accessor :debug, :container
     attr_reader :cases
+    
+    def sysinfo
+      require 'sysinfo'
+      @sysinfo ||= SysInfo.new
+      @sysinfo
+    end
     
     def debug?() @debug == true end
     
@@ -20,7 +27,7 @@ class Tryouts
       all, skipped_tests, failed_tests = 0, 0, 0
       skipped_batches, failed_batches = 0, 0
       
-      msg 'Ruby %s @ %-40s' % [RUBY_VERSION, Time.now]
+      msg 'Ruby %s @ %-40s' % [RUBY_VERSION, Time.now], $/
       
       batches.each do |batch|
         if !batch.run?
