@@ -9,6 +9,7 @@ class Tryouts
   class << self
     attr_accessor :debug, :container
     attr_reader :cases
+    
     def debug?() @debug == true end
     
     def run_all *paths
@@ -18,6 +19,8 @@ class Tryouts
       
       all, skipped_tests, failed_tests = 0, 0, 0
       skipped_batches, failed_batches = 0, 0
+      
+      msg 'Ruby %s @ %-40s' % [RUBY_VERSION, Time.now]
       
       batches.each do |batch|
         if !batch.run?
@@ -43,7 +46,7 @@ class Tryouts
 
           if t.failed?
             msg if (failed_tests += 1) == 1
-            msg Console.reverse(' %s ' % [t.desc.to_s])
+            msg Console.reverse(' %-58s ' % [t.desc.to_s])
             msg t.test.inspect, t.exps.inspect
             msg Console.color(:red, t.failed.join($/)), $/
           end
