@@ -92,20 +92,30 @@ class Tryouts
           offset = 0
           buffer, desc = Section.new(path), Section.new(path)
           test = Section.new(path, idx)  # test start the line before the exp. 
+          blank_buffer = Section.new(path)
           while (idx-offset >= 0)
             offset += 1
             this_line = lines[idx-offset].chomp
-            test.unshift this_line if ignore?(this_line)
-            buffer.unshift this_line if comment?(this_line)
+            buffer.unshift this_line if ignore?(this_line)
+            if comment?(this_line)
+              buffer.unshift this_line 
+            end
             if test?(this_line)
               test.unshift(*buffer) && buffer.clear
               test.unshift this_line
             end
-            if test_begin?(this_line) || expectation?(this_line) || idx-offset == 0
-              test.first = idx-offset+buffer.size+1
+            if test_begin?(this_line) || idx-offset == 0 || expectation?(this_line)
+              adjust = expectation?(this_line) ? 2 : 1
+              test.first = idx-offset+buffer.size+adjust
               desc.unshift *buffer
               desc.last = test.first-1
               desc.first = desc.last-desc.size+1
+              # remove empty lines between the description 
+              # and the previous expectation
+              while !desc.empty? && desc[0].empty? 
+                desc.shift
+                desc.first += 1
+              end
               break 
             end
           end
@@ -113,6 +123,7 @@ class Tryouts
           batch << TestCase.new(desc, test, exps)
         end
       end
+
       batch
     end
     
@@ -164,7 +175,8 @@ class Tryouts
     end
     
     def test_begin? str
-      !str.strip.match(/^\#+\s*TEST/i).nil?
+      !str.strip.match(/^\#+\s*TEST/i).nil? ||
+      !str.strip.match(/^\#\#+\s*\w/i).nil?
     end
 
     
@@ -234,9 +246,9 @@ class Tryouts
         ret = test_value == exp_value
         color = ret ? :green : :red
         if ret
-          @passed << '     %s == %s' % [test_value, exp_value] 
+          @passed << '     %s == %s' % [test_value.inspect, exp_value.inspect] 
         else
-          @failed << '     %s != %s' % [test_value, exp_value] 
+          @failed << '     %s != %s' % [test_value.inspect, exp_value.inspect] 
         end
         if Tryouts.debug?
           Tryouts.debug Console.color(color, @passed.join)
