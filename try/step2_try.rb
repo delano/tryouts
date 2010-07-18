@@ -3,7 +3,7 @@
 
 
 ## some addition
-a = 10
+a = 1
 b = 2
 a + b + 1
 # => 4
@@ -19,7 +19,7 @@ a + b + 1
 'foo'
 # ignored comment
 # ignored comment
-#=> 'foo2'
+#=> 'foo'
 
 
 ## test uses helper methods
