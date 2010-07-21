@@ -1,5 +1,9 @@
 TRYOUTS, CHANGES
 
+#### 2.0.1.002 (2010-07-21) ###############################
+
+* FIXED: clean error (bad value for range). Didn't run tryouts. Bad Delano!
+
 #### 2.0.1 (2010-07-21) ###############################
 
 * FIXED: Fix range of lines executed for clean, was double executing most test defs
