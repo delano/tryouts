@@ -3,3 +3,7 @@ TRYOUTS, CHANGES
 #### 2.0.1 (2010-07-21) ###############################
 
 * FIXED: Fix range of lines executed for clean, was double executing most test defs
+
+#### 2.0.0 (2010-07-19) ###############################
+
+Initial 2.0 release.
