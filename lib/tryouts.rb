@@ -265,9 +265,9 @@ class Tryouts
     end
     def clean
       return if empty?
-      last = first.exps.last+1
-      if last < lines.size
-        Tryouts.eval lines[last..-1].join, path, last
+      last_line = last.exps.last+1
+      if last_line < lines.size
+        Tryouts.eval lines[last..-1].join, path, last_line
       end
     end
     def run?
