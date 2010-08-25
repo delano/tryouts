@@ -2,7 +2,7 @@
 
 <i>Put your Ruby tests in comments.</i>
 
-<b>NOTE: Tryouts syntax changed 0.x. The old version is still available in the 0.8-FINAL branch.</b>
+<b>NOTE: Tryouts syntax changed since 0.x. The old version is still available in the 0.8-FINAL branch.</b>
 
 
 == Basic syntax
@@ -36,7 +36,7 @@
       end
     #=> :success
 
-For real world examples, see the Gibbler[github.com/delano/gibbler/tree/master/try/] tryouts.
+For real world examples, see the Gibbler[http://github.com/delano/gibbler/tree/master/try/] tryouts.
 
 == Setup / Cleanup
 

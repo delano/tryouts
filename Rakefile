@@ -17,7 +17,7 @@ name = "stella"
 begin
   require "jeweler"
   Jeweler::Tasks.new do |gem|
-    gem.version = "#{config[:MAJOR]}.#{config[:MINOR]}.#{config[:PATCH]}.#{config[:BUILD]}"
+    gem.version = "#{config[:MAJOR]}.#{config[:MINOR]}.#{config[:PATCH]}"
     gem.name = "tryouts"
     gem.rubyforge_project = gem.name
     gem.summary = "Put your Ruby tests in comments."
