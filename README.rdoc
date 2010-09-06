@@ -1,6 +1,6 @@
 = Tryouts v2.0 ALPHA
 
-<i>Put your Ruby tests in comments.</i>
+<i>Don't waste your time writing tests.</i>
 
 <b>NOTE: Tryouts syntax changed since 0.x. The old version is still available in the 0.8-FINAL branch.</b>
 

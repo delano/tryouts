@@ -20,7 +20,7 @@ begin
     gem.version = "#{config[:MAJOR]}.#{config[:MINOR]}.#{config[:PATCH]}"
     gem.name = "tryouts"
     gem.rubyforge_project = gem.name
-    gem.summary = "Put your Ruby tests in comments."
+    gem.summary = "Don't waste your time writing tests"
     gem.description = gem.summary
     gem.email = "delano@solutious.com"
     gem.homepage = "http://github.com/delano/tryouts"
