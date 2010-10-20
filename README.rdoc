@@ -4,6 +4,8 @@
 
 <b>NOTE: Tryouts syntax changed since 0.x. The old version is still available in the 0.8-FINAL branch.</b>
 
+Check out the screencast[http://www.rubypulse.com/episode-0.46_tryouts.html] created by Alex Peuchert.
+
 
 == Basic syntax
     
@@ -89,5 +91,6 @@ With help from:
 == Thanks
 
 * Syntenic[http://syntenic.com/] for the hackfest venue. 
+* AlexPeuchert[http://www.rubypulse.com/] for the screencast.
 
 <i>This collision was brought to you by Montreal.rb.</i>
