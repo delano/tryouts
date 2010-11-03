@@ -1,5 +1,9 @@
 TRYOUTS, CHANGES
 
+#### 2.0.2 (2010-11-03) ###############################
+
+* CHANGE: Revised CLI output. Print output for each test as it's running.
+
 #### 2.0.1.002 (2010-07-21) ###############################
 
 * FIXED: clean error (bad value for range). Didn't run tryouts. Bad Delano!

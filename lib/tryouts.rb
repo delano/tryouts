@@ -43,7 +43,7 @@ class Tryouts
     
     def run_all *paths
       batches = paths.collect do |path|
-        run path
+        parse path
       end
       
       all, skipped_tests, failed_tests = 0, 0, 0
@@ -52,35 +52,41 @@ class Tryouts
       msg 'Ruby %s @ %-40s' % [RUBY_VERSION, Time.now], $/
       
       batches.each do |batch|
-        if !batch.run?
-          skipped_batches += 1 
-          status = "SKIP"
-        elsif batch.failed?
-          failed_batches += 1 
-          status = Console.color(:red, "FAIL").bright
-        else
-          status = Console.color(:green, "PASS").bright
-        end
         
         path = batch.path.gsub(/#{Dir.pwd}\/?/, '')
         
-        msg '%-60s %s' % [path, status]
-        batch.each do |t|
-          if t.failed? && failed_tests == 0
-            #msg Console.reverse(" %-60s" % 'Errors')
+        msg '%-60s %s' % [path, ''] # status
+        
+        #if !batch.run?
+        #  skipped_batches += 1 
+        #  status = "SKIP"
+        #elsif batch.failed?
+        #  failed_batches += 1 
+        #  status = Console.color(:red, "FAIL").bright
+        #else
+        #  status = Console.color(:green, "PASS").bright
+        #end
+        
+        before_handler = Proc.new do |t|
+          msg Console.reverse(' %-58s ' % [t.desc.to_s])
+          msg t.test.inspect, t.exps.inspect
+        end
+        
+        batch.run(before_handler) do |t|
+          if t.failed? 
+            failed_tests += 1
+            msg Console.color(:red, t.failed.join($/)), $/
+          elsif !t.run?
+          else
+            msg Console.color(:green, t.passed.join($/)), $/
           end
           
           all += 1
           skipped_tests += 1 unless t.run?
 
-          if t.failed?
-            msg if (failed_tests += 1) == 1
-            msg Console.reverse(' %-58s ' % [t.desc.to_s])
-            msg t.test.inspect, t.exps.inspect
-            msg Console.color(:red, t.failed.join($/)), $/
-          end
         end
       end
+      
       msg
       if all > 0
         suffix = 'tests passed'
@@ -246,10 +252,15 @@ class Tryouts
       @container = Container.new.metaclass
       @run = false
     end
-    def run
+    def run(before_test, &after_test)
       return if empty?
       setup
-      ret = self.select { |tc| !tc.run } # select failed
+      ret = self.select { |tc| 
+        before_test.call(tc) unless before_test.nil?
+        ret = !tc.run 
+        after_test.call(tc)
+        ret # select failed tests
+      } 
       @failed = ret.size
       @run = true
       clean
@@ -295,9 +306,9 @@ class Tryouts
         exp_value = Tryouts.eval($1, @exps.path, @exps.first+idx)
         ret = test_value == exp_value
         if ret
-          @passed << '     %s == %s' % [test_value.inspect, exp_value.inspect] 
+          @passed << '     ==  %s' % [exp_value.inspect] 
         else
-          @failed << '     %s != %s' % [test_value.inspect, exp_value.inspect] 
+          @failed << '     !=  %s' % [exp_value.inspect] 
         end
         ret
       }
