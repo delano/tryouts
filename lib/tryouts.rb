@@ -57,16 +57,6 @@ class Tryouts
         
         msg '%-60s %s' % [path, ''] # status
         
-        #if !batch.run?
-        #  skipped_batches += 1 
-        #  status = "SKIP"
-        #elsif batch.failed?
-        #  failed_batches += 1 
-        #  status = Console.color(:red, "FAIL").bright
-        #else
-        #  status = Console.color(:green, "PASS").bright
-        #end
-        
         before_handler = Proc.new do |t|
           msg Console.reverse(' %-58s ' % [t.desc.to_s])
           msg t.test.inspect, t.exps.inspect
@@ -76,27 +66,28 @@ class Tryouts
           if t.failed? 
             failed_tests += 1
             msg Console.color(:red, t.failed.join($/)), $/
-          elsif !t.run?
+          elsif t.skipped? || !t.run?
+            skipped_tests += 1
+            msg Console.bright(t.skipped.join($/)), $/
           else
             msg Console.color(:green, t.passed.join($/)), $/
           end
           
           all += 1
-          skipped_tests += 1 unless t.run?
-
+          
         end
       end
       
       msg
       if all > 0
         suffix = 'tests passed'
-        suffix << " (#{skipped_tests} skipped)" if skipped_tests > 0
+        suffix << " (and #{skipped_tests} skipped)" if skipped_tests > 0
         msg cformat(all-failed_tests-skipped_tests, all-skipped_tests, suffix) if all-skipped_tests > 0
       end
       if batches.size > 1
         if batches.size-skipped_batches > 0
           suffix = "batches passed"
-          suffix << " (#{skipped_batches} skipped)" if skipped_batches > 0
+          suffix << " (and #{skipped_batches} skipped)" if skipped_batches > 0
           msg cformat(batches.size-skipped_batches-failed_batches, batches.size-skipped_batches, suffix)
         end  
       end
@@ -178,7 +169,7 @@ class Tryouts
           batch << TestCase.new(desc, test, exps)
         end
       end
-
+      
       batch
     end
     
@@ -214,7 +205,7 @@ class Tryouts
     private
     
     def expectation? str
-      !ignore?(str) && str.strip.match(/^\#\s*=>/)
+      !ignore?(str) && str.strip.match(/\A\#+\s*=>/)
     end
     
     def comment? str
@@ -230,8 +221,8 @@ class Tryouts
     end
     
     def test_begin? str
-      ret = !str.strip.match(/^\#+\s*TEST/i).nil? ||
-      !str.strip.match(/^\#\#+[\s\w]+/i).nil?
+      ret = !str.strip.match(/\#+\s*TEST/i).nil? ||
+      !str.strip.match(/\A\#\#+[\s\w]+/i).nil?
       ret
     end
 
@@ -286,7 +277,7 @@ class Tryouts
     end
   end
   class TestCase
-    attr_reader :desc, :test, :exps, :failed, :passed
+    attr_reader :desc, :test, :exps, :failed, :passed, :skipped
     def initialize(d,t,e)
       @desc, @test, @exps, @path = d,t,e
     end
@@ -299,24 +290,38 @@ class Tryouts
     def run
       Tryouts.debug '%s:%d' % [@test.path, @test.first]
       Tryouts.debug inspect, $/
-      test_value = Tryouts.eval @test.to_s, @test.path, @test.first
-      @passed, @failed = [], []
-      exps.each_with_index { |exp,idx| 
-        exp =~ /\#+\s*=>\s*(.+)$/
-        exp_value = Tryouts.eval($1, @exps.path, @exps.first+idx)
-        ret = test_value == exp_value
-        if ret
-          @passed << '     ==  %s' % [exp_value.inspect] 
+      expectations = exps.collect { |exp,idx| 
+        exp =~ /\A\#?\s*=>\s*(.+)\Z/
+        $1  # this will be nil if the expectation is commented out
+      }
+      
+      # Evaluate test block only if there are valid expectations
+      unless expectations.compact.empty?
+        test_value = Tryouts.eval @test.to_s, @test.path, @test.first
+        @has_run = true
+      end
+      
+      @passed, @failed, @skipped = [], [], []
+      expectations.each_with_index { |exp,idx| 
+        if exp.nil?
+          @skipped <<  '     [skipped]'
         else
-          @failed << '     !=  %s' % [exp_value.inspect] 
+          exp_value = Tryouts.eval(exp, @exps.path, @exps.first+idx)
+          if test_value == exp_value
+            @passed << '     ==  %s' % [exp_value.inspect] 
+          else
+            @failed << '     !=  %s' % [exp_value.inspect] 
+          end
         end
-        ret
       }
       Tryouts.debug
       @failed.empty?
     end
+    def skipped?
+      !@skipped.nil? && !@skipped.empty?
+    end
     def run?
-      !@failed.nil?
+      @has_run == true
     end
     def failed?
       !@failed.nil? && !@failed.empty?
