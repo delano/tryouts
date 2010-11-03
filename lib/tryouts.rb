@@ -308,9 +308,9 @@ class Tryouts
         else
           exp_value = Tryouts.eval(exp, @exps.path, @exps.first+idx)
           if test_value == exp_value
-            @passed << '     ==  %s' % [exp_value.inspect] 
+            @passed << '     ==  %s' % [test_value.inspect] 
           else
-            @failed << '     !=  %s' % [exp_value.inspect] 
+            @failed << '     !=  %s' % [test_value.inspect] 
           end
         end
       }

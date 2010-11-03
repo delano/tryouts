@@ -1,5 +1,9 @@
 TRYOUTS, CHANGES
 
+#### 2.0.3 (2010-11-03) ###############################
+
+* FIXED: Print test value not expected value twice!
+
 #### 2.0.2 (2010-11-03) ###############################
 
 * FIXED: Properly skip test cases with commented out expectations (i.e ##=>)
