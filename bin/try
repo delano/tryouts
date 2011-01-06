@@ -1,5 +1,16 @@
 #!/usr/bin/ruby
 
+#
+# Tryouts - Don't waste your time writing tests
+# 
+# Usage:
+# 
+#      $ try 
+#      $ try -q 
+#      $ try path/2/file.rb
+#      $ try -q path/2/file.rb path/2/another.rb
+#
+
 # Put our local lib in first place
 BASE_PATH = File.expand_path File.join(File.dirname(__FILE__), '..')
 lib_dir = File.join(BASE_PATH, 'lib')
@@ -12,6 +23,8 @@ require 'tryouts'
   $:.unshift dir
 end
 
+Tryouts.quiet = !ARGV.delete('-q').nil?  # eg try -q [PATH]
+
 if ARGV.empty?
   paths = Dir.glob(File.join(Dir.pwd, '{try,tryouts}', '*_{try,tryouts}.rb'))
   paths += Dir.glob(File.join(Dir.pwd, '*_{try,tryouts}.rb'))
@@ -19,6 +32,7 @@ else
   paths = ARGV
 end
 
+#Tryouts.quiet
 #Tryouts.debug = true
 #Tryouts.container = self
 

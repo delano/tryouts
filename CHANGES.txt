@@ -1,5 +1,9 @@
 TRYOUTS, CHANGES
 
+#### 2.0.4 (2011-01-06) ###############################
+
+* ADDED: -q option for reduced output.
+
 #### 2.0.3 (2010-11-03) ###############################
 
 * FIXED: Print test value not expected value twice!
