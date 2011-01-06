@@ -61,7 +61,7 @@ All code before the first test definition is assumed to be setup code. All code 
 
 Try ships with a command-line tool called <tt>try</tt>. When called with no arguments, it will look for files ending with _try.rb in the current directory, or in the subfolder try.
 
-https://github.com/delano/tryouts/raw/gh-pages/screens/tryouts-2.0-success.png
+http://github.com/delano/tryouts/raw/gh-pages/screens/tryouts-2.0-success.png
 
 You can also supply a specific file to test.
 
@@ -69,7 +69,7 @@ You can also supply a specific file to test.
 
 If all tests pass, try exits with a 0. Otherwise it exits with the number of tests that failed. 
 
-https://github.com/delano/tryouts/raw/gh-pages/screens/tryouts-2.0-failure.png
+http://github.com/delano/tryouts/raw/gh-pages/screens/tryouts-2.0-failure.png
 
 For reduced output, use the `-q` option:
 
