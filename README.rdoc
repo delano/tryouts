@@ -118,5 +118,6 @@ With help from:
 
 * Syntenic[http://syntenic.com/] for the hackfest venue. 
 * AlexPeuchert[http://www.rubypulse.com/] for the screencast.
+* Christian Michon for suggesting a better default output format. 
 
 <i>This collision was brought to you by Montreal.rb.</i>
