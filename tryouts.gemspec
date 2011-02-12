@@ -31,7 +31,8 @@ Gem::Specification.new do |s|
      "try/step1_try.rb",
      "try/step2_try.rb",
      "try/step3_try.rb",
-     "try/step4_try.rb"
+     "try/step4_try.rb",
+     "tryouts.gemspec"
   ]
   s.homepage = %q{http://github.com/delano/tryouts}
   s.rdoc_options = ["--charset=UTF-8"]
