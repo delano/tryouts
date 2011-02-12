@@ -12,10 +12,7 @@ class Tryouts
       load_config
       [@version[:MAJOR], @version[:MINOR], @version[:PATCH]].join('.')
     end
-    def self.inspect
-      load_config
-      [@version[:MAJOR], @version[:MINOR], @version[:PATCH], @version[:BUILD]].join('.')
-    end
+    alias_method :inspect, :to_s
     def self.load_config
       require 'yaml'
       @version ||= YAML.load_file(File.join(TRYOUTS_LIB_HOME, '..', 'VERSION.yml'))
@@ -27,11 +24,12 @@ end
 class Tryouts
   @debug = false
   @quiet = false
+  @noisy = false
   @container = Class.new
   @cases = []
   @sysinfo = nil
   class << self
-    attr_accessor :debug, :container, :quiet
+    attr_accessor :debug, :container, :quiet, :noisy
     attr_reader :cases
     
     def sysinfo
@@ -56,22 +54,22 @@ class Tryouts
         
         path = batch.path.gsub(/#{Dir.pwd}\/?/, '')
         
-        msg '%-60s %s' % [path, ''] unless Tryouts.quiet # status
+        vmsg '%-60s %s' % [path, '']
         
         before_handler = Proc.new do |t|
-          msg Console.reverse(' %-58s ' % [t.desc.to_s]) unless Tryouts.quiet
-          msg t.test.inspect, t.exps.inspect unless Tryouts.quiet
+          vmsg Console.reverse(' %-58s ' % [t.desc.to_s]) 
+          vmsg t.test.inspect, t.exps.inspect
         end
         
         batch.run(before_handler) do |t|
           if t.failed? 
             failed_tests += 1
-            msg Console.color(:red, t.failed.join($/)), $/ unless Tryouts.quiet
+            vmsg Console.color(:red, t.failed.join($/)), $/
           elsif t.skipped? || !t.run?
             skipped_tests += 1
-            msg Console.bright(t.skipped.join($/)), $/ unless Tryouts.quiet
+            vmsg Console.bright(t.skipped.join($/)), $/
           else
-            msg Console.color(:green, t.passed.join($/)), $/ unless Tryouts.quiet
+            vmsg Console.color(:green, t.passed.join($/)), $/
           end
           
           all += 1
@@ -79,7 +77,7 @@ class Tryouts
         end
       end
       
-      msg unless Tryouts.quiet
+      vmsg
       if all > 0
         suffix = 'tests passed'
         suffix << " (and #{skipped_tests} skipped)" if skipped_tests > 0
@@ -179,8 +177,12 @@ class Tryouts
       STDOUT.flush
     end
     
+    def vmsg *msg
+      STDOUT.puts *msg if !Tryouts.quiet && Tryouts.noisy
+    end
+    
     def msg *msg
-      STDOUT.puts *msg
+      STDOUT.puts *msg unless Tryouts.quiet
     end
     
     def err *msg

@@ -33,7 +33,7 @@ end
 
 
 Rake::RDocTask.new do |rdoc|
-  version = "#{config[:MAJOR]}.#{config[:MINOR]}.#{config[:PATCH]}.#{config[:BUILD]}"
+  version = "#{config[:MAJOR]}.#{config[:MINOR]}.#{config[:PATCH]}}"
   rdoc.rdoc_dir = "doc"
   rdoc.title = "stella #{version}"
   rdoc.rdoc_files.include("README*")
