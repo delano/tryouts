@@ -57,27 +57,39 @@ class Tryouts
         vmsg '%-60s %s' % [path, '']
         
         before_handler = Proc.new do |t|
-          vmsg Console.reverse(' %-58s ' % [t.desc.to_s]) 
-          vmsg t.test.inspect, t.exps.inspect
+          if Tryouts.noisy
+            vmsg Console.reverse(' %-58s ' % [t.desc.to_s]) 
+            vmsg t.test.inspect, t.exps.inspect
+          end
         end
         
         batch.run(before_handler) do |t|
           if t.failed? 
             failed_tests += 1
-            vmsg Console.color(:red, t.failed.join($/)), $/
+            if Tryouts.noisy 
+              vmsg Console.color(:red, t.failed.join($/)), $/
+            else
+              msg ' %s (%s:%s)' % [Console.color(:red, "FAIL"), path, t.exps.first]
+            end
           elsif t.skipped? || !t.run?
             skipped_tests += 1
-            vmsg Console.bright(t.skipped.join($/)), $/
+            if Tryouts.noisy
+              vmsg Console.bright(t.skipped.join($/)), $/
+            else
+              msg ' SKIP (%s:%s)' % [path, t.exps.first]
+            end
           else
-            vmsg Console.color(:green, t.passed.join($/)), $/
+            if Tryouts.noisy
+              vmsg Console.color(:green, t.passed.join($/)), $/
+            else
+              msg ' %s' % [Console.color(:green, 'PASS')]
+            end
           end
-          
           all += 1
-          
         end
       end
       
-      vmsg
+      msg
       if all > 0
         suffix = 'tests passed'
         suffix << " (and #{skipped_tests} skipped)" if skipped_tests > 0
@@ -95,7 +107,7 @@ class Tryouts
     end
     
     def cformat(*args)
-      Console.bright '%3d of %d %s' % args
+      Console.bright '%d of %d %s' % args
     end
     
     def run path
@@ -173,6 +185,7 @@ class Tryouts
     end
     
     def print str
+      return if Tryouts.quiet
       STDOUT.print str
       STDOUT.flush
     end

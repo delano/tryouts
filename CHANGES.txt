@@ -2,6 +2,9 @@ TRYOUTS, CHANGES
 
 #### 2.1.0 (2011-02-12) ###############################
 
+* CHANGE: Default output is less verbose (eg. PASS/FAIL/SKIP)
+* CHANGE: -q now prints nothing to STDOUT. Check $?. If 0, all tests pass
+          otherwise it contains the number of tests that failed. 
 * ADDED: -v option for increased output.
 
 
