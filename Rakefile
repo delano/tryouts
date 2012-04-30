@@ -25,6 +25,7 @@ begin
     gem.email = "delano@solutious.com"
     gem.homepage = "http://github.com/delano/tryouts"
     gem.authors = ["Delano Mandelbaum"]
+    gem.add_dependency("sysinfo",      ">= 0.7.3")
   end
   Jeweler::GemcutterTasks.new
 rescue LoadError
