@@ -45,7 +45,7 @@ For real world examples, see the Gibbler[http://github.com/delano/gibbler/tree/m
 All code before the first test definition is assumed to be setup code. All code after the last definition is assumed to be cleanup code. Here is an example:
   
     
-    # This is called after all tests
+    # This is called before all tests
     require 'gibbler'
     Gibbler.digest_type = Digest::SHA256
     
