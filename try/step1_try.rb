@@ -1,14 +1,11 @@
 require 'rubygems'
-require 'hexoid'
-
-POOP = 1
 
 # TEST 1: test matches result with expectation
 a = 1 + 1
 #=> 2
 
 
-## TEST 2: comments, tests, and expectations can 
+## TEST 2: comments, tests, and expectations can
 ## contain multiple lines
 a = 1
 b = 2
@@ -46,6 +43,3 @@ a + b
 
 x = raise rescue 'foo'
 #=> 'foo'
-
-
-
