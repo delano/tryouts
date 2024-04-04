@@ -30,7 +30,7 @@ Check out the screencast[http://www.rubypulse.com/episode-0.46_tryouts.html] cre
       1 + 1
     #=> 1 + 1
     
-    ## Here's an example of testing errors
+    ## Example of testing errors
       begin
         raise RuntimeError
       rescue RuntimeError
