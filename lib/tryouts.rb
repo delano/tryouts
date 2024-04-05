@@ -1,9 +1,7 @@
-#require 'pathname'
-#p Pathname(caller.last.split(':').first)
 require 'ostruct'
 
 unless defined?(TRYOUTS_LIB_HOME)
-  TRYOUTS_LIB_HOME = File.expand_path File.dirname(__FILE__) 
+  TRYOUTS_LIB_HOME = File.expand_path File.dirname(__FILE__)
 end
 
 class Tryouts
@@ -31,42 +29,42 @@ class Tryouts
   class << self
     attr_accessor :debug, :container, :quiet, :noisy
     attr_reader :cases
-    
+
     def sysinfo
       require 'sysinfo'
       @sysinfo ||= SysInfo.new
       @sysinfo
     end
-    
+
     def debug?() @debug == true end
-    
+
     def run_all *paths
       batches = paths.collect do |path|
         parse path
       end
-      
+
       all, skipped_tests, failed_tests = 0, 0, 0
       skipped_batches, failed_batches = 0, 0
-      
+
       msg 'Ruby %s @ %-40s' % [RUBY_VERSION, Time.now], $/
-      
+
       batches.each do |batch|
-        
+
         path = batch.path.gsub(/#{Dir.pwd}\/?/, '')
-        
+
         vmsg '%-60s %s' % [path, '']
-        
+
         before_handler = Proc.new do |t|
           if Tryouts.noisy
-            vmsg Console.reverse(' %-58s ' % [t.desc.to_s]) 
+            vmsg Console.reverse(' %-58s ' % [t.desc.to_s])
             vmsg t.test.inspect, t.exps.inspect
           end
         end
-        
+
         batch.run(before_handler) do |t|
-          if t.failed? 
+          if t.failed?
             failed_tests += 1
-            if Tryouts.noisy 
+            if Tryouts.noisy
               vmsg Console.color(:red, t.failed.join($/)), $/
             else
               msg ' %s (%s:%s)' % [Console.color(:red, "FAIL"), path, t.exps.first]
@@ -88,7 +86,7 @@ class Tryouts
           all += 1
         end
       end
-      
+
       msg
       if all > 0
         suffix = 'tests passed'
@@ -100,22 +98,22 @@ class Tryouts
           suffix = "batches passed"
           suffix << " (and #{skipped_batches} skipped)" if skipped_batches > 0
           msg cformat(batches.size-skipped_batches-failed_batches, batches.size-skipped_batches, suffix)
-        end  
+        end
       end
-      
+
       failed_tests # 0 means success
     end
-    
+
     def cformat(*args)
       Console.bright '%d of %d %s' % args
     end
-    
+
     def run path
       batch = parse path
       batch.run
       batch
     end
-    
+
     def parse path
       #debug "Loading #{path}"
       lines = File.readlines path
@@ -139,17 +137,17 @@ class Tryouts
             end
             exps.last += 1
           end
-          
+
           offset = 0
           buffer, desc = Section.new(path), Section.new(path)
-          test = Section.new(path, idx)  # test start the line before the exp. 
+          test = Section.new(path, idx)  # test start the line before the exp.
           blank_buffer = Section.new(path)
           while (idx-offset >= 0)
             offset += 1
             this_line = lines[idx-offset].chomp
             buffer.unshift this_line if ignore?(this_line)
             if comment?(this_line)
-              buffer.unshift this_line 
+              buffer.unshift this_line
             end
             if test?(this_line)
               test.unshift(*buffer) && buffer.clear
@@ -167,47 +165,47 @@ class Tryouts
               desc.unshift *buffer
               desc.last = test.first-1
               desc.first = desc.last-desc.size+1
-              # remove empty lines between the description 
+              # remove empty lines between the description
               # and the previous expectation
-              while !desc.empty? && desc[0].empty? 
+              while !desc.empty? && desc[0].empty?
                 desc.shift
                 desc.first += 1
               end
-              break 
+              break
             end
           end
-          
+
           batch << TestCase.new(desc, test, exps)
         end
       end
-      
+
       batch
     end
-    
+
     def print str
       return if Tryouts.quiet
       STDOUT.print str
       STDOUT.flush
     end
-    
+
     def vmsg *msg
       STDOUT.puts *msg if !Tryouts.quiet && Tryouts.noisy
     end
-    
+
     def msg *msg
       STDOUT.puts *msg unless Tryouts.quiet
     end
-    
+
     def err *msg
       msg.each do |line|
         STDERR.puts Console.color :red, line
       end
     end
-    
+
     def debug *msg
       STDERR.puts *msg if @debug
     end
-    
+
     def eval(str, path, line)
       begin
         Kernel.eval str, @container.send(:binding), path, line
@@ -217,34 +215,34 @@ class Tryouts
         nil
       end
     end
-    
+
     private
-    
+
     def expectation? str
       !ignore?(str) && str.strip.match(/\A\#+\s*=>/)
     end
-    
+
     def comment? str
       !str.strip.match(/^\#+/).nil? && !expectation?(str)
     end
-    
+
     def test? str
       !ignore?(str) && !expectation?(str) && !comment?(str)
     end
-    
+
     def ignore? str
       str.to_s.strip.chomp.empty?
     end
-    
+
     def test_begin? str
       ret = !str.strip.match(/\#+\s*TEST/i).nil? ||
       !str.strip.match(/\A\#\#+[\s\w]+/i).nil?
       ret
     end
 
-    
+
   end
-  
+
   class TestBatch < Array
     class Container
       def metaclass
@@ -262,12 +260,12 @@ class Tryouts
     def run(before_test, &after_test)
       return if empty?
       setup
-      ret = self.select { |tc| 
+      ret = self.select { |tc|
         before_test.call(tc) unless before_test.nil?
-        ret = !tc.run 
+        ret = !tc.run
         after_test.call(tc)
         ret # select failed tests
-      } 
+      }
       @failed = ret.size
       @run = true
       clean
@@ -306,27 +304,27 @@ class Tryouts
     def run
       Tryouts.debug '%s:%d' % [@test.path, @test.first]
       Tryouts.debug inspect, $/
-      expectations = exps.collect { |exp,idx| 
+      expectations = exps.collect { |exp,idx|
         exp =~ /\A\#?\s*=>\s*(.+)\Z/
         $1  # this will be nil if the expectation is commented out
       }
-      
+
       # Evaluate test block only if there are valid expectations
       unless expectations.compact.empty?
         test_value = Tryouts.eval @test.to_s, @test.path, @test.first
         @has_run = true
       end
-      
+
       @passed, @failed, @skipped = [], [], []
-      expectations.each_with_index { |exp,idx| 
+      expectations.each_with_index { |exp,idx|
         if exp.nil?
           @skipped <<  '     [skipped]'
         else
           exp_value = Tryouts.eval(exp, @exps.path, @exps.first+idx)
           if test_value == exp_value
-            @passed << '     ==  %s' % [test_value.inspect] 
+            @passed << '     ==  %s' % [test_value.inspect]
           else
-            @failed << '     !=  %s' % [test_value.inspect] 
+            @failed << '     !=  %s' % [test_value.inspect]
           end
         end
       }
@@ -366,9 +364,9 @@ class Tryouts
     end
   end
 
-  
+
   module Console
-    
+
     # ANSI escape sequence numbers for text attributes
     ATTRIBUTES = {
       :normal     => 0,
@@ -408,7 +406,7 @@ class Tryouts
       :default => 49,
       :random  => 40 + rand(10).to_i
     }.freeze unless defined? BGCOLOURS
-    
+
     module InstanceMethods
       def bright
         Console.bright(self)
@@ -426,7 +424,7 @@ class Tryouts
         Console.bgcolor(col, self)
       end
     end
-    
+
     def self.bright(str)
       str = [style(ATTRIBUTES[:bright]), str, default_style].join
       str.extend Console::InstanceMethods
@@ -463,4 +461,3 @@ class Tryouts
   end
 
 end
-
