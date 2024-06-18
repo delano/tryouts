@@ -1,110 +1,101 @@
 # Tryouts v2.3.0 (2024-04-04)
 
-**Don't waste your time writing tests _and_ documentation!**
+**Ruby tests that read like documentation.**
+
+A simple test framework for Ruby code that uses introspection to allow defining checks in comments.
+
+## Installation
+
+One of:
+* In your Gemfile: `gem 'tryouts'`
+* As a gem: `gem install tryouts`
+* From source:
+
+```bash
+  $ git clone git://github.com/tryouts/tryouts.git
+```
+
+## Usage
+
+```bash
+  # Run all tests accessible from the current directory (e.g. ./try, ./tryouts))
+  $ try
+
+  # Run a single test file
+  $ try try/10_utils_try.rb
+
+  # Command arguments
+  $ try -h
+  Usage: try [options]
+      -V, --version                    Display the version
+      -q, --quiet                      Run in quiet mode
+      -v, --verbose                    Run in verbose mode
+      -f, --fails                      Show only failing tryouts
+      -D, --debug                      Run in debug mode
+      -h, --help                       Display this help
+```
+
+### Exit codes
+
+When all tests pass, try exits with a 0. An exit code of 1 or more indicates the number of failing tests.
 
 
-## Basic syntax
+## Writing tests
 
 ```ruby
   ## A very simple test
-    1 + 1
+  1 + 1
   #=> 2
 
   ## The test description can spread
   ## across multiple lines. The same
   ## is true for test definitions.
-    a = 'foo'
-    b = 'bar'
-    a + b
+  a = 'foo'
+  b = 'bar'
+  a + b
   #=> 'foobar'
 
   ## A test will pass when its return
   ## value equals the expectation.
-    'foo'.class
+  'foo'.class
   #=> String
 
-  ## The expectations are evaluated.
-    1 + 1
-  #=> 1 + 1
+  ## The expectations are evaluated as well.
+  81
+  #=> 9 * 9
 
   ## Here's an example of testing errors
-    begin
-      raise RuntimeError
-    rescue RuntimeError
-      :success
-    end
+  begin
+    raise RuntimeError
+  rescue RuntimeError
+    :success
+  end
   #=> :success
 ```
 
-For real world examples, see [Gibbler](https://github.com/delano/gibbler/) tryouts.
+For real world examples, see [Onetimesecret](https://github.com/onetimesecret/onetimesecret/) tryouts.
 
 
-## Setup / Cleanup
+### Test setup / cleanup
 
-All code before the first test definition is assumed to be setup code. All code after the last definition is assumed to be cleanup code. Here is an example:
+Put the setup code at the top of the file, and cleanup code at the bottom. Like this:
 
 ```ruby
   # This is called before all tests
   require 'gibbler'
   Gibbler.digest_type = Digest::SHA256
 
-  ## A Symbol can gibbler
+
+  ## This is a single testcase
     :anything.gibbler
-  #=> '754f87ca720ec256633a286d9270d68478850b2abd7b0ae65021cb769ae70c08'
+  #=> '8574309'
+
 
   # This will be called after all tests
   Gibbler.digest_type = Digest::SHA1
 ```
 
-
-## Running Tests
-
-Try ships with a command-line tool called `try`. When called with no arguments, it will look for files ending with _try.rb in the current directory, or in the subfolder try.
-
-You can also supply a specific file to test.
-
-```ruby
-  $ try path/2/test.rb
-  Ruby 1.9.1 @ 2011-01-06 12:38:29 -0500
-
-    # TEST 1: test matches result with expectation
-  7    a = 1 + 1
-  8    #=> 2
-        ==  2
-  ...
-
-    ## TEST 12: comments, tests, and expectations can
-    ## contain multiple lines
-  13   a = 1
-  14   b = 2
-  15   a + b
-  16   # => 3
-  17   # => 2 + 1
-        ==  3
-        ==  3
-
-    12 of 12 tests passed (and 5 skipped)
-```
-
-If all tests pass, try exits with a 0. Otherwise it exits with the number of tests that failed.
-
-
-For reduced output, use the `-q` option:
-
-```bash
-    $ try -q
-    Ruby 1.9.1 @ 2011-01-06 12:38:29 -0500
-
-     42 of 42 tests passed (and 5 skipped)
-      4 of 4 batches passed
-```
-
 __
-## Installation
-
-```bash
-  $ gem install tryouts
-```
 
 
 ## Thanks
