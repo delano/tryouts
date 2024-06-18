@@ -13,6 +13,8 @@ OptionParser.new do |opts|
   opts.on('-q', '--quiet', 'Run in quiet mode') { options[:quiet] = true }
   opts.on('-v', '--verbose', 'Run in verbose mode') { options[:noisy] = true }
   opts.on('-f', '--fails', 'Show only failing tryouts') { options[:fails] = true }
+  opts.on('-D', '--debug', 'Run in debug mode') { Tryouts.debug = true }
+  opts.on('-h', '--help', 'Display this help') { puts opts; exit }
 end.parse!
 
 # Set Tryouts options
