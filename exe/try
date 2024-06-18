@@ -1,46 +1,30 @@
-#!/usr/bin/ruby
+#!/usr/bin/env ruby
 
-#
-# Tryouts - Don't waste your time writing tests
-#
-# Usage:
-#
-#      $ try
-#      $ try -q
-#      $ try -v
-#      $ try path/2/file.rb
-#      $ try -q path/2/file.rb path/2/another.rb
-#
+require 'optparse'
+require_relative '../lib/tryouts'
 
-# Put our local lib in first place
-BASE_PATH = File.expand_path File.join(File.dirname(__FILE__), '..')
-lib_dir = File.join(BASE_PATH, 'lib')
-$:.unshift lib_dir
+# Add local lib directories to the load path
+Dir.glob(File.join(Dir.pwd, '{lib,..,lib}')).each { |dir| $LOAD_PATH.unshift(dir) }
 
-require 'tryouts'
+# Parse command-line arguments
+options = { quiet: false, noisy: false, fails: false }
+OptionParser.new do |opts|
+  opts.on('-V', '--version', 'Display the version') { puts "Tryouts: #{Tryouts::VERSION}"; exit }
+  opts.on('-q', '--quiet', 'Run in quiet mode') { options[:quiet] = true }
+  opts.on('-v', '--verbose', 'Run in verbose mode') { options[:noisy] = true }
+  opts.on('-f', '--fails', 'Show only failing tryouts') { options[:fails] = true }
+end.parse!
 
-# Help out the requires in the tryouts
-[File.join(Dir.pwd, 'lib'), File.join(Dir.pwd, '..', 'lib')].each do |dir|
-  $:.unshift dir
-end
+# Set Tryouts options
+Tryouts.quiet = options[:quiet]
+Tryouts.noisy = options[:noisy]
 
-unless ARGV.delete('-V').nil?
-  puts "Tryouts: #{Tryouts::VERSION}"
-  exit
-end
-
-Tryouts.quiet = !ARGV.delete('-q').nil?  # eg try -q [PATH]
-Tryouts.noisy = !ARGV.delete('-v').nil?  # eg try -v [PATH]
-
+# Determine tryout file paths
 if ARGV.empty?
   paths = Dir.glob(File.join(Dir.pwd, '{try,tryouts}', '*_{try,tryouts}.rb'))
   paths += Dir.glob(File.join(Dir.pwd, '*_{try,tryouts}.rb'))
 else
   paths = ARGV
 end
-
-#Tryouts.quiet
-#Tryouts.debug = true
-#Tryouts.container = self
 
 exit Tryouts.run_all(*paths)
