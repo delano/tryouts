@@ -1,4 +1,4 @@
-# Tryouts v2.2.0 (2024-04-04)
+# Tryouts v2.3.0 (2024-04-04)
 
 **Don't waste your time writing tests _and_ documentation!**
 
