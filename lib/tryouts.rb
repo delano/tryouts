@@ -49,6 +49,12 @@ class Tryouts
 
       msg 'Ruby %s @ %-40s' % [RUBY_VERSION, Time.now], $/
 
+      if Tryouts.debug?
+        Tryouts.debug "Found #{paths.size} files:"
+        paths.each { |path| Tryouts.debug "  #{path}" }
+        Tryouts.debug
+      end
+
       batches.each do |batch|
 
         path = batch.path.gsub(/#{Dir.pwd}\/?/, '')
@@ -56,7 +62,7 @@ class Tryouts
         vmsg '%-60s %s' % [path, '']
 
         before_handler = Proc.new do |t|
-          if Tryouts.noisy
+          if Tryouts.noisy && !Tryouts.fails
             vmsg Console.reverse(' %-58s ' % [t.desc.to_s])
             vmsg t.test.inspect, t.exps.inspect
           end
