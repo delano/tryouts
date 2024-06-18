@@ -18,6 +18,7 @@ end.parse!
 # Set Tryouts options
 Tryouts.quiet = options[:quiet]
 Tryouts.noisy = options[:noisy]
+Tryouts.fails = options[:fails]
 
 # Determine tryout file paths
 if ARGV.empty?
