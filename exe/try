@@ -2,11 +2,11 @@
 
 #
 # Tryouts - Don't waste your time writing tests
-# 
+#
 # Usage:
-# 
-#      $ try 
-#      $ try -q 
+#
+#      $ try
+#      $ try -q
 #      $ try -v
 #      $ try path/2/file.rb
 #      $ try -q path/2/file.rb path/2/another.rb
@@ -44,4 +44,3 @@ end
 #Tryouts.container = self
 
 exit Tryouts.run_all(*paths)
-
