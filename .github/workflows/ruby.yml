@@ -47,4 +47,4 @@ jobs:
         bundler-cache: true
 
     - name: Run the tryouts
-      run: bundle exec try -v try/*_try.rb
+      run: ruby bin/try -v try/*_try.rb
