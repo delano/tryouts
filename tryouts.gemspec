@@ -8,8 +8,9 @@ Gem::Specification.new do |s|
   s.homepage    = "https://github.com/delano/tryouts"
   s.license     = "MIT"  # replace with actual license
 
-  s.files = Dir["{lib,bin}/**/*", "LICENSE.txt", "README.rdoc", "Rakefile"]
-  s.executables = ["try"]
+  s.files = Dir["{lib,exe}/**/*", "LICENSE.txt", "README.md"]  # Include the exe folder
+  s.bindir = 'exe'  # Specify that executables are in the exe folder
+  s.executables = Dir.chdir('exe'){ Dir['*'] }.select { |f| File.file?("exe/#{f}") }
 
-  s.required_ruby_version = '>= 2.6.8'
+  s.required_ruby_version = Gem::Requirement.new(">= 2.7.8")
 end

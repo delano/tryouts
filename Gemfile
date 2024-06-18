@@ -1,6 +1,6 @@
 source 'https://rubygems.org'
 
-ruby '>= 2.6.8'
+ruby '>= 2.7.8'
 
 
 gem 'sysinfo', '~> 0.10'

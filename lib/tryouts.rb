@@ -23,11 +23,12 @@ class Tryouts
   @debug = false
   @quiet = false
   @noisy = false
+  @fails = false
   @container = Class.new
   @cases = []
   @sysinfo = nil
   class << self
-    attr_accessor :debug, :container, :quiet, :noisy
+    attr_accessor :debug, :container, :quiet, :noisy, :fails
     attr_reader :cases
 
     def sysinfo
@@ -48,6 +49,12 @@ class Tryouts
 
       msg 'Ruby %s @ %-40s' % [RUBY_VERSION, Time.now], $/
 
+      if Tryouts.debug?
+        Tryouts.debug "Found #{paths.size} files:"
+        paths.each { |path| Tryouts.debug "  #{path}" }
+        Tryouts.debug
+      end
+
       batches.each do |batch|
 
         path = batch.path.gsub(/#{Dir.pwd}\/?/, '')
@@ -55,7 +62,7 @@ class Tryouts
         vmsg '%-60s %s' % [path, '']
 
         before_handler = Proc.new do |t|
-          if Tryouts.noisy
+          if Tryouts.noisy && !Tryouts.fails
             vmsg Console.reverse(' %-58s ' % [t.desc.to_s])
             vmsg t.test.inspect, t.exps.inspect
           end
@@ -64,19 +71,19 @@ class Tryouts
         batch.run(before_handler) do |t|
           if t.failed?
             failed_tests += 1
-            if Tryouts.noisy
+            if Tryouts.noisy && Tryouts.fails
               vmsg Console.color(:red, t.failed.join($/)), $/
             else
               msg ' %s (%s:%s)' % [Console.color(:red, "FAIL"), path, t.exps.first]
             end
-          elsif t.skipped? || !t.run?
+          elsif (t.skipped? || !t.run?) && !Tryouts.fails
             skipped_tests += 1
             if Tryouts.noisy
               vmsg Console.bright(t.skipped.join($/)), $/
             else
               msg ' SKIP (%s:%s)' % [path, t.exps.first]
             end
-          else
+          elsif !Tryouts.fails
             if Tryouts.noisy
               vmsg Console.color(:green, t.passed.join($/)), $/
             else
