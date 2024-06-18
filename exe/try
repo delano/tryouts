@@ -22,10 +22,14 @@ Tryouts.quiet = options[:quiet]
 Tryouts.noisy = options[:noisy]
 Tryouts.fails = options[:fails]
 
-# Determine tryout file paths
+# Find tryouts path
 if ARGV.empty?
-  paths = Dir.glob(File.join(Dir.pwd, '{try,tryouts}', '*_{try,tryouts}.rb'))
-  paths += Dir.glob(File.join(Dir.pwd, '*_{try,tryouts}.rb'))
+  paths = Dir.glob(
+    ['./{try,tryouts/,.}/*_{try,tryouts}.rb'],
+    base: Dir.pwd,
+    sort: true  # deterministic order
+  )
+
 else
   paths = ARGV
 end
