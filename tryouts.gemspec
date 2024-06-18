@@ -8,8 +8,8 @@ Gem::Specification.new do |s|
   s.homepage    = "https://github.com/delano/tryouts"
   s.license     = "MIT"  # replace with actual license
 
-  s.files = Dir["{lib,bin}/**/*", "LICENSE.txt", "README.rdoc", "Rakefile"]
+  s.files = Dir["{lib,bin}/**/*", "LICENSE.txt", "README.md"]
   s.executables = ["try"]
 
-  s.required_ruby_version = '>= 2.6.8'
+  s.required_ruby_version = Gem::Requirement.new(">= 2.7.8")
 end
