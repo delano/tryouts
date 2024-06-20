@@ -53,8 +53,8 @@ class Tryouts
         vmsg '%-60s %s' % [path, '']
 
         before_handler = Proc.new do |t|
-          if Tryouts.noisy && !Tryouts.fails
-            vmsg Console.reverse(' %-58s ' % [t.desc.to_s])
+          if Tryouts.noisy
+            vmsg $/, Console.reverse('%-58s ' % [t.desc.to_s])
             vmsg t.test.inspect, t.exps.inspect
           end
         end
@@ -62,19 +62,19 @@ class Tryouts
         batch.run(before_handler) do |t|
           if t.failed?
             failed_tests += 1
-            if Tryouts.noisy && Tryouts.fails
+            if Tryouts.noisy
               vmsg Console.color(:red, t.failed.join($/)), $/
             else
               msg ' %s (%s:%s)' % [Console.color(:red, "FAIL"), path, t.exps.first]
             end
-          elsif (t.skipped? || !t.run?) && !Tryouts.fails
+          elsif (t.skipped? || !t.run?)
             skipped_tests += 1
             if Tryouts.noisy
               vmsg Console.bright(t.skipped.join($/)), $/
             else
               msg ' SKIP (%s:%s)' % [path, t.exps.first]
             end
-          elsif !Tryouts.fails
+          else
             if Tryouts.noisy
               vmsg Console.color(:green, t.passed.join($/)), $/
             else
