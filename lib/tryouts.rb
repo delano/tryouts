@@ -31,7 +31,9 @@ class Tryouts
       @sysinfo
     end
 
-    def debug? = @debug == true
+    def debug?
+      @debug == true
+    end
 
     def update_load_path(lib_glob)
       Dir.glob(lib_glob).each { |dir| $LOAD_PATH.unshift(dir) }
