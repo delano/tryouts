@@ -67,28 +67,26 @@ class Tryouts
         batch.run(before_handler) do |t|
           if t.failed?
             failed_tests += 1
-            if Tryouts.noisy
-              vmsg Console.color(:red, t.failed.join($/)), $/
-            else
-              msg format(' %s (%s:%s)', Console.color(:red, 'FAIL'), path, t.exps.first)
-            end
+
+            vmsg Console.color(:red, t.failed.join($/)), $/
+            msg format(' %s (%s:%s)', Console.color(:red, 'FAIL'), path, t.exps.first)
+
           elsif t.skipped? || !t.run?
             skipped_tests += 1
-            if Tryouts.noisy
-              vmsg Console.bright(t.skipped.join($/)), $/
-            else
-              msg format(' SKIP (%s:%s)', path, t.exps.first)
-            end
-          elsif Tryouts.noisy
-            vmsg Console.color(:green, t.passed.join($/)), $/
+
+            vmsg Console.bright(t.skipped.join($/)), $/
+            msg format(' SKIP (%s:%s)', path, t.exps.first)
+
           else
+            vmsg Console.color(:green, t.passed.join($/)), $/
             msg format(' %s', Console.color(:green, 'PASS'))
+
           end
           all += 1
         end
       end
 
-      msg $/  # newline
+      msg $INPUT_RECORD_SEPARATOR  # newline
 
       if all
         suffix = "tests passed (plus #{skipped_tests} skipped)" if skipped_tests > 0
@@ -186,7 +184,6 @@ class Tryouts
 
       batch
     end
-
     def print(str)
       return if Tryouts.quiet
 
@@ -199,7 +196,7 @@ class Tryouts
     end
 
     def msg *msg
-      STDOUT.puts(*msg) unless Tryouts.quiet
+      $stdout.puts(*msg) unless Tryouts.quiet
     end
 
     def err *msg
