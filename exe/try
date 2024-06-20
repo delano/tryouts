@@ -9,12 +9,18 @@ Dir.glob(File.join(Dir.pwd, '{lib,..,lib}')).each { |dir| $LOAD_PATH.unshift(dir
 # Parse command-line arguments
 options = { quiet: false, noisy: false, fails: false }
 OptionParser.new do |opts|
-  opts.on('-V', '--version', 'Display the version') { puts "Tryouts: #{Tryouts::VERSION}"; exit }
+  opts.on('-V', '--version', 'Display the version') do
+    puts "Tryouts: #{Tryouts::VERSION}"
+    exit
+  end
   opts.on('-q', '--quiet', 'Run in quiet mode') { options[:quiet] = true }
   opts.on('-v', '--verbose', 'Run in verbose mode') { options[:noisy] = true }
   opts.on('-f', '--fails', 'Show only failing tryouts') { options[:fails] = true }
   opts.on('-D', '--debug', 'Run in debug mode') { Tryouts.debug = true }
-  opts.on('-h', '--help', 'Display this help') { puts opts; exit }
+  opts.on('-h', '--help', 'Display this help') do
+    puts opts
+    exit
+  end
 end.parse!
 
 # Set Tryouts options
@@ -26,14 +32,14 @@ Tryouts.fails = options[:fails]
 # script was called with arguments in which case
 # we consume those as a list of paths.
 paths = if ARGV.empty?
-  Dir.glob(
-    ['./{try,tryouts/,.}/*_{try,tryouts}.rb'],
-    base: Dir.pwd
-  ).sort  # deterministic order
+          Dir.glob(
+            ['./{try,tryouts/,.}/*_{try,tryouts}.rb'],
+            base: Dir.pwd
+          ).sort # deterministic order
 
-else
-  ARGV
-end
+        else
+          ARGV
+        end
 
 # Running the tryouts returns the number of
 # test failures so here we pass that value
