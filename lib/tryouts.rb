@@ -18,7 +18,8 @@ class Tryouts
   @cases = []
   @sysinfo = nil
   class << self
-    attr_accessor :debug, :container, :quiet, :noisy, :fails
+    attr_accessor :container, :quiet, :noisy, :fails
+    attr_writer :debug
     attr_reader :cases
 
     def sysinfo
@@ -191,22 +192,22 @@ class Tryouts
       $stdout.flush
     end
 
-    def vmsg *msg
-      $stdout.puts(*msg) if !Tryouts.quiet && Tryouts.noisy
+    def vmsg *msgs
+      msg(*msgs) if Tryouts.noisy
     end
 
-    def msg *msg
-      $stdout.puts(*msg) unless Tryouts.quiet
+    def msg *msgs
+      $stdout.puts(*msgs) unless Tryouts.quiet
     end
 
-    def err *msg
+    def err *msgs
       msg.each do |line|
-        warn Console.color :red, line
+        $stderr.puts Console.color :red, line
       end
     end
 
-    def debug *msg
-      warn(*msg) if @debug
+    def debug *msgs
+      $stderr.puts(*msgs) if debug?
     end
 
     def eval(str, path, line)
