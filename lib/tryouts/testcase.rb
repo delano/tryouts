@@ -2,10 +2,11 @@
 
 class Tryouts
   class TestCase
-    attr_reader :desc, :test, :exps, :failed, :passed, :skipped
+    attr_reader :desc, :test, :exps, :path, :outlines, :test_result
 
     def initialize(d, t, e)
       @desc, @test, @exps, @path = d, t, e
+      @outlines = []
     end
 
     def inspect
@@ -19,52 +20,78 @@ class Tryouts
     def run
       Tryouts.debug format('%s:%d', @test.path, @test.first)
       Tryouts.debug inspect, $/
+      $stdout = StringIO.new
       expectations = exps.collect do |exp, _idx|
         exp =~ /\A\#?\s*=>\s*(.+)\Z/
         ::Regexp.last_match(1) # this will be nil if the expectation is commented out
       end
 
       # Evaluate test block only if there are valid expectations
-      unless expectations.compact.empty?
+      unless expectations.compact.empty?  # TODO: fast-fail if no expectations
         test_value = Tryouts.eval @test.to_s, @test.path, @test.first
         @has_run = true
       end
+      $stdout = STDOUT # restore stdout
 
-      @passed = []
-      @failed = []
-      @skipped = []
+
       expectations.each_with_index do |exp, idx|
         if exp.nil?
-          @skipped << '     [skipped]'
+          @outlines << '     [skipped]'
+          @test_result = 0
         else
+          # Evaluate expectation
+
           exp_value = Tryouts.eval(exp, @exps.path, @exps.first + idx)
-          if test_value == exp_value
-            @passed << format('     ==  %s', test_value.inspect)
-          else
-            @failed << format('     !=  %s', test_value.inspect)
-          end
+
+          test_passed = test_value.eql?(exp_value)
+          @test_result = test_passed ? 1 : -1
+          @outlines << test_value.inspect
         end
       end
-      Tryouts.debug
-      @failed.empty?
-    end
+      Tryouts.debug # extra newline
+      failed?
 
-    def skipped?
-      !@skipped.nil? && !@skipped.empty?
+    rescue Exception => e
+      Tryouts.debug e.message, e.backtrace.join($/), $/
+      $stdout = STDOUT # restore stdout
     end
 
     def run?
-      @has_run == true
+      @has_run.eql?(true)
     end
 
+    def skipped?
+      @test_result == 0
+    end
+
+    def passed?
+      @test_result == 1
+    end
     def failed?
-      !@failed.nil? && !@failed.empty?
+      @test_result == -1
     end
 
-    private
-
-    def create_proc(str, path, line)
-      eval("Proc.new {\n  #{str}\n}", binding, __FILE__, __LINE__)
+    def color
+      case @test_result
+      when 1
+        :green
+      when 0
+        :white
+      else
+        :red
+      end
     end
+
+    def adjective
+      case @test_result
+      when 1
+        'PASSED'
+      when 0
+        'SKIPPED'
+      else
+        'FAILED'
+      end
+    end
+
   end
 end

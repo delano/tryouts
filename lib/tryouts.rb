@@ -48,7 +48,7 @@ class Tryouts
       skipped_batches = 0
       failed_batches = 0
 
-      msg format('Ruby %s @ %-40s', RUBY_VERSION, Time.now), $/
+      msg format('Ruby %s @ %-60s', RUBY_VERSION, Time.now), $/
 
       if Tryouts.debug?
         Tryouts.debug "Found #{paths.size} files:"
@@ -58,41 +58,48 @@ class Tryouts
 
       batches.each do |batch|
         path = batch.path.gsub(%r{#{Dir.pwd}/?}, '')
+        divider = '-' * 70
+        path_pretty = format('>>>>>  %-20s  %s', path, '').ljust(70, '<')
 
         msg $/
-        vmsg format('%-60s %s', path, '')
+        vmsg Console.reverse(divider)
+        vmsg Console.reverse(path_pretty)
+        vmsg Console.reverse(divider)
+        vmsg $/
 
-        before_handler = proc do |t|
+        before_handler = proc do |tc|
           if Tryouts.noisy
-            vmsg Console.reverse(format('%-58s ', t.desc.to_s))
-            vmsg t.test.inspect, t.exps.inspect
+            tc_title = tc.desc.to_s
+            vmsg Console.underline(format('%-58s ', tc_title))
+            vmsg tc.test.inspect, tc.exps.inspect
           end
         end
 
-        batch.run(before_handler) do |t|
-          if t.failed?
-            failed_tests += 1
-
-            vmsg Console.color(:red, t.failed.join($/)), $/
-            msg Console.color(:red, '%s (%s:%s)' % ['FAIL', path, t.exps.first])
-
-          elsif t.skipped? || !t.run?
-            skipped_tests += 1
-
-            vmsg Console.color(:white, t.skipped.join($/)), $/
-            msg Console.color(:white, '%s (%s:%s)' % ['SKIP', path, t.exps.first])
-
-          else
-            vmsg Console.color(:green, t.passed.join($/)), $/
-            msg  Console.color(:green, 'PASS')
-
-          end
+        batch.run(before_handler) do |tc|
           all += 1
+          failed_tests += 1 if tc.failed?
+          skipped_tests += 1 if tc.skipped?
+          codelines = tc.outlines.join($/)
+          first_exp_line = tc.exps.first
+          result_adjective = tc.failed? ? 'FAILED' : 'PASSED'
+
+          first_exp_line = tc.exps.first
+          location = format('%s:%d', tc.exps.path, first_exp_line)
+
+          expectation = Console.color(tc.color, codelines)
+          summary = Console.color(tc.color, "%s @ %s" % [tc.adjective, location])
+          vmsg '         %s' % expectation
+          if tc.failed?
+            msg Console.reverse(summary)
+          else
+            msg summary
+          end
+          vmsg
 
           # Output buffered testcase_io to stdout
           # and reset it for the next test case.
-          unless Tryouts.fails && !t.failed?
-            $stdout.puts testcase_io.string
+          unless Tryouts.fails && !tc.failed?
+            $stdout.puts testcase_io.string unless Tryouts.quiet
           end
 
           # Reset the testcase IO buffer
@@ -100,6 +107,7 @@ class Tryouts
         end
       end
 
+      # Create a line of separation before the result summary
       msg $INPUT_RECORD_SEPARATOR  # newline
 
       if all
@@ -117,6 +125,7 @@ class Tryouts
         msg cformat(batches.size - skipped_batches - failed_batches, batches.size - skipped_batches, suffix)
       end
 
+      # Print out the buffered result summary
       $stdout.puts testcase_io.string
 
       failed_tests  # returns the number of failed tests (0 if all passed)
