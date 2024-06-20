@@ -3,8 +3,18 @@
 require 'optparse'
 require_relative '../lib/tryouts'
 
-# Add local lib directories to the load path
-Dir.glob(File.join(Dir.pwd, '{lib,..,lib}')).each { |dir| $LOAD_PATH.unshift(dir) }
+# Adding local lib directories allows the test files
+# to require the ruby code they are testing without
+# needing even if the files use regular requires. It
+# skips the test files from having to muck with the
+# load path or use `require_relative` which is easy
+# to forget. This is a convenience feature.
+#
+# Here we're looking for directories relative to the
+# current working directory (i.e. where this script
+# is being run from.
+lib_glob = File.join(Dir.pwd, '{lib,../lib,.}')
+Tryouts.update_load_path(lib_glob)
 
 # Parse command-line arguments
 OptionParser.new do |opts|

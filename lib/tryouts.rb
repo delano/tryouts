@@ -26,6 +26,10 @@ class Tryouts
 
     def debug?() @debug == true end
 
+    def update_load_path(lib_glob)
+      Dir.glob(lib_glob).each { |dir| $LOAD_PATH.unshift(dir) }
+    end
+
     def run_all *paths
       batches = paths.collect do |path|
         parse path
