@@ -11,7 +11,7 @@ Gem::Specification.new do |s|
   s.license     = "MIT"  # replace with actual license
   s.required_ruby_version = Gem::Requirement.new(">= 2.7.8")
 
-  s.files = Dir["{lib,exe}/**/*", "LICENSE.txt", "README.md"]  # Include the exe folder
+  s.files = Dir["{lib,exe}/**/*", "LICENSE.txt", "README.md", "VERSION.yml"]  # Include the exe folder
   s.bindir = 'exe'  # Specify that executables are in the exe folder
   s.executables = Dir.chdir('exe'){ Dir['*'] }.select { |f| File.file?("exe/#{f}") }
 end

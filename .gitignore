@@ -15,3 +15,5 @@ etc/config
 log
 tmp
 vendor
+node_modules/
+.pnpm/

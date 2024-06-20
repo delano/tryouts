@@ -3,35 +3,49 @@
 require 'optparse'
 require_relative '../lib/tryouts'
 
-# Add local lib directories to the load path
-Dir.glob(File.join(Dir.pwd, '{lib,..,lib}')).each { |dir| $LOAD_PATH.unshift(dir) }
+# Adding local lib directories allows the test files
+# to require the ruby code they are testing without
+# needing even if the files use regular requires. It
+# skips the test files from having to muck with the
+# load path or use `require_relative` which is easy
+# to forget. This is a convenience feature.
+#
+# Here we're looking for directories relative to the
+# current working directory (i.e. where this script
+# is being run from.
+lib_glob = File.join(Dir.pwd, '{lib,../lib,.}')
+Tryouts.update_load_path(lib_glob)
 
 # Parse command-line arguments
-options = { quiet: false, noisy: false, fails: false }
 OptionParser.new do |opts|
-  opts.on('-V', '--version', 'Display the version') { puts "Tryouts: #{Tryouts::VERSION}"; exit }
-  opts.on('-q', '--quiet', 'Run in quiet mode') { options[:quiet] = true }
-  opts.on('-v', '--verbose', 'Run in verbose mode') { options[:noisy] = true }
-  opts.on('-f', '--fails', 'Show only failing tryouts') { options[:fails] = true }
+  opts.on('-V', '--version', 'Display the version') do
+    puts "Tryouts: #{Tryouts::VERSION}"
+    exit
+  end
+  opts.on('-q', '--quiet', 'Run in quiet mode') { Tryouts.quiet = true }
+  opts.on('-v', '--verbose', 'Run in verbose mode') { Tryouts.noisy = true }
+  opts.on('-f', '--fails', 'Show only failing tryouts') { Tryouts.fails = true }
   opts.on('-D', '--debug', 'Run in debug mode') { Tryouts.debug = true }
-  opts.on('-h', '--help', 'Display this help') { puts opts; exit }
+  opts.on('-h', '--help', 'Display this help') do
+    puts opts
+    exit
+  end
 end.parse!
 
-# Set Tryouts options
-Tryouts.quiet = options[:quiet]
-Tryouts.noisy = options[:noisy]
-Tryouts.fails = options[:fails]
+# Find tryouts path with a path glob unless thin
+# script was called with arguments in which case
+# we consume those as a list of paths.
+paths = if ARGV.empty?
+          Dir.glob(
+            ['./{try,tryouts/,.}/*_{try,tryouts}.rb'],
+            base: Dir.pwd
+          ).sort # deterministic order
 
-# Find tryouts path
-if ARGV.empty?
-  paths = Dir.glob(
-    ['./{try,tryouts/,.}/*_{try,tryouts}.rb'],
-    base: Dir.pwd,
-    sort: true  # deterministic order
-  )
+        else
+          ARGV
+        end
 
-else
-  paths = ARGV
-end
-
+# Running the tryouts returns the number of
+# test failures so here we pass that value
+# through as the exit code for the script.
 exit Tryouts.run_all(*paths)

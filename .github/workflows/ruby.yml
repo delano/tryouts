@@ -46,5 +46,17 @@ jobs:
         bundler: ${{ matrix.bundler }}
         bundler-cache: true
 
-    - name: Run the tryouts (using gem script, dogfood style)
-      run: ruby exe/try -v try/*_try.rb
+    - name: Run tryouts (-V)
+      run: ruby exe/try -V
+
+    - name: Run tryouts (-v)
+      run: ruby exe/try -v
+
+    - name: Run tryouts (-vf)
+      run: ruby exe/try -vf
+
+    - name: Run tryouts (-q)
+      run: ruby exe/try -q
+
+    - name: Run tryouts (-D)
+      run: ruby exe/try -D

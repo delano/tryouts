@@ -1,9 +1,8 @@
-require 'rubygems'
+# frozen_string_literal: true
 
 # TEST 1: test matches result with expectation
 a = 1 + 1
 #=> 2
-
 
 ## TEST 2: comments, tests, and expectations can
 ## contain multiple lines
@@ -17,29 +16,30 @@ a + b
 'foo'.class
 #=> String
 
-
 # TEST 4: instance variables can be used in expectations
 @a = 1
 @a
 #=> @a
 
-
 # TEST 5: test ignores blank lines before expectations
 @a += 1
 'foo'
 
-
 #=> 'foo'
-
 
 # TEST 6: test allows whiny expectation markers for textmate users *sigh*
 'foo'
 # =>  'foo'
 
-
 # TEST 7: test expectations can be commented out
 'foo'
-##=> 'this would fail'
+##=> 'this is a skipped test'
 
-x = raise rescue 'foo'
-#=> 'foo'
+# Everything after this is run as teardown code
+
+x = begin
+  raise
+rescue StandardError
+  'if you can see this, teardown succeeded'
+end  # noqa
+puts x
