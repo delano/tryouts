@@ -22,16 +22,20 @@ Tryouts.quiet = options[:quiet]
 Tryouts.noisy = options[:noisy]
 Tryouts.fails = options[:fails]
 
-# Find tryouts path
-if ARGV.empty?
-  paths = Dir.glob(
+# Find tryouts path with a path glob unless thin
+# script was called with arguments in which case
+# we consume those as a list of paths.
+paths = if ARGV.empty?
+  Dir.glob(
     ['./{try,tryouts/,.}/*_{try,tryouts}.rb'],
-    base: Dir.pwd,
-    sort: true  # deterministic order
-  )
+    base: Dir.pwd
+  ).sort  # deterministic order
 
 else
-  paths = ARGV
+  ARGV
 end
 
+# Running the tryouts returns the number of
+# test failures so here we pass that value
+# through as the exit code for the script.
 exit Tryouts.run_all(*paths)
