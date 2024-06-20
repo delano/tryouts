@@ -6,7 +6,6 @@
 .vscode
 *.env
 *.log
-*.md
 *.txt
 !LICENSE.txt
 .ruby-version
