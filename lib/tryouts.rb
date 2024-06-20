@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require 'stringio'
 
 TRYOUTS_LIB_HOME = __dir__ unless defined?(TRYOUTS_LIB_HOME)
 
@@ -17,10 +18,12 @@ class Tryouts
   @container = Class.new
   @cases = []
   @sysinfo = nil
-  class << self
+  @testcase_io = StringIO.new
+
+  module ClassMethods
     attr_accessor :container, :quiet, :noisy, :fails
     attr_writer :debug
-    attr_reader :cases
+    attr_reader :cases, :testcase_io
 
     def sysinfo
       require 'sysinfo'
@@ -56,11 +59,12 @@ class Tryouts
       batches.each do |batch|
         path = batch.path.gsub(%r{#{Dir.pwd}/?}, '')
 
+        msg $/
         vmsg format('%-60s %s', path, '')
 
         before_handler = proc do |t|
           if Tryouts.noisy
-            vmsg $/, Console.reverse(format('%-58s ', t.desc.to_s))
+            vmsg Console.reverse(format('%-58s ', t.desc.to_s))
             vmsg t.test.inspect, t.exps.inspect
           end
         end
@@ -70,27 +74,36 @@ class Tryouts
             failed_tests += 1
 
             vmsg Console.color(:red, t.failed.join($/)), $/
-            msg format(' %s (%s:%s)', Console.color(:red, 'FAIL'), path, t.exps.first)
+            msg Console.color(:red, '%s (%s:%s)' % ['FAIL', path, t.exps.first])
 
           elsif t.skipped? || !t.run?
             skipped_tests += 1
 
-            vmsg Console.bright(t.skipped.join($/)), $/
-            msg format(' SKIP (%s:%s)', path, t.exps.first)
+            vmsg Console.color(:white, t.skipped.join($/)), $/
+            msg Console.color(:white, '%s (%s:%s)' % ['SKIP', path, t.exps.first])
 
           else
             vmsg Console.color(:green, t.passed.join($/)), $/
-            msg format(' %s', Console.color(:green, 'PASS'))
+            msg  Console.color(:green, 'PASS')
 
           end
           all += 1
+
+          # Output buffered testcase_io to stdout
+          # and reset it for the next test case.
+          unless Tryouts.fails && !t.failed?
+            $stdout.puts testcase_io.string
+          end
+
+          # Reset the testcase IO buffer
+          testcase_io.truncate(0)
         end
       end
 
       msg $INPUT_RECORD_SEPARATOR  # newline
 
       if all
-        suffix = "tests passed (plus #{skipped_tests} skipped)" if skipped_tests > 0
+        suffix = "tests passed (#{skipped_tests} skipped)" if skipped_tests > 0
         actual_test_size = all - skipped_tests
         if actual_test_size > 0
           msg cformat(all - failed_tests - skipped_tests, all - skipped_tests, suffix)
@@ -100,11 +113,13 @@ class Tryouts
       actual_batch_size = (batches.size - skipped_batches)
       if batches.size > 1 && actual_batch_size > 0
         suffix = 'batches passed'
-        suffix << " (plus #{skipped_batches} skipped)" if skipped_batches > 0
+        suffix << " (#{skipped_batches} skipped)" if skipped_batches > 0
         msg cformat(batches.size - skipped_batches - failed_batches, batches.size - skipped_batches, suffix)
       end
 
-      failed_tests # 0 means success
+      $stdout.puts testcase_io.string
+
+      failed_tests  # returns the number of failed tests (0 if all passed)
     end
 
     def cformat(*args)
@@ -148,7 +163,6 @@ class Tryouts
         buffer = Section.new(path)
         desc = Section.new(path)
         test = Section.new(path, idx) # test start the line before the exp.
-        blank_buffer = Section.new(path)
         while idx - offset >= 0
           offset += 1
           this_line = lines[idx - offset].chomp
@@ -197,7 +211,7 @@ class Tryouts
     end
 
     def msg *msgs
-      $stdout.puts(*msgs) unless Tryouts.quiet
+      testcase_io.puts(*msgs) unless Tryouts.quiet
     end
 
     def err *msgs
@@ -242,4 +256,5 @@ class Tryouts
     end
   end
 
+  extend ClassMethods
 end
