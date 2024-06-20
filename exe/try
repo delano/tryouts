@@ -7,26 +7,20 @@ require_relative '../lib/tryouts'
 Dir.glob(File.join(Dir.pwd, '{lib,..,lib}')).each { |dir| $LOAD_PATH.unshift(dir) }
 
 # Parse command-line arguments
-options = { quiet: false, noisy: false, fails: false }
 OptionParser.new do |opts|
   opts.on('-V', '--version', 'Display the version') do
     puts "Tryouts: #{Tryouts::VERSION}"
     exit
   end
-  opts.on('-q', '--quiet', 'Run in quiet mode') { options[:quiet] = true }
-  opts.on('-v', '--verbose', 'Run in verbose mode') { options[:noisy] = true }
-  opts.on('-f', '--fails', 'Show only failing tryouts') { options[:fails] = true }
+  opts.on('-q', '--quiet', 'Run in quiet mode') { Tryouts.quiet = true }
+  opts.on('-v', '--verbose', 'Run in verbose mode') { Tryouts.noisy = true }
+  opts.on('-f', '--fails', 'Show only failing tryouts') { Tryouts.fails = true }
   opts.on('-D', '--debug', 'Run in debug mode') { Tryouts.debug = true }
   opts.on('-h', '--help', 'Display this help') do
     puts opts
     exit
   end
 end.parse!
-
-# Set Tryouts options
-Tryouts.quiet = options[:quiet]
-Tryouts.noisy = options[:noisy]
-Tryouts.fails = options[:fails]
 
 # Find tryouts path with a path glob unless thin
 # script was called with arguments in which case
