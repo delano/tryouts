@@ -1,0 +1,18 @@
+{
+    "name": "tryouts-lang",
+    "version": "2.3.0",
+    "description": "A Tree-sitter grammar for a simple Ruby testing library called Tryouts.",
+    "main": "src/index.js",
+    "scripts": {
+      "generate": "tree-sitter generate",
+      "test": "tree-sitter test"
+    },
+    "keywords": ["tree-sitter", "grammar"],
+    "devDependencies": {
+      "nan": "^2.14.0",
+      "tree-sitter-cli": "^0.20.0"
+    },
+    "dependencies": {
+      "tree-sitter": "^0.20.0"
+    }
+  }
