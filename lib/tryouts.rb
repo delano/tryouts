@@ -190,12 +190,12 @@ class Tryouts
     def print(str)
       return if Tryouts.quiet
 
-      STDOUT.print str
-      STDOUT.flush
+      $stdout.print str
+      $stdout.flush
     end
 
     def vmsg *msg
-      STDOUT.puts(*msg) if !Tryouts.quiet && Tryouts.noisy
+      $stdout.puts(*msg) if !Tryouts.quiet && Tryouts.noisy
     end
 
     def msg *msg
