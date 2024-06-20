@@ -53,6 +53,10 @@ class Tryouts
         Console.bright(self)
       end
 
+      def underline
+        Console.underline(self)
+      end
+
       def reverse
         Console.reverse(self)
       end
@@ -72,6 +76,12 @@ class Tryouts
 
     def self.bright(str)
       str = [style(ATTRIBUTES[:bright]), str, default_style].join
+      str.extend Console::InstanceMethods
+      str
+    end
+
+    def self.underline(str)
+      str = [style(ATTRIBUTES[:underline]), str, default_style].join
       str.extend Console::InstanceMethods
       str
     end
