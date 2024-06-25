@@ -33,7 +33,6 @@ class Tryouts
       end
       $stdout = STDOUT # restore stdout
 
-
       expectations.each_with_index do |exp, idx|
         if exp.nil?
           @outlines << '     [skipped]'
@@ -51,9 +50,11 @@ class Tryouts
       Tryouts.debug # extra newline
       failed?
 
-    rescue Exception => e
-      Tryouts.debug e.message, e.backtrace.join($/), $/
+    rescue StandardException => e
+      Tryouts.debug "[testcaste.run] #{e.message}", e.backtrace.join($/), $/
       $stdout = STDOUT # restore stdout
+      # Continue raising the exception
+      raise e
     end
 
     def run?

@@ -30,6 +30,9 @@ class Tryouts
       @run = true
       clean
       !failed?
+    rescue StandardError => e
+      @failed = 1
+      $stderr.puts e.message, e.backtrace.join($/), $/
     end
 
     def failed?
