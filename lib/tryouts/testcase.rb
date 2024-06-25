@@ -49,6 +49,12 @@ class Tryouts
       end
       Tryouts.debug # extra newline
       failed?
+
+    rescue StandardException => e
+      Tryouts.debug "[testcaste.run] #{e.message}", e.backtrace.join($/), $/
+      $stdout = STDOUT # restore stdout
+      # Continue raising the exception
+      raise e
     end
 
     def run?
