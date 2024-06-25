@@ -226,7 +226,7 @@ class Tryouts
     end
 
     def err *msgs
-      msg.each do |line|
+      msgs.each do |line|
         $stderr.puts Console.color :red, line
       end
     end
