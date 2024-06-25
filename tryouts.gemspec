@@ -14,4 +14,7 @@ Gem::Specification.new do |s|
   s.files = Dir["{lib,exe}/**/*", "LICENSE.txt", "README.md", "VERSION.yml"]  # Include the exe folder
   s.bindir = 'exe'  # Specify that executables are in the exe folder
   s.executables = Dir.chdir('exe'){ Dir['*'] }.select { |f| File.file?("exe/#{f}") }
+
+  spec.required_ruby_version = '>= 2.7.8'
+  spec.add_dependency 'sysinfo', '~> 0.10'
 end

@@ -1,3 +1,9 @@
+PATH
+  remote: .
+  specs:
+    tryouts (2.3.2)
+      sysinfo (~> 0.10)
+
 GEM
   remote: https://rubygems.org/
   specs:
@@ -49,15 +55,12 @@ GEM
 
 PLATFORMS
   arm64-darwin-23
-  ruby
+  arm64-darwin-24
 
 DEPENDENCIES
   rspec
   rubocop
-  sysinfo (~> 0.10)
-
-RUBY VERSION
-   ruby 3.1.4p223
+  tryouts!
 
 BUNDLED WITH
    2.4.12
