@@ -9,50 +9,53 @@ class Tryouts
     end
     attr_reader :path, :failed, :lines
 
-    def initialize(p, l)
-      @path = p
-      @lines = l
+    def initialize(path, lines)
+      @path = path
+      @lines = lines
       @container = Container.new.metaclass
       @run = false
+      #super
     end
 
     def run(before_test, &after_test)
       return if empty?
+      testcase_score = nil
 
       setup
-      ret = self.select do |tc|
+      failed_tests = self.select do |tc|
         before_test.call(tc) unless before_test.nil?
         begin
-          ret = !tc.run  # returns true if test failed
+          testcase_score = tc.run  # returns -1 for failed, 0 for skipped, 1 for passed
         rescue StandardError => e
-          ret = true
-          $stderr.puts Console.color(:red, "Error in test: #{tc.inspect}")
-          $stderr.puts Console.color(:red, e.message)
-          $stderr.puts e.backtrace.join($/), $/
+          testcase_score = -1
+          warn Console.color(:red, "Error in test: #{tc.inspect}")
+          warn Console.color(:red, e.message)
+          warn e.backtrace.join($/), $/
         end
         after_test.call(tc) # runs the tallying code
-        ret # select failed tests
+        testcase_score.negative? # select failed tests
       end
 
-      @failed = ret.size
+      warn Console.color(:red, "Failed tests: #{failed_tests.size}") if Tryouts.debug?
+      @failed = failed_tests.size
       @run = true
       clean
       !failed?
 
     rescue StandardError => e
-      @failed = 1
-      $stderr.puts e.message, e.backtrace.join($/), $/
+      @failed = 1 # so that failed? returns true
+      warn e.message, e.backtrace.join($/), $/
     end
 
     def failed?
-      !@failed.nil? && @failed > 0
+      !@failed.nil? && @failed.positive?
     end
 
     def setup
       return if empty?
 
       start = first.desc.nil? ? first.test.first : first.desc.first - 1
-      Tryouts.eval lines[0..start - 1].join, path, 0 if start > 0
+      Tryouts.eval lines[0..start - 1].join, path, 0 if start.positive?
     end
 
     def clean

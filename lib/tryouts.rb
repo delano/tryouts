@@ -109,7 +109,13 @@ class Tryouts
           # Reset the testcase IO buffer
           testcase_io.truncate(0)
         end
+
+        failed_tests += batch.failed
+        if Tryouts.debug?
+          msg "Batch failed_tests: #{batch.failed} (#{batch.failed?}) #{failed_tests}"
+        end
       end
+
 
       # Create a line of separation before the result summary
       msg $INPUT_RECORD_SEPARATOR  # newline
@@ -125,6 +131,9 @@ class Tryouts
           success_count = tryouts_incr - failed_tests - skipped_tests
           total_count = tryouts_incr - skipped_tests
           msg cformat(success_count, total_count, suffix)
+          if Tryouts.debug?
+            msg "tryouts_incr: %d; failed: %d; skipped: %d" % [tryouts_incr, failed_tests, skipped_tests]
+          end
         end
       end
 
@@ -256,6 +265,7 @@ class Tryouts
 
     def eval(str, path, line)
       Kernel.eval str, @container.send(:binding), path, line
+
     rescue SyntaxError, LoadError => e
       Tryouts.err Console.color(:red, e.message),
                   Console.color(:red, e.backtrace.first)
