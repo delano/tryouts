@@ -1,4 +1,4 @@
-# Tryouts v2.3.1 (2024-06-18)
+# Tryouts v2.4 (2024-07-20)
 
 **Ruby tests that read like documentation.**
 

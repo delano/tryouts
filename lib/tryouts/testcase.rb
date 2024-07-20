@@ -2,11 +2,12 @@
 
 class Tryouts
   class TestCase
-    attr_reader :desc, :test, :exps, :path, :outlines, :test_result
+    attr_reader :desc, :test, :exps, :path, :testrunner_output, :test_result, :console_output
 
     def initialize(d, t, e)
       @desc, @test, @exps, @path = d, t, e
-      @outlines = []
+      @testrunner_output = []
+      @console_output = StringIO.new
     end
 
     def inspect
@@ -20,22 +21,27 @@ class Tryouts
     def run
       Tryouts.debug format('%s:%d', @test.path, @test.first)
       Tryouts.debug inspect, $/
-      $stdout = StringIO.new
+
+      $stdout = @console_output
       expectations = exps.collect do |exp, _idx|
         exp =~ /\A\#?\s*=>\s*(.+)\Z/
         ::Regexp.last_match(1) # this will be nil if the expectation is commented out
       end
 
+      Tryouts.info 'Capturing STDOUT for tryout'
+      Tryouts.info 'vvvvvvvvvvvvvvvvvvv'
       # Evaluate test block only if there are valid expectations
       unless expectations.compact.empty?  # TODO: fast-fail if no expectations
         test_value = Tryouts.eval @test.to_s, @test.path, @test.first
         @has_run = true
       end
-      $stdout = STDOUT # restore stdout
+      Tryouts.info '^^^^^^^^^^^^^^^^^^^'
 
+      Tryouts.info "Capturing STDOUT for expectations"
+      Tryouts.info 'vvvvvvvvvvvvvvvvvvv'
       expectations.each_with_index do |exp, idx|
         if exp.nil?
-          @outlines << '     [skipped]'
+          @testrunner_output << '     [skipped]'
           @test_result = 0
         else
           # Evaluate expectation
@@ -44,17 +50,22 @@ class Tryouts
 
           test_passed = test_value.eql?(exp_value)
           @test_result = test_passed ? 1 : -1
-          @outlines << test_value.inspect
+          @testrunner_output << test_value.inspect
         end
       end
+      Tryouts.info '^^^^^^^^^^^^^^^^^^^'
+      $stdout = STDOUT # restore stdout
+
       Tryouts.debug # extra newline
       failed?
 
+
     rescue StandardError => e
       Tryouts.debug "[testcaste.run] #{e.message}", e.backtrace.join($/), $/
-      $stdout = STDOUT # restore stdout
       # Continue raising the exception
       raise e
+    ensure
+      $stdout = STDOUT # restore stdout
     end
 
     def run?

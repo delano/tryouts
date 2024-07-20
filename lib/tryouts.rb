@@ -44,7 +44,7 @@ class Tryouts
         parse path
       end
 
-      all = 0
+      tryouts_incr = 0
       skipped_tests = 0
       failed_tests = 0
       skipped_batches = 0
@@ -78,12 +78,13 @@ class Tryouts
         end
 
         batch.run(before_handler) do |tc|
-          all += 1
+          tryouts_incr += 1
           failed_tests += 1 if tc.failed?
           skipped_tests += 1 if tc.skipped?
-          codelines = tc.outlines.join($/)
+          codelines = tc.testrunner_output.join($/)
           first_exp_line = tc.exps.first
-          result_adjective = tc.failed? ? 'FAILED' : 'PASSED'
+
+          Tryouts.debug Console.color(:white, "tryouts_incr is now %d" % tryouts_incr)
 
           first_exp_line = tc.exps.first
           location = format('%s:%d', tc.exps.path, first_exp_line)
@@ -98,10 +99,11 @@ class Tryouts
           end
           vmsg
 
-          # Output buffered testcase_io to stdout
-          # and reset it for the next test case.
+          # Output the buffered testcase_io to stdout
+          # and then reset it for the next test case.
           unless Tryouts.fails && !tc.failed?
             $stdout.puts testcase_io.string unless Tryouts.quiet
+            $stdout.puts tc.console_output.string if Tryouts.noisy
           end
 
           # Reset the testcase IO buffer
@@ -112,19 +114,29 @@ class Tryouts
       # Create a line of separation before the result summary
       msg $INPUT_RECORD_SEPARATOR  # newline
 
-      if all
-        suffix = "tests passed (#{skipped_tests} skipped)" if skipped_tests > 0
-        actual_test_size = all - skipped_tests
+      if tryouts_incr
+        suffix = "tryouts passed"
+        if skipped_tests > 0
+          suffix = "#{suffix} (#{skipped_tests} skipped)"
+        end
+
+        actual_test_size = tryouts_incr - skipped_tests
         if actual_test_size > 0
-          msg cformat(all - failed_tests - skipped_tests, all - skipped_tests, suffix)
+          success_count = tryouts_incr - failed_tests - skipped_tests
+          total_count = tryouts_incr - skipped_tests
+          msg cformat(success_count, total_count, suffix)
         end
       end
 
-      actual_batch_size = (batches.size - skipped_batches)
-      if batches.size > 1 && actual_batch_size > 0
+      # In what circumstance is this ever true?
+      #
+      adjusted_batch_size = (batches.size - skipped_batches)
+      if batches.size > 1 && adjusted_batch_size > 0
         suffix = 'batches passed'
         suffix << " (#{skipped_batches} skipped)" if skipped_batches > 0
-        msg cformat(batches.size - skipped_batches - failed_batches, batches.size - skipped_batches, suffix)
+        success_count = adjusted_batch_size - failed_batches
+        total_count = adjusted_batch_size
+        msg cformat(success_count, total_count, suffix)
       end
 
       # Print out the buffered result summary
@@ -133,8 +145,8 @@ class Tryouts
       failed_tests  # returns the number of failed tests (0 if all passed)
     end
 
-    def cformat(*args)
-      Console.bright '%d of %d %s' % args
+    def cformat(lval, rval, suffix = nil)
+      Console.bright '%d of %d %s' % [lval, rval, suffix]
     end
 
     def run(path)
@@ -210,6 +222,7 @@ class Tryouts
 
       batch
     end
+
     def print(str)
       return if Tryouts.quiet
 
@@ -223,6 +236,12 @@ class Tryouts
 
     def msg *msgs
       testcase_io.puts(*msgs) unless Tryouts.quiet
+    end
+
+    def info *msgs
+      msgs.each do |line|
+        $stdout.puts line
+      end
     end
 
     def err *msgs
