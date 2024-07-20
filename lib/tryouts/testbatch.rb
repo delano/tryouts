@@ -36,26 +36,26 @@ class Tryouts
         testcase_score.negative? # select failed tests
       end
 
-      warn Console.color(:red, "Failed tests: #{failed_tests.size}") #if Tryouts.debug?
+      warn Console.color(:red, "Failed tests: #{failed_tests.size}") if Tryouts.debug?
       @failed = failed_tests.size
       @run = true
       clean
       !failed?
 
     rescue StandardError => e
-      @failed = 1  # so that failed? returns true
+      @failed = 1 # so that failed? returns true
       warn e.message, e.backtrace.join($/), $/
     end
 
     def failed?
-      !@failed.nil? && @failed > 0
+      !@failed.nil? && @failed.positive?
     end
 
     def setup
       return if empty?
 
       start = first.desc.nil? ? first.test.first : first.desc.first - 1
-      Tryouts.eval lines[0..start - 1].join, path, 0 if start > 0
+      Tryouts.eval lines[0..start - 1].join, path, 0 if start.positive?
     end
 
     def clean
