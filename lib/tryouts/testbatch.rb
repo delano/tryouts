@@ -9,32 +9,34 @@ class Tryouts
     end
     attr_reader :path, :failed, :lines
 
-    def initialize(p, l)
-      @path = p
-      @lines = l
+    def initialize(path, lines)
+      @path = path
+      @lines = lines
       @container = Container.new.metaclass
       @run = false
+      #super
     end
 
     def run(before_test, &after_test)
       return if empty?
+      testcase_score = nil
 
       setup
       failed_tests = self.select do |tc|
         before_test.call(tc) unless before_test.nil?
         begin
-          has_failed = !tc.run  # returns true if test failed
+          testcase_score = tc.run  # returns -1 for failed, 0 for skipped, 1 for passed
         rescue StandardError => e
-          has_failed = true
-          $stderr.puts Console.color(:red, "Error in test: #{tc.inspect}")
-          $stderr.puts Console.color(:red, e.message)
-          $stderr.puts e.backtrace.join($/), $/
+          testcase_score = -1
+          warn Console.color(:red, "Error in test: #{tc.inspect}")
+          warn Console.color(:red, e.message)
+          warn e.backtrace.join($/), $/
         end
         after_test.call(tc) # runs the tallying code
-        has_failed # select failed tests
+        testcase_score.negative? # select failed tests
       end
 
-      $stderr.puts Console.color(:red, "Failed tests: #{failed_tests.size}") #if Tryouts.debug?
+      warn Console.color(:red, "Failed tests: #{failed_tests.size}") #if Tryouts.debug?
       @failed = failed_tests.size
       @run = true
       clean
@@ -42,7 +44,7 @@ class Tryouts
 
     rescue StandardError => e
       @failed = 1  # so that failed? returns true
-      $stderr.puts e.message, e.backtrace.join($/), $/
+      warn e.message, e.backtrace.join($/), $/
     end
 
     def failed?
