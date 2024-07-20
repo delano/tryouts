@@ -20,27 +20,28 @@ class Tryouts
       return if empty?
 
       setup
-      ret = self.select do |tc|
+      failed_tests = self.select do |tc|
         before_test.call(tc) unless before_test.nil?
         begin
-          ret = !tc.run  # returns true if test failed
+          has_failed = !tc.run  # returns true if test failed
         rescue StandardError => e
-          ret = true
+          has_failed = true
           $stderr.puts Console.color(:red, "Error in test: #{tc.inspect}")
           $stderr.puts Console.color(:red, e.message)
           $stderr.puts e.backtrace.join($/), $/
         end
         after_test.call(tc) # runs the tallying code
-        ret # select failed tests
+        has_failed # select failed tests
       end
 
-      @failed = ret.size
+      $stderr.puts Console.color(:red, "Failed tests: #{failed_tests.size}") #if Tryouts.debug?
+      @failed = failed_tests.size
       @run = true
       clean
       !failed?
 
     rescue StandardError => e
-      @failed = 1
+      @failed = 1  # so that failed? returns true
       $stderr.puts e.message, e.backtrace.join($/), $/
     end
 
