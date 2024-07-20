@@ -22,14 +22,23 @@ class Tryouts
       setup
       ret = self.select do |tc|
         before_test.call(tc) unless before_test.nil?
-        ret = !tc.run
-        after_test.call(tc)
+        begin
+          ret = !tc.run  # returns true if test failed
+        rescue StandardError => e
+          ret = true
+          $stderr.puts Console.color(:red, "Error in test: #{tc.inspect}")
+          $stderr.puts Console.color(:red, e.message)
+          $stderr.puts e.backtrace.join($/), $/
+        end
+        after_test.call(tc) # runs the tallying code
         ret # select failed tests
       end
+
       @failed = ret.size
       @run = true
       clean
       !failed?
+
     rescue StandardError => e
       @failed = 1
       $stderr.puts e.message, e.backtrace.join($/), $/
