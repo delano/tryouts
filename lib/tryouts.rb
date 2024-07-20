@@ -136,7 +136,7 @@ class Tryouts
         suffix << " (#{skipped_batches} skipped)" if skipped_batches > 0
         success_count = adjusted_batch_size - failed_batches
         total_count = adjusted_batch_size
-        msg cformat(success_count, total_count, 'suffix')
+        msg cformat(success_count, total_count, suffix)
       end
 
       # Print out the buffered result summary
