@@ -40,12 +40,24 @@ GEM
     rubocop-ast (1.30.0)
       parser (>= 3.2.1.0)
     ruby-progressbar (1.13.0)
+    ruby_tree_sitter (1.8.0)
+      sorbet-runtime
+      zeitwerk
+    ruby_tree_sitter (1.8.0-arm64-darwin)
+      sorbet-runtime
+      zeitwerk
+    sorbet-runtime (0.5.11645)
     storable (0.10.0)
     strscan (3.1.0)
     sysinfo (0.10.0)
       drydock (< 1.0)
       storable (~> 0.10)
+    tree_stand (0.2.0)
+      ruby_tree_sitter
+      sorbet-runtime
+      zeitwerk
     unicode-display_width (2.5.0)
+    zeitwerk (2.7.1)
 
 PLATFORMS
   arm64-darwin-23
@@ -55,6 +67,7 @@ DEPENDENCIES
   rspec
   rubocop
   sysinfo (~> 0.10)
+  tree_stand (~> 0.2.0)
 
 RUBY VERSION
    ruby 3.1.4p223

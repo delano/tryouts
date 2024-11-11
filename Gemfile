@@ -9,3 +9,5 @@ group :development, :test do
   gem 'rspec'
   gem 'rubocop'
 end
+
+gem "tree_stand", "~> 0.2.0"
