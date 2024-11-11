@@ -11,7 +11,7 @@
 #      $ try path/2/file.rb
 #      $ try -q path/2/file.rb path/2/another.rb
 #
-pp RUBY_VERSION
+
 require 'pathname'
 
 # Put our local lib in first place
@@ -23,7 +23,6 @@ require 'tryouts'
 
 # Help out the requires in the tryouts
 [File.join(Dir.pwd, 'lib'), File.join(Dir.pwd, '..', 'lib')].each do |dir|
-  p [:loading, dir]
   $LOAD_PATH.unshift dir
 end
 
@@ -45,13 +44,18 @@ end
 language_path = BASE_PATH.join('tree-sitter-grammar/build/Release/tree_sitter_ruby_tryouts.dylib')
 
 parser = Tryouts::Parser.new(language_path)
-test_file = parser.parse_file(BASE_PATH.join('try/step1_try.rb'))
 
-puts "File: #{test_file.path}"
-test_file.test_cases.each do |test|
-  puts "\nTest: #{test.title}"
-  puts "Code:\n#{test.code}"
-  puts "Expectations:"
-  test.expectations.each { |exp| puts "- #{exp}" }
-  puts "-" * 40
+paths.each do |path|
+  pp [:path, path]
+  test_file = parser.parse_file(path)
+  puts "File: #{test_file}"
 end
+
+#puts "File: #{test_file}"
+#test_file.test_cases.each do |test|
+#  puts "\nTest: #{test.title}"
+#  puts "Code:\n#{test.code}"
+#  puts "Expectations:"
+#  test.expectations.each { |exp| puts "- #{exp}" }
+#  puts "-" * 40
+#end

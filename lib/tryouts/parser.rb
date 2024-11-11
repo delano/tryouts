@@ -1,49 +1,78 @@
-# Load required gems
-require 'pathname'
-require 'tree_sitter'
-require 'pp'
+class Tryouts::Parser
+  TestCase = Struct.new(:title, :code, :expectations)
+  TestFile = Struct.new(:path, :test_cases)
 
-# Get absolute path to the .so file
-root_dir = Pathname.new(TRYOUTS_LIB_HOME).join('..')
-language_path = root_dir.join('tree-sitter-grammar/build/Release/tree_sitter_ruby_tryouts.dylib')
+  attr_reader :language
 
-begin
-  # Load the compiled language with name and path
-  language = TreeSitter::Language.load('ruby_tryouts', language_path.to_s)
-  parser = TreeSitter::Parser.new
-  parser.language = language
+  def initialize(language_path)
+    @language = TreeSitter::Language.load('ruby_tryouts', language_path.to_s)
+    @parser = TreeSitter::Parser.new
+    @parser.language = @language
+  end
 
-  # Parse source file
-  source_path = root_dir.join('try/step1_try.rb')
-  source_code = File.read(source_path)
-  tree = parser.parse_string(nil, source_code)
-  root = tree.root_node
+  def parse_file(path)
+    source_code = File.read(path)
+    tree = @parser.parse_string(nil, source_code)
+    root = tree.root_node
 
-  # Query-based traversal with proper text extraction
-  query_string = '(test_case
-    (code_block) @code
-    (expectation) @expect)'
+    # Query matches the actual grammar structure
+    query_string = <<~QUERY
+      (source_file
+        (test_case
+          code_block: (code_block) @code
+          expectation: (expectation) @expectation
+        ) @test_case
+      )
+    QUERY
 
-  query = language.query(query_string)
-  matches = query.matches(root)
+    begin
+      query = TreeSitter::Query.new(language, query_string)
+      cursor = TreeSitter::QueryCursor.exec(query, root)
 
-  matches.each do |match|
-    code_node = match.captures.find { |c| c.name == 'code' }&.node
-    expect_node = match.captures.find { |c| c.name == 'expect' }&.node
+      test_cases = []
 
-    if code_node && expect_node
-      code_text = source_code[code_node.start_byte...code_node.end_byte]
-      expect_text = source_code[expect_node.start_byte...expect_node.end_byte]
+      while match = cursor.next_match
+        test_nodes = match.captures.map(&:node)
+        test_nodes.each do |test_node|
+          if test_node.type.to_s == 'test_case'
+            code_block = test_node.child_by_field_name('code_block')
+            expect_node = test_node.child_by_field_name('expectation')
 
-      puts "\nTest Case:"
-      puts "Code:\n#{code_text}"
-      puts "Expectation:\n#{expect_text}"
-      puts "-" * 40
+            if code_block && expect_node
+              # Extract full text of the code block
+              code_block_text = extract_node_text(code_block, source_code)
+
+              # Extract expectation text
+              expectation_text = extract_node_text(expect_node, source_code)
+
+              puts "Code Block:"
+              puts code_block_text
+              puts "Expectation:"
+              puts expectation_text
+            end
+          end
+        end
+      end
+
+      TestFile.new(path, test_cases)
+    rescue => e
+      raise "Query error: #{e.message}\nQuery: #{query_string}"
     end
   end
 
-rescue => e
-  puts "Error: #{e.message}"
-  puts e.backtrace
-  exit 1
+  private
+
+  def extract_text(node, source_code)
+    return nil unless node
+    source_code[node.start_byte...node.end_byte].strip
+  end
+
+  def extract_node_text(node, source_code)
+    # Get the byte range of the node
+    start_byte = node.start_byte
+    end_byte = node.end_byte
+
+    # Extract text from source code using the byte range
+    source_code[start_byte...end_byte]
+  end
 end
