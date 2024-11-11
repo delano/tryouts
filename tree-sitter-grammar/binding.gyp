@@ -1,30 +1,27 @@
 {
   "targets": [
     {
-      "target_name": "tree_sitter_grammar_binding",
-      "dependencies": [
-        "<!(node -p \"require('node-addon-api').targets\"):node_addon_api_except",
+      "target_name": "tree_sitter_ruby_tryouts",
+      "type": "shared_library",
+      "sources": [
+        "src/parser.c",
+        "src/scanner.c"
       ],
       "include_dirs": [
-        "src",
+        "src"
       ],
-      "sources": [
-        "bindings/node/binding.cc",
-        "src/parser.c",
-        # NOTE: if your language has an external scanner, add it here.
+      "cflags": [
+        "-std=c99",
+        "-fPIC"
       ],
       "conditions": [
-        ["OS!='win'", {
-          "cflags_c": [
-            "-std=c11",
-          ],
-        }, { # OS == "win"
-          "cflags_c": [
-            "/std:c11",
-            "/utf-8",
-          ],
-        }],
-      ],
+        ["OS=='mac'", {
+          "xcode_settings": {
+            "GCC_ENABLE_CPP_EXCEPTIONS": "YES",
+            "MACOSX_DEPLOYMENT_TARGET": "10.9"
+          }
+        }]
+      ]
     }
   ]
 }

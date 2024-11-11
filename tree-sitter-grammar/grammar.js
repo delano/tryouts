@@ -1,75 +1,60 @@
+/**
+ * @file Tryouts grammar for tree-sitter
+ * @license MIT
+ */
+
 /// <reference types="tree-sitter-cli/dsl" />
 // @ts-check
 
 module.exports = grammar({
-  name: 'tryouts',
+  name: 'ruby_tryouts',
+
+  extras: $ => [/\s/],
+
+  conflicts: $ => [
+    [$.code_block, $.source_file]
+  ],
+
+  precedences: $ => [
+    ['test_case'],
+    ['code_block'],
+    ['code_line']
+  ],
 
   rules: {
-    source_file: $ => seq(
-      optional($.setup_section),
-      repeat1($.tryout_block),
-      optional($.teardown_section)
-    ),
+    source_file: $ => repeat(choice(
+      $.test_case,
+      $.code_line,
+      $.comment
+    )),
 
-    setup_section: $ => seq(
-      repeat($.comment),
-      repeat($.require_statement),
-      repeat1(choice(
-        $.assignment_statement,
-        $.configuration_statement,
-        $.any_statement
-      ))
-    ),
-
-    teardown_section: $ => repeat1($.any_statement),
-
-    tryout_block: $ => seq(
-      repeat1($.tryout_description),
-      repeat($.code_line),
+    test_case: $ => prec('test_case', seq(
+      $.code_block,
       $.expectation
+    )),
+
+    code_block: $ => prec('code_block', repeat1(
+      choice(
+        $.code_line,
+        $.comment
+      )
+    )),
+
+    code_line: $ => prec('code_line',
+      /[^#\n][^\n]*/
     ),
 
-    tryout_description: $ => seq(
-      '##',
-      /[^\n]+/
+    comment: $ => choice(
+      seq('#', /[^=>\n].*/),
+      seq('##', /[^\n]*/)
     ),
 
     expectation: $ => seq(
-      '#=>',
-      /[^\n]+/
+      choice('#=>', '# =>'),
+      field('value', /[^\n]*/)
     ),
 
-    comment: $ => seq(
-      '#',
-      /[^\n]*/
-    ),
-
-    require_statement: $ => seq(
-      'require',
-      $.string_literal
-    ),
-
-    assignment_statement: $ => seq(
-      '@',
-      /[a-zA-Z_][a-zA-Z0-9_]*/,
-      '=',
-      $.any_value
-    ),
-
-    configuration_statement: $ => seq(
-      /[A-Z][a-zA-Z0-9:]*\.(configure|boot|path)/,
-      /[^\n]+/
-    ),
-
-    code_line: $ => /[^#][^\n]*/,
-
-    string_literal: $ => choice(
-      seq("'", /[^']*/, "'"),
-      seq('"', /[^"]*/, '"')
-    ),
-
-    any_value: $ => /[^\n]+/,
-
-    any_statement: $ => /[^\n]+/
+    word: $ => /\w+/,
+    _whitespace: $ => /\s+/
   }
 });
