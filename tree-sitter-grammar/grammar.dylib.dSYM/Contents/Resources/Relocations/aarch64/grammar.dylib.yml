@@ -1,0 +1,5 @@
+---
+triple:          'arm64-apple-darwin'
+binary-path:     '/Users/d/Projects/opensource/d/tryouts/tree-sitter-grammar/grammar.dylib'
+relocations:     []
+...
