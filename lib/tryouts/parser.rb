@@ -1,3 +1,72 @@
+
+#
+#   The query captures:
+#
+#   1. File-level metadata:
+#      - Type (requires, version, ruby, at, timezone)
+#      - Value
+#
+#   2. Identify Setup and Teardown sections
+#
+#   3. For each test case:
+#      - All description lines
+#      - Code block
+#      - Multiple expectations with:
+#        - Value (single or multi-line)
+#        - Optional status (pass/fail)
+#      - Expected failures with:
+#        - Error type
+#        - Optional error message
+#
+#   This structure allows Tryouts to:
+#   1. Set up the environment based on metadata
+#   2. Execute each test with proper context
+#   3. Handle both successful and error cases
+#   4. Support multiple assertions per test
+#   5. Provide rich failure messages
+#   6. Execute setup code first
+#   7. Run test cases in sequence
+#   8. Execute teardown code last
+#   9. Maintain instance variables across the entire batch
+#
+QUERY_TEXT = <<~QUERY
+  (source_file
+    metadata: (metadata_declaration
+      type: _ @metadata_type
+      value: _ @metadata_value
+    )*
+
+    setup: (setup_section
+      (code_line)* @setup_code
+      (instance_var_declaration)* @setup_vars
+    )?
+
+    (test_case
+      description: (description
+        text: _ @description
+      )*
+
+      code_block: (code_block) @code
+
+      (choice
+        expectation: (expectation
+          value: _ @expectation_value
+          status: _ @expectation_status?
+        )
+
+        expected_failure: (expected_failure
+          error_type: _ @error_type
+          message: _ @error_message?
+        )
+      )+
+    ) @test_case
+
+    teardown: (teardown_section
+      (code_line)* @teardown_code
+    )?
+  ) @source_file
+QUERY
+
 class Tryouts::Parser
   TestCase = Struct.new(:title, :code, :expectations)
   TestFile = Struct.new(:path, :test_cases)
@@ -15,51 +84,39 @@ class Tryouts::Parser
     tree = @parser.parse_string(nil, source_code)
     root = tree.root_node
 
-    query_string = <<~QUERY
-      (source_file
-        (test_case
-          code_block: (code_block) @code
-          expectation: (expectation) @expectation
-        ) @test_case
-      )
-    QUERY
-
 
     begin
-      query = TreeSitter::Query.new(language, query_string)
+      query = TreeSitter::Query.new(language, QUERY_TEXT)
       cursor = TreeSitter::QueryCursor.exec(query, root)
       matches = cursor.matches(query, root, source_code)
       test_cases = []
       current_test = nil
       current_test_node = nil
-      current_expectations = []
 
       matches.each_capture_hash do |captures|
-          require 'pry-byebug'; binding.pry;
-
         case_node = captures['test_case']
         code_node = captures['code']
         expect_node = captures['expectation']
 
-        # If we see a new test case and have an existing one, save it
-        if current_test && case_node != current_test_node
-          test_cases << current_test
-          current_expectations = []
-        end
-        pp [:case_node, case_node]
-        pp [:current_test_node, current_test_node]
-        pp [:current_test, current_test]
+        next unless case_node && code_node # Skip if essential nodes are missing
 
-        # Start a new test case if we haven't seen this node before
-        if case_node != current_test_node
+        # Check if this is a new test case
+        is_new_test = current_test_node.nil? ||
+                      (case_node && current_test_node && case_node.id != current_test_node.id)
+
+        if is_new_test
+          # Save previous test case if it exists
+          test_cases << current_test if current_test
+
+          # Create new test case
           title = extract_title(code_node, source_code)
           code = extract_code(code_node, source_code)
           current_test = TestCase.new(title, code, [])
           current_test_node = case_node
         end
 
-        # Add expectation to current test case
-        if expect_node
+        # Add expectation to current test case if we have both
+        if current_test && expect_node
           expectation = extract_expectation(expect_node, source_code)
           current_test.expectations << expectation
         end
@@ -72,14 +129,14 @@ class Tryouts::Parser
     rescue => e
       puts "Query error: #{e.message}\nQuery: #{query_string}"
       puts e.backtrace
+      nil
     end
   end
 
   private
-
   def extract_title(code_node, source_code)
     # Look for comment lines starting with "## " or "# TEST"
-    code_node.child_nodes.each do |node|
+    code_node.each do |node|
       if node.type.to_s == 'comment'
         text = extract_node_text(node, source_code)
         if text.match?(/^#\s*TEST|^##\s+/)
@@ -92,7 +149,7 @@ class Tryouts::Parser
 
   def extract_code(code_node, source_code)
     # Filter out comments and get only actual code lines
-    lines = code_node.child_nodes.map do |node|
+    lines = code_node.map do |node|
       if node.type.to_s == 'code_line'
         extract_node_text(node, source_code)
       end
