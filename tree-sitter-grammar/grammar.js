@@ -5,30 +5,6 @@
  * @license MIT
  */
 
-/**
- *
- * The grammar is now complete and supports:
- * 1. Basic Tryouts functionality
- *    - Setup/teardown sections
- *    - Test cases with descriptions
- *    - Single and multi-line expectations
- *    - Instance variables
- *
- * 2. New Features
- *    - Expected failure cases with messages
- *    - Metadata declarations for:
- *      - Dependencies
- *      - Versions
- *      - Time travel
- *    - Multi-line formatted output
- *
- * 3. Proper Field Names
- *    - All important nodes have named fields
- *    - Error types and messages are properly separated
- *    - Metadata types are clearly defined
- */
-
-
 /// <reference types="tree-sitter-cli/dsl" />
 // @ts-check
 
@@ -36,16 +12,19 @@ module.exports = grammar({
   name: 'ruby_tryouts',
 
   /**
-   * Define what elements should be implicitly handled between tokens
-   * In our case, just whitespace
+   * Implicitly handled elements between tokens.
+   * Currently only handles standard whitespace characters.
+   * Note: Extend this if additional ignorable elements are needed.
    */
   extras: $ => [/\s/],
 
   /**
-   * Handle ambiguous cases where the parser could match multiple rules.
-   * Key conflicts:
-   * - code_block vs source_file: Since both can contain sequences of code
-   * - setup/teardown vs code_block: Since both can contain code and comments
+   * Resolution rules for ambiguous parsing scenarios.
+   * These conflicts are intentional and tell tree-sitter how to handle overlapping patterns.
+   *
+   * Key ambiguities handled:
+   * 1. code_block vs source_file: Both can contain arbitrary Ruby code
+   * 2. setup/teardown vs code_block: Both can contain similar elements
    */
   conflicts: $ => [
     [$.code_block, $.source_file],
@@ -54,8 +33,9 @@ module.exports = grammar({
   ],
 
   /**
-   * Establish evaluation order for rules that could overlap.
-   * Higher precedence rules are evaluated first.
+   * Precedence rules for overlapping patterns.
+   * Higher precedence = evaluated first.
+   * Critical for correct parsing of nested structures.
    */
   precedences: $ => [
     ['test_case'],
@@ -65,10 +45,12 @@ module.exports = grammar({
 
   rules: {
     /**
-     * A Tryouts file contains:
-     * 1. Optional setup section - for shared context and instance vars
-     * 2. One or more test cases - the actual tests
-     * 3. Optional teardown section - for cleanup
+     * Root node of a Tryouts file.
+     * Structure:
+     * 1. Optional metadata declarations (@requires, @version, etc.)
+     * 2. Optional setup section for shared context
+     * 3. One or more test cases (required)
+     * 4. Optional teardown section for cleanup
      */
     source_file: $ => seq(
       optional(repeat1($.metadata_declaration)),
@@ -78,12 +60,14 @@ module.exports = grammar({
     ),
 
     /**
-     * Setup section can contain:
-     * - Regular code lines
-     * - Comments
+     * Setup section for shared test context.
+     * Can contain:
+     * - Ruby code lines
+     * - Comments/documentation
      * - Instance variable declarations (preferred location)
      *
-     * Uses prec.right to handle nested sequences correctly
+     * Uses prec.right to handle nested code sequences correctly.
+     * Critical for proper AST construction with multiple lines.
      */
     setup_section: $ => prec.right(repeat1(choice(
       $.code_line,
@@ -92,9 +76,12 @@ module.exports = grammar({
     ))),
 
     /**
-     * Teardown section can contain:
-     * - Regular code lines
-     * - Comments
+     * Teardown section for test cleanup.
+     * Can contain:
+     * - Ruby code lines
+     * - Comments/documentation
+     *
+     * Note: Instance variables can be referenced but not declared here.
      */
     teardown_section: $ => prec.right(repeat1(choice(
       $.code_line,
@@ -102,10 +89,16 @@ module.exports = grammar({
     ))),
 
     /**
-     * A test case consists of:
-     * 1. Optional description lines starting with ##
-     * 2. A code block containing the test code
-     * 3. One or more expectations starting with #=> or # =>
+     * Individual test case structure.
+     * Components:
+     * 1. Optional description lines (##)
+     * 2. Required code block with test implementation
+     * 3. One or more expectations (#=>) or expected failures (#!>)
+     *
+     * Example:
+     * ## Tests string concatenation
+     * "hello" + " world"
+     * #=> "hello world"
      */
     test_case: $ => prec('test_case', seq(
       optional(repeat1($.description)),
@@ -117,10 +110,13 @@ module.exports = grammar({
     )),
 
     /**
-     * Code blocks can contain:
-     * - Regular code lines
-     * - Comments
-     * - Instance variable references (but not declarations)
+     * Code block container.
+     * Holds executable Ruby code and can include:
+     * - Standard code lines
+     * - Comments/documentation
+     * - Instance variable references
+     *
+     * Note: Distinguished from setup/teardown by context and content restrictions
      */
     code_block: $ => prec('code_block', repeat1(
       choice(
@@ -131,19 +127,27 @@ module.exports = grammar({
     )),
 
     /**
-     * A line of Ruby code
-     * - Excludes lines starting with # (comments)
-     * - Excludes lines starting with @ (instance vars)
-     * - Preserves the raw Ruby source for later evaluation
+     * Single line of Ruby code.
+     * Restrictions:
+     * - Cannot start with # (comments)
+     * - Cannot start with @ (instance vars)
+     * - Preserves raw source for evaluation
+     *
+     * Note: Newlines are significant for parsing
      */
     code_line: $ => prec('code_line',
       /[^#@\n][^\n]*/
     ),
 
     /**
-     * Instance variable declarations
+     * Instance variable declaration.
      * Format: @variable_name = value
-     * Should primarily appear in setup section
+     *
+     * Example:
+     * @user = User.new
+     * @count = 42
+     *
+     * Note: Should primarily appear in setup section
      */
     instance_var_declaration: $ => seq(
       '@',
@@ -153,9 +157,14 @@ module.exports = grammar({
     ),
 
     /**
-     * Instance variable references
+     * Instance variable reference.
      * Format: @variable_name
-     * Can appear in any code block
+     *
+     * Example:
+     * @user.name
+     * @count + 1
+     *
+     * Can appear in any code block after declaration
      */
     instance_var_reference: $ => seq(
       '@',
@@ -163,38 +172,44 @@ module.exports = grammar({
     ),
 
     /**
-     * Ruby identifier rules:
+     * Ruby identifier pattern.
+     * Rules:
      * - Must start with letter or underscore
      * - Can contain letters, numbers, underscores
+     * - Case sensitive
      */
     identifier: $ => /[a-zA-Z_][a-zA-Z0-9_]*/,
 
-     /**
-    * Three types of comments:
-    * 1. Regular comments starting with #
-    * 2. Description comments starting with ##
-    * 3. Disabled expectations - any of:
-    *    - ##=> or ## => (disabled expectation)
-    *    - ### (disabled expectation)
-    *    - !## (disabled expectation)
-    *
-    * Note: If all expectations in a test case are disabled,
-    * the test runner will skip the entire test case.
-    */
+    /**
+     * Comment variations.
+     * Types:
+     * 1. Standard comments (#)
+     * 2. Description comments (##)
+     * 3. Disabled expectations:
+     *    - ##=> or ## => (disabled expectation)
+     *    - ### (disabled expectation)
+     *
+     * Note: Disabled expectations will cause test case to be skipped
+     * if all expectations are disabled
+     */
     comment: $ => choice(
-      seq('#', /[^=>\n!].*/),    // Regular comment (exclude ! for #!>)
-      $.description,             // Description comment (##)
-      choice(                    // Disabled expectations
+      seq('#', /[^=>\n!].*/),    // Standard comment
+      $.description,              // Description comment
+      choice(                     // Disabled expectations
         seq('##=>', /[^\n]*/),
         seq('## =>', /[^\n]*/),
-        seq('###', /[^\n]*/),
+        seq('###', /[^\n]*/)
       )
     ),
 
     /**
-     * Test case descriptions
-     * - Start with ##
-     * - Capture remaining line as description text
+     * Test case description.
+     * Format: ## Description text
+     *
+     * Example:
+     * ## This test verifies user authentication
+     *
+     * Used for documentation and test organization
      */
     description: $ => seq(
       '##',
@@ -202,19 +217,22 @@ module.exports = grammar({
     ),
 
     /**
-     * Test expectations
-     * - Start with #=> or # =>
-     * - Capture expected value
-     * - Optionally track pass/fail status
+     * Test expectations.
+     * Formats:
+     * 1. Single line: #=> expected_value
+     * 2. Multi-line: #=> start
+     *                #    continued...
+     *
+     * Can include optional pass/fail status for tooling
      */
     expectation: $ => choice(
-      // Single-line expectation
+      // Single-line format
       seq(
         choice('#=>', '# =>'),
         field('value', /[^\n]*/),
         optional(field('status', choice('pass', 'fail'))),
       ),
-      // Multi-line expectation
+      // Multi-line format
       seq(
         choice('#=>', '# =>'),
         field('value', seq(
@@ -231,15 +249,19 @@ module.exports = grammar({
     ),
 
     /**
-     * Expected failure declarations
+     * Expected failure declarations.
      * Format: #!> ErrorType[:optional message]
+     *
      * Examples:
-     *   #!> TypeError
-     *   #!> FrozenError: can't modify frozen string
+     * #!> TypeError
+     * #!> FrozenError: can't modify frozen string
+     * #!> ArgumentError: wrong number of arguments
+     *
+     * Used to test error conditions and exceptions
      */
     expected_failure: $ => seq(
       '#!>',
-      field('error_type', /[^:\n]*/),  // Restrict to valid error types
+      field('error_type', /[^:\n]*/),
       optional(seq(
         ':',
         field('message', /[^\n]*/)
@@ -247,23 +269,30 @@ module.exports = grammar({
     ),
 
     /**
-     * Metadata declarations
+     * Metadata declarations for test requirements and configuration.
      * Format: # @type value
+     *
      * Types:
-     * - requires: gem dependencies
-     * - version: minimum version requirement
-     * - ruby: Ruby version requirement
-     * - at: time travel timestamp
-     * - timezone: explicit timezone setting
+     * - @requires: Gem dependencies
+     * - @version: Minimum version requirement
+     * - @ruby: Required Ruby version
+     * - @at: Time travel timestamp
+     * - @timezone: Timezone setting
+     *
+     * Examples:
+     * # @requires activerecord >= 6.0
+     * # @ruby 2.7.0
+     * # @at 2024-01-01 12:00:00
+     * # @timezone UTC
      */
     metadata_declaration: $ => choice(
-      // Dependencies
+      // Dependency declarations
       seq(
         '# @',
         field('type', choice(
           'requires',
           'version',
-          'ruby'      // For specifying Ruby version
+          'ruby'
         )),
         field('value', /[^\n]*/)
       ),
@@ -272,11 +301,10 @@ module.exports = grammar({
         '# @',
         field('type', choice(
           'at',
-          'timezone'  // For explicit timezone setting
+          'timezone'
         )),
         field('value', /[^\n]*/)
       )
     ),
-
   }
 });
