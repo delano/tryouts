@@ -1,6 +1,6 @@
 
 
-class Tryouts
+module Tryouts
   class Parser
     module ClassMethods
 

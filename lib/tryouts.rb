@@ -9,7 +9,7 @@ require_relative 'tryouts/helpers'
 require_relative 'tryouts/version'
 require_relative 'tryouts/parser'
 
-class Tryouts
+module Tryouts
   @debug = false
   @quiet = false
   @noisy = false

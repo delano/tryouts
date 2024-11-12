@@ -27,9 +27,9 @@ module.exports = grammar({
    * 2. setup/teardown vs code_block: Both can contain similar elements
    */
   conflicts: $ => [
-    [$.code_block, $.source_file],
     [$.setup_section, $.code_block],
-    [$.teardown_section, $.code_block]
+    [$.teardown_section, $.code_block],
+    [$.comment, $.test_case]
   ],
 
   /**
@@ -38,6 +38,7 @@ module.exports = grammar({
    * Critical for correct parsing of nested structures.
    */
   precedences: $ => [
+    ['comment'], // Highest precedence
     ['test_case'],
     ['code_block'],
     ['code_line']
