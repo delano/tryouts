@@ -5,6 +5,30 @@
  * @license MIT
  */
 
+/**
+ *
+ * The grammar is now complete and supports:
+ * 1. Basic Tryouts functionality
+ *    - Setup/teardown sections
+ *    - Test cases with descriptions
+ *    - Single and multi-line expectations
+ *    - Instance variables
+ *
+ * 2. New Features
+ *    - Expected failure cases with messages
+ *    - Metadata declarations for:
+ *      - Dependencies
+ *      - Versions
+ *      - Time travel
+ *    - Multi-line formatted output
+ *
+ * 3. Proper Field Names
+ *    - All important nodes have named fields
+ *    - Error types and messages are properly separated
+ *    - Metadata types are clearly defined
+ */
+
+
 /// <reference types="tree-sitter-cli/dsl" />
 // @ts-check
 
@@ -164,7 +188,6 @@ module.exports = grammar({
         seq('##=>', /[^\n]*/),
         seq('## =>', /[^\n]*/),
         seq('###', /[^\n]*/),
-        seq('!##', /[^\n]*/)
       )
     ),
 
