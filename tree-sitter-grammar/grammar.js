@@ -1,101 +1,35 @@
+// grammar.js
 module.exports = grammar({
-  name: 'ruby_tryouts',
-
-  extras: $ => [
-    /[ \t]+/
-  ],
-
-  conflicts: $ => [
-    //[$.test_case, $.code_line],
-    //[$.source_file, $.test_case],
-    [$.teardown_section, $.test_case],
-
-  ],
+  name: 'tryouts',
 
   rules: {
-    source_file: $ => seq(
-      // Handle optional setup at start of file
-      optional(prec.left($.setup_section)),
+    // The starting rule
+    source_file: $ => repeat($.testcase),
 
-      // One or more test cases in the middle
-      prec(1, repeat1($.test_case)),
-
-      // Handle optional teardown at end of file
-      //optional(prec.right($.teardown_section))
+    // Definition of a testcase
+    testcase: $ => seq(
+      repeat1($.description_line),
+      repeat($.code_line),
+      repeat1($.expectation_line),
+      // Allowing for optional blank lines at the end of a testcase
+      repeat($.blank_line)
     ),
 
-    setup_section: $ => prec.left(repeat1(
-      choice(
-        $.code_line,
-        $.comment,
-        //$.instance_var_declaration,
-        $.blank_line
-      )
-    )),
+    // Descriptions start with '##'
+    description_line: $ => seq('##', /[^\n]*/, '\n'),
 
-    test_case: $ => seq(
-      repeat1($.description),
-      repeat1($.code_block_line),
-      repeat1($.expectation),
-      repeat1($.blank_line),
+    // Code lines:
+    // - Lines starting with '#' but not followed by '#' or '=>'
+    // - Lines starting with any character except '#'
+    code_line: $ => choice(
+      seq('#', /[^#=>][^\n]*/, '\n'),
+      seq(/[^#\n][^\n]*/, '\n')
     ),
 
-    teardown_section: $ => prec.right(seq(
-      repeat1($.blank_line),
-      repeat1(choice(
-        $.code_line,
-        $.comment,
-        $.blank_line,
-      )
-    ))),
+    // Expectations start with '#=>'
+    expectation_line: $ => seq('#=>', /[^\n]*/, '\n'),
 
-    code_block_line: $ => choice(
-      $.code_line,
-      $.comment,
-      //$.instance_var_reference,
-      $.blank_line,
-    ),
-
-    code_line: $ => seq(
-      /[^#@\n][^\n]*/,
-      $._newline
-    ),
-
-    expectation: $ => seq(
-      choice('#=>', '# =>'),
-      /[^\n]*/,
-      $._newline
-    ),
-
-    description: $ => seq(
-      '##',
-      /[^\n]*/,
-      $._newline
-    ),
-
-    comment: $ => seq(
-      '#',
-      /[^#=>\n!][^\n]*/,
-      $._newline
-    ),
-
-//    instance_var_declaration: $ => seq(
-//      '@',
-//      $.identifier,
-//      '=',
-//      /[^\n]*/,
-//      $._newline
-//    ),
-//
-//    instance_var_reference: $ => seq(
-//      '@',
-//      $.identifier
-//    ),
-
-    identifier: $ => /[a-zA-Z_][a-zA-Z0-9_]*/,
-
-    blank_line: $ => $._newline,
-
-    _newline: $ => /\n/,
+    // Blank lines (used as separators)
+    blank_line: $ => /\s*\n/,
   }
 });
