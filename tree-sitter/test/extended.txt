@@ -1,0 +1,166 @@
+================================
+Simple test case
+================================
+a = 1 + 1
+#=> 2
+---
+
+(source_file
+  (test_case
+    (code_block
+      (code_line))
+    (expectation)))
+
+================================
+Test case with description
+================================
+## Tests basic arithmetic
+## with integer values
+a = 40 + 2
+#=> 42
+---
+
+(source_file
+  (test_case
+    (code_block
+      (comment
+        (description))
+      (comment
+        (description))
+      (code_line))
+    (expectation)))
+
+================================
+Test with instance variables
+================================
+@count = 5
+@count + 1
+#=> 6
+---
+
+(source_file
+  (test_case
+    (code_block
+      (instance_var_reference
+        (identifier))
+      (code_line)
+      (instance_var_reference
+        (identifier))
+      (code_line))
+    (expectation)))
+
+================================
+Test with expected failure
+================================
+raise TypeError, 'wrong type'
+#!> TypeError: wrong type
+---
+
+(source_file
+  (test_case
+    (code_block
+      (code_line))
+    (expected_failure))
+  (teardown_section
+    (code_line)))
+
+================================
+Test with metadata and setup
+================================
+# @requires activerecord >= 6.0
+# @ruby 2.7.0
+@user = User.new
+@user.save
+#=> true
+---
+
+(source_file
+  (metadata_declaration)
+  (metadata_declaration)
+  (test_case
+    (code_block
+      (instance_var_reference
+        (identifier))
+      (code_line)
+      (instance_var_reference
+        (identifier))
+      (code_line))
+    (expectation)))
+
+================================
+Test with comments and disabled expectations
+================================
+'test string'
+# This is a comment
+##=> 'this expectation is disabled'
+#=> 'test string'
+---
+
+(source_file
+  (test_case
+    (code_block
+      (code_line)
+      (comment)
+      (comment))
+    (expectation)))
+
+================================
+Test with multi-line expectation
+================================
+result = [
+  1,
+  2,
+  3
+]
+#=> [
+#    1,
+#    2,
+#    3
+#    ]
+---
+
+(source_file
+  (test_case
+    (code_block
+      (code_line)
+      (code_line)
+      (code_line)
+      (code_line)
+      (code_line))
+    (expectation)))
+
+================================
+Complete test with all features
+================================
+# @requires json
+# @timezone UTC
+
+## Test JSON parsing
+## with nested structures
+@data = {
+  key: 'value'
+}
+@data.to_json
+# This should work
+#=> "{\"key\":\"value\"}"
+---
+
+(source_file
+  (metadata_declaration)
+  (metadata_declaration)
+  (test_case
+    (code_block
+      (comment
+        (description))
+      (comment
+        (description))
+      (instance_var_reference
+        (identifier))
+      (code_line)
+      (code_line)
+      (code_line)
+      (instance_var_reference
+        (identifier))
+      (code_line)
+      (comment))
+    (expectation)))

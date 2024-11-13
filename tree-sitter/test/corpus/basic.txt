@@ -1,0 +1,78 @@
+================================
+Simple test case
+================================
+
+## Most basic test
+a = 1 + 1
+#=> 2
+
+---
+
+(source_file
+  (testcase
+    (description_line)
+    (code_line)
+    (expectation_line)))
+
+================================
+Test case with multi-line desc
+================================
+## Tests basic arithmetic
+## with integer values
+a = 40 + 2
+#=> 42
+
+---
+
+(source_file
+  (testcase
+    (description_line)
+    (description_line)
+    (code_line)
+    (expectation_line)))
+
+================================
+Test with setup and teardown
+================================
+
+
+# Setup code here
+initialize stuff
+def helper_method
+  # code
+end
+
+## Test matches result with expectation
+a = 1 + 1
+#=> 2
+
+## Another test
+b = 2 + 2
+#=> 4
+
+# Teardown code here
+cleanup stuff
+
+@cust = Customer.new
+
+---
+
+(source_file
+  (setup_section
+    (non_description_line)
+    (non_description_line)
+    (non_description_line)
+    (non_description_line)
+    (non_description_line))
+  (testcase
+    (description_line)
+    (code_line)
+    (expectation_line))
+  (testcase
+    (description_line)
+    (code_line)
+    (expectation_line))
+  (teardown_section
+    (non_description_line)
+    (non_description_line)
+    (non_description_line)))

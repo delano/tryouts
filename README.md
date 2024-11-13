@@ -106,6 +106,72 @@ __
   $ gem install tryouts
 ```
 
+Sure, here's how you could document the tree-sitter setup in a project's README.md file:
+
+## Tree-sitter Integration
+
+This project uses [tree-sitter](https://tree-sitter.github.io/tree-sitter/) for parsing and analyzing the source code. The tree-sitter-related files are located in the `tree-sitter` directory at the root of the project.
+
+### Directory Structure
+
+The tree-sitter files are organized as follows:
+
+```
+tryouts/
+├── exe/
+├── lib/
+├── try/
+├── tree-sitter/
+│   ├── grammar/
+│   ├── queries/
+│   ├── tests/
+│   └── bindings/
+└── README.md
+```
+
+- `tree-sitter/grammar/`: This directory contains the tree-sitter grammar file(s) that define the syntax rules for the language(s) used in the project.
+- `tree-sitter/queries/`: This directory stores the tree-sitter queries, which are used for semantic analysis of the source code.
+- `tree-sitter/tests/`: This directory houses the tree-sitter test cases, which ensure the grammar and queries are working as expected.
+- `tree-sitter/bindings/`: If the project generates language-specific tree-sitter bindings, they would be located in this directory.
+
+### Running Tree-sitter Commands
+
+When running tree-sitter commands, you'll need to provide the appropriate paths to the files and directories within the `tree-sitter` directory.
+
+For example, to generate the parser from the grammar file:
+
+```
+cd tree-sitter
+tree-sitter generate grammar/grammar.js
+```
+
+To build the parser:
+
+```
+tree-sitter build
+
+# OR, to run the playground
+
+tree-sitter build --wasm
+```
+
+And to run the tests:
+
+```
+tree-sitter test
+```
+Use `-u` to update the snapshots in the test/corpus/*.txt files (the sexpr after the "---" for each test).
+
+To run the parser on a specific file:
+
+```
+tree-sitter parse ../try/step0_try.rb
+```
+
+Use `--stat` to print stats; `--dot` to generate a graphviz log.html file; `--time` to print timing info.
+
+By separating the tree-sitter-related files and commands, we can keep our project structure clean and make it easier to manage the tree-sitter integration within our overall build and testing workflows.
+
 
 ## Thanks
 
@@ -115,4 +181,4 @@ __
 * [AlexPeuchert](https://www.rubypulse.com/) for the screencast.
 * Christian Michon for suggesting a better default output format.
 
-*This collision was brought to you by Montreal.rb.*
+*This collision was originally brought to you by Montreal.rb.*

@@ -1,3 +1,6 @@
+require "tree_sitter"
+require "tree_sitter/ruby"
+
 class Tryouts::Parser
   def initialize(language_path)
     @language = TreeSitter::Language.load('ruby_tryouts', language_path)

@@ -50,12 +50,3 @@ paths.each do |path|
   test_file = parser.parse_file(path)
   puts "File: #{test_file}"
 end
-
-#puts "File: #{test_file}"
-#test_file.test_cases.each do |test|
-#  puts "\nTest: #{test.title}"
-#  puts "Code:\n#{test.code}"
-#  puts "Expectations:"
-#  test.expectations.each { |exp| puts "- #{exp}" }
-#  puts "-" * 40
-#end

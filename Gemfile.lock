@@ -1,9 +1,20 @@
+PATH
+  remote: .
+  specs:
+    tryouts (2.2.0)
+      ffi
+      rake-compiler
+      stringio (~> 3.1.2)
+      sysinfo (~> 0.10)
+      tree_stand (~> 0.2.0)
+
 GEM
   remote: https://rubygems.org/
   specs:
     ast (2.4.2)
     diff-lcs (1.5.1)
     drydock (0.6.9)
+    ffi (1.17.0-arm64-darwin)
     json (2.7.1)
     parallel (1.24.0)
     parser (3.3.0.5)
@@ -11,6 +22,9 @@ GEM
       racc
     racc (1.7.3)
     rainbow (3.1.1)
+    rake (13.2.1)
+    rake-compiler (1.2.8)
+      rake
     regexp_parser (2.9.0)
     rexml (3.3.0)
       strscan
@@ -40,14 +54,12 @@ GEM
     rubocop-ast (1.30.0)
       parser (>= 3.2.1.0)
     ruby-progressbar (1.13.0)
-    ruby_tree_sitter (1.8.0)
-      sorbet-runtime
-      zeitwerk
     ruby_tree_sitter (1.8.0-arm64-darwin)
       sorbet-runtime
       zeitwerk
-    sorbet-runtime (0.5.11645)
+    sorbet-runtime (0.5.11647)
     storable (0.10.0)
+    stringio (3.1.2)
     strscan (3.1.0)
     sysinfo (0.10.0)
       drydock (< 1.0)
@@ -61,16 +73,12 @@ GEM
 
 PLATFORMS
   arm64-darwin-23
-  ruby
+  arm64-darwin-24
 
 DEPENDENCIES
   rspec
   rubocop
-  sysinfo (~> 0.10)
-  tree_stand (~> 0.2.0)
-
-RUBY VERSION
-   ruby 3.1.4p223
+  tryouts!
 
 BUNDLED WITH
    2.4.12

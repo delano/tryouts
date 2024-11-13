@@ -1,0 +1,165 @@
+
+The grammar is now complete and supports:
+1. Basic Tryouts functionality
+   - Setup/teardown sections
+   - Test cases with descriptions
+   - Single and multi-line expectations
+   - Instance variables
+
+2. New Features
+   - Expected failure cases with messages
+   - Metadata declarations for:
+     - Dependencies
+     - Versions
+     - Time travel
+   - Multi-line formatted output
+
+3. Proper Field Names
+   - All important nodes have named fields
+   - Error types and messages are properly separated
+   - Metadata types are clearly defined
+
+----
+
+Here are some novel ideas to enhance Tryouts while maintaining its documentation-first, low-ceremony philosophy:
+
+1. **Inline Value Labels**
+```ruby
+# TEST: Label values for better documentation
+numbers = [1, 2, 3]
+sum = numbers.reduce(:+)  #[input: numbers]
+#=> 6                     #[explains: sum]
+
+# Can reference in later expectations
+other_sum = sum + 4
+#=> 10  #[uses: sum]
+```
+
+2. **Visual Step Tracking**
+```ruby
+## Converting a string to uppercase
+"hello"
+|--> .upcase      # Chain steps with arrows
+|--> .reverse     # Each step is documented
+|--> .downcase
+#=> "olleh"
+```
+
+3. **Context Blocks**
+```ruby
+@@ Setup: Database
+  @db = Database.new
+  @user = User.create(name: "test")
+@@
+
+@@ Context: When user is logged in
+  session.login(@user)
+
+  ## Test user permissions
+  @user.can?(:read)
+  #=> true
+@@
+
+@@ Teardown
+  @user.destroy
+  @db.clear
+@@
+```
+
+4. **Failure Documentation**
+```ruby
+"test".upcase
+#=> "TEST"
+#!> "test"    # Document expected failures
+#!> TypeError # Document expected errors
+```
+
+5. **Data Tables**
+```ruby
+## Test multiple cases
+   |input  |expected|
+   |-------|--------|
+   |"test" |"TEST"  |
+   |"hello"|"HELLO" |
+do |input,  expected|
+  input.upcase
+  #=> expected
+end
+```
+
+6. **Assertion Comments**
+```ruby
+[1,2,3].count
+#=> 3  #[odd?: false]
+#=> 3  #[type: Integer]
+#=> 3  #[range: 1..5]
+```
+
+7. **Documentation Links**
+```ruby
+## Testing Array#map
+# @see https://ruby-doc.org/core/Array.html#method-i-map
+[1,2,3].map { |n| n * 2 }
+#=> [2,4,6]
+```
+
+8. **State Tracking**
+```ruby
+## Test counter increment
+@counter = 0        #[state: initial]
+@counter += 1       #[state: incremented]
+#=> 1               #[state: final]
+```
+
+9. **Dependency Declarations**
+```ruby
+# @requires activerecord
+# @version >= 3.0
+# @@ at: 2024-01-01
+#
+class User < ActiveRecord::Base
+  # ... test code ...
+end
+```
+
+10. **Visual Output Formatting**
+```ruby
+complex_hash = {a: 1, b: {c: 2}}
+#=> {
+#     a: 1,
+#     b: {
+#       c: 2
+#     }
+#   }
+```
+
+11. **Time Travel Syntax**
+```ruby
+@@ at: 2024-01-01 12:00
+Time.now
+#=> 2024-01-01 12:00:00
+
+@@ forward: 1.day
+Time.now
+#=> 2024-01-02 12:00:00
+```
+
+12. **Environment Variables**
+```ruby
+@@ env
+  API_KEY=test123
+  DEBUG=true
+@@
+
+ENV['API_KEY']
+#=> "test123"
+```
+
+These enhancements aim to:
+1. Improve documentation clarity
+2. Add useful metadata
+3. Support better test organization
+4. Enable more complex scenarios
+5. Keep the simple syntax for basic cases
+
+Would you like me to elaborate on any of these ideas or explore additional enhancements?
