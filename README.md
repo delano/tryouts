@@ -134,6 +134,20 @@ tryouts/
 - `tree-sitter/tests/`: This directory houses the tree-sitter test cases, which ensure the grammar and queries are working as expected.
 - `tree-sitter/bindings/`: If the project generates language-specific tree-sitter bindings, they would be located in this directory.
 
+### Tree-sitter Configuration
+
+/Users/d/Library/Application Support/tree-sitter/config.json
+
+```json
+{
+  "source_dir": "tree-sitter",
+  "parser_dir": "tree-sitter",
+  "bindings_dir": "tree-sitter/bindings",
+  "queries_dir": "tree-sitter/queries",
+  "tests_dir": "tree-sitter/tests"
+}
+```
+
 ### Running Tree-sitter Commands
 
 When running tree-sitter commands, you'll need to provide the appropriate paths to the files and directories within the `tree-sitter` directory.

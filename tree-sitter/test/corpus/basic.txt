@@ -35,7 +35,6 @@ a = 40 + 2
 Test with setup and teardown
 ================================
 
-
 # Setup code here
 initialize stuff
 def helper_method
@@ -64,6 +63,76 @@ cleanup stuff
     (non_description_line)
     (non_description_line)
     (non_description_line))
+  (testcase
+    (description_line)
+    (code_line)
+    (expectation_line))
+  (testcase
+    (description_line)
+    (code_line)
+    (expectation_line))
+  (teardown_section
+    (non_description_line)
+    (non_description_line)
+    (non_description_line)))
+
+================================
+Test with setup
+================================
+
+# Setup code here
+initialize stuff
+def helper_method
+  # code
+end
+
+## Test matches result with expectation
+a = 1 + 1
+#=> 2
+
+## Another test
+b = 2 + 2
+#=> 4
+
+---
+
+(source_file
+  (setup_section
+    (non_description_line)
+    (non_description_line)
+    (non_description_line)
+    (non_description_line)
+    (non_description_line))
+  (testcase
+    (description_line)
+    (code_line)
+    (expectation_line))
+  (testcase
+    (description_line)
+    (code_line)
+    (expectation_line)))
+
+
+================================
+Test with teardown
+================================
+
+## Test matches result with expectation
+a = 1 + 1
+#=> 2
+
+## Another test
+b = 2 + 2
+#=> 4
+
+# Teardown code here
+cleanup stuff
+
+@cust = Customer.new
+
+---
+
+(source_file
   (testcase
     (description_line)
     (code_line)

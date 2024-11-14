@@ -41,12 +41,14 @@ else
   paths = ARGV
 end
 
-language_path = BASE_PATH.join('tree-sitter-grammar/build/Release/tree_sitter_ruby_tryouts.dylib')
+language_path = BASE_PATH.join('lib/tryouts/tryouts.dylib')
 
 parser = Tryouts::Parser.new(language_path)
 
 paths.each do |path|
   pp [:path, path]
   test_file = parser.parse_file(path)
+          require 'pry-byebug'; binding.pry;
+
   puts "File: #{test_file}"
 end

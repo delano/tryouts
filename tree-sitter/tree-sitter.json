@@ -1,0 +1,34 @@
+{
+  "grammars": [
+    {
+      "name": "tryouts",
+      "camelcase": "Tryouts",
+      "scope": "source.tryouts",
+      "file-types": [
+        "_try.rb"
+      ],
+      "injection-regex": "^tryouts$"
+    }
+  ],
+  "metadata": {
+    "version": "0.1.0",
+    "license": "MIT",
+    "description": "Tryouts grammar for tree-sitter",
+    "authors": [
+      {
+        "name": "DM"
+      }
+    ],
+    "links": {
+      "repository": "https://github.com/tree-sitter/tree-sitter-tryouts"
+    }
+  },
+  "bindings": {
+    "c": false,
+    "go": false,
+    "node": false,
+    "python": false,
+    "rust": false,
+    "swift": false
+  }
+}

@@ -1,44 +1,60 @@
-require "tree_sitter"
-require "tree_sitter/ruby"
+#require "tree_sitter"
+
+require 'tree_stand'
+require 'fileutils'
+require 'pathname'
+#
+TreeStand.configure do
+  language_path = BASE_PATH.join('lib/tryouts')
+  config.parser_path = language_path
+end
+
+module TreeSitter
+  def assert_eq(a, b)
+    puts "#{a} #{a == b ? '==' : '!='} #{b}"
+  end
+
+  def section
+    puts '-' * 79
+  end
+end
+
+QUERY_TEXT = <<~QUERY
+(source_file
+  (setup_section
+    (non_description_line)*)? @setup
+
+  (testcase
+    (description_line) @test.description
+    (code_line)* @test.code
+    (expectation_line) @test.expectation)* @test
+
+  (teardown_section
+    (non_description_line)*)? @teardown)
+QUERY
 
 class Tryouts::Parser
   def initialize(language_path)
-    @language = TreeSitter::Language.load('ruby_tryouts', language_path)
-    @parser = TreeSitter::Parser.new
-    @parser.language = @language
+#    @language = TreeSitter::Language.load('tryouts', language_path)
+#    @parser = TreeSitter::Parser.new
+#    @parser.language = @language
+#
+#    @query = TreeSitter::Query.new(@language, QUERY_TEXT)
 
-    # Define reusable queries for each node type
-    @queries = {
-      metadata: @language.query(<<~QUERY),
-        (metadata_declaration
-          type: (_) @type
-          value: (_) @value) @declaration
-      QUERY
+    @parser = TreeStand::Parser.new("tryouts")
 
-      test_case: @language.query(<<~QUERY),
-        (test_case
-          description: (description text: (_) @desc)*
-          code_block: (code_block) @code
-          expectation: (expectation value: (_) @value status: (_)? @status)*
-          expected_failure: (expected_failure
-            error_type: (_) @error_type
-            message: (_)? @message)*) @case
-      QUERY
-    }
+
   end
 
   def parse_file(path)
-    source = File.read(path)
-    tree = @parser.parse(source)
+    source_code = File.read(path)
+    tree = @parser.parse_string(source_code)
+    root = tree.root_node
 
-    # Execute queries instead of manual traversal
-    metadata = execute_metadata_query(tree)
-    test_cases = execute_test_case_query(tree)
+    cursor = tree.query(QUERY_TEXT)
 
-    TestSuite.new(
-      metadata: metadata,
-      test_cases: test_cases
-    )
+          #require 'pry-byebug'; binding.pry;
+
   end
 
   private

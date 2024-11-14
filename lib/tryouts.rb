@@ -1,4 +1,5 @@
 require 'pathname'
+#require 'tree_stand'
 require 'tree_sitter'
 
 unless defined?(TRYOUTS_LIB_HOME)

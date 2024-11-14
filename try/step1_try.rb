@@ -10,21 +10,21 @@ a = 1 + 1
 a = 1
 b = 2
 a + b
-# => 3
-# => 2 + 1
+#=> 3
+#=> 2 + 1
 
-# TEST 3: test expectation type matters
+## TEST 3: test expectation type matters
 'foo'.class
 #=> String
 
 
-# TEST 4: instance variables can be used in expectations
+## TEST 4: instance variables can be used in expectations
 @a = 1
 @a
 #=> @a
 
 
-# TEST 5: test ignores blank lines before expectations
+## TEST 5: test ignores blank lines before expectations
 @a += 1
 'foo'
 
@@ -32,14 +32,16 @@ a + b
 #=> 'foo'
 
 
-# TEST 6: test allows whiny expectation markers for textmate users *sigh*
+## TEST 6: test allows whiny expectation markers for textmate users *sigh*
 'foo'
-# =>  'foo'
+#=>  'foo'
 
 
-# TEST 7: test expectations can be commented out
+## TEST 7: test expectations can be commented out
 'foo'
-##=> 'this would fail'
-
+# A midway comment
 x = raise rescue 'foo'
 #=> 'foo'
+
+
+# Tear down

@@ -1,0 +1,12 @@
+
+(source_file
+  (setup_section
+    (non_description_line)*)? @setup
+
+  (testcase
+    (description_line) @test.description
+    (code_line)* @test.code
+    (expectation_line) @test.expectation)* @test
+
+  (teardown_section
+    (non_description_line)*)? @teardown)
