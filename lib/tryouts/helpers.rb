@@ -1,6 +1,16 @@
 
+module TreeSitter
+  def assert_eq(a, b)
+    puts "#{a} #{a == b ? '==' : '!='} #{b}"
+  end
 
-module Tryouts
+  def section
+    puts '-' * 79
+  end
+end
+
+
+class Tryouts
   class Parser
     module ClassMethods
 

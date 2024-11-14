@@ -41,14 +41,9 @@ else
   paths = ARGV
 end
 
-language_path = BASE_PATH.join('lib/tryouts/tryouts.dylib')
-
-parser = Tryouts::Parser.new(language_path)
-
 paths.each do |path|
   pp [:path, path]
-  test_file = parser.parse_file(path)
-          require 'pry-byebug'; binding.pry;
-
-  puts "File: #{test_file}"
+  tryouts = Tryouts.new(path)
+  tryouts.run
+  tryouts.report
 end

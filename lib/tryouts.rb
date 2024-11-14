@@ -10,7 +10,7 @@ require_relative 'tryouts/helpers'
 require_relative 'tryouts/version'
 require_relative 'tryouts/parser'
 
-module Tryouts
+class Tryouts
   @debug = false
   @quiet = false
   @noisy = false
@@ -20,18 +20,33 @@ module Tryouts
 
   class << self
     attr_accessor :debug, :container, :quiet, :noisy
-    attr_reader :cases
+    attr_reader :cases, :parser, :path, :tree
+  end
+
+  def initialize(path)
+    @path = path
+    @parser = Tryouts::Parser.new(path)
+  end
+
+  def run
+    @parser.run
+  end
+
+  def report
+    @parser.report
   end
 
   module ClassMethods
-
     def sysinfo
       require 'sysinfo'
       @sysinfo ||= SysInfo.new
       @sysinfo
     end
 
-    def debug?() @debug == true end
+    def debug?
+      @debug == true
+    end
+
   end
 
   extend ClassMethods

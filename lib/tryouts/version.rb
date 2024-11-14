@@ -1,4 +1,4 @@
-module Tryouts
+class Tryouts
   module VERSION
     def self.to_s
       load_config
