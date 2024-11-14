@@ -1,6 +1,3 @@
-# run me with
-#   ruby -rubygems -Ilib step1_tryouts.rb
-
 
 ## some addition
 a = 1
@@ -49,11 +46,11 @@ a + b + 1
 #
 
 
-# 
+#
 # require 'pathname'
 # require Pathname(__FILE__).dirname.parent + 'lib/nofw'
-# 
+#
 # # test failure
 # 'this fails'
 # #=> 'expectation not met'
-# 
+#

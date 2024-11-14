@@ -14,6 +14,3 @@ str << 'foo'
 str << 'bar'
 str
 #=> 'foobar'
-
-
-
