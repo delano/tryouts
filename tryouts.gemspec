@@ -15,5 +15,7 @@ Gem::Specification.new do |spec|
   spec.bindir = 'exe'  # Specify that executables are in the exe folder
   spec.executables = Dir.chdir('exe'){ Dir['*'] }.select { |f| File.file?("exe/#{f}") }
 
-  spec.add_dependency 'sysinfo', '~> 0.10'
+  spec.add_dependency 'minitest'
+  spec.add_dependency 'rspec'
+  spec.add_dependency 'sysinfo'
 end
