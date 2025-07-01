@@ -8,7 +8,7 @@ class Tryouts
       code.empty?
     end
 
-    def has_expectations?
+    def expectations?
       !expectations.empty?
     end
   end

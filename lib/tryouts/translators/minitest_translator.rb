@@ -23,7 +23,7 @@ class Tryouts
 
           # Generate test methods
           testrun.test_cases.each_with_index do |test_case, index|
-            next if test_case.empty? || !test_case.has_expectations?
+            next if test_case.empty? || !test_case.expectations?
 
             method_name = "test_#{index.to_s.rjust(3, '0')}_#{test_case.description.parameterize}"
             define_method(method_name) do
@@ -68,7 +68,7 @@ class Tryouts
         end
 
         testrun.test_cases.each_with_index do |test_case, index|
-          next if test_case.empty? || !test_case.has_expectations?
+          next if test_case.empty? || !test_case.expectations?
 
           method_name = "test_#{index.to_s.rjust(3, '0')}_#{test_case.description.parameterize}"
           lines << "  def #{method_name}"

@@ -59,14 +59,14 @@ class Tryouts
             result_data = {
               test_case: test_case,
               status: test_result,
-              actual_results: actual_results
+              actual_results: actual_results,
             }
             @test_results << result_data
 
             failed_count += 1 if test_result == :failed
 
             # Show verbose output if enabled
-            show_verbose_output(result_data) if should_show_verbose_output(test_result)
+            show_verbose_output(result_data) if show_verbose_output?(test_result)
 
           rescue StandardError => ex
             failed_count += 1
@@ -95,7 +95,7 @@ class Tryouts
             failed_count += 1 if test_result == :failed
 
             # Show verbose output if enabled
-            show_verbose_output(result_data) if should_show_verbose_output(test_result)
+            show_verbose_output(result_data) if show_verbose_output?(test_result)
 
           rescue StandardError => ex
             failed_count += 1
@@ -145,7 +145,7 @@ class Tryouts
 
     # Execute test case in shared context (no setup per test)
     def execute_test_case_shared(test_case)
-      return [:skipped, []] if test_case.empty? || !test_case.has_expectations?
+      return [:skipped, []] if test_case.empty? || !test_case.expectations?
 
       test_code = test_case.code
       test_path = test_case.path
@@ -169,7 +169,7 @@ class Tryouts
 
     # Execute test case with fresh setup context
     def execute_test_case_with_setup(test_case)
-      return [:skipped, []] if test_case.empty? || !test_case.has_expectations?
+      return [:skipped, []] if test_case.empty? || !test_case.expectations?
 
       # Create fresh container for this test case
       fresh_container = Object.new
@@ -252,9 +252,10 @@ class Tryouts
       VerboseFormatter.new(@testrun, source_lines)
     end
 
-    def should_show_verbose_output(test_result)
+    def show_verbose_output?(test_result)
       return false unless @verbose
       return true unless @fails_only
+
       test_result == :failed
     end
 
@@ -263,7 +264,7 @@ class Tryouts
       puts formatter.format_test_case(
         result_data[:test_case],
         result_data[:status],
-        result_data[:actual_results]
+        result_data[:actual_results],
       )
     end
 
@@ -272,9 +273,9 @@ class Tryouts
         result_data = {
           test_case: test_case,
           status: :failed,
-          actual_results: ["ERROR: #{ex.message}"]
+          actual_results: ["ERROR: #{ex.message}"],
         }
-        show_verbose_output(result_data) if should_show_verbose_output(:failed)
+        show_verbose_output(result_data) if show_verbose_output?(:failed)
       else
         warn Console.color(:red, "Error in test: #{test_case.description}")
         warn Console.color(:red, ex.message)

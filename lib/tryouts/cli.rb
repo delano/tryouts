@@ -148,11 +148,13 @@ class Tryouts
 
         opts.separator "\nExecution Options:"
         opts.on('--shared-context', 'Override default context mode') { options[:shared_context] = true }
+        opts.on('--no-shared-context', 'Override default context mode') { options[:shared_context] = false }
         opts.on('-v', '--verbose', 'Show detailed test output with line numbers') { options[:verbose] = true }
         opts.on('-f', '--fails', 'Show only failing tests (with --verbose)') { options[:fails_only] = true }
 
         opts.separator "\nGeneral Options:"
         opts.on('-V', '--version', 'Show version') { options[:version] = true }
+        opts.on('-D', '--debug', 'Enable debug mode') { Tryouts.debug = true }
         opts.on('-h', '--help', 'Show this help') do
           puts opts
           exit 0
@@ -161,12 +163,12 @@ class Tryouts
         opts.separator <<~HELP
 
         Framework Defaults:
-          Direct:     Shared context (state persists across tests)
+          Tryouts:    Shared context (state persists across tests)
           RSpec:      Fresh context (each test isolated)
           Minitest:   Fresh context (each test isolated)
 
         Examples:
-          try test_try.rb                          # Direct with shared context
+          try test_try.rb                          # Tryouts test runner with shared context
           try --rspec test_try.rb                  # RSpec with fresh context
           try --direct --shared-context test_try.rb # Explicit shared context
           try --generate-rspec test_try.rb         # Output RSpec code only

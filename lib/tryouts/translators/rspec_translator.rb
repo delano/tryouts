@@ -22,7 +22,7 @@ class Tryouts
 
           # Generate test cases
           testrun.test_cases.each_with_index do |test_case, _index|
-            next if test_case.empty? || !test_case.has_expectations?
+            next if test_case.empty? || !test_case.expectations?
 
             it test_case.description do
               result = instance_eval(test_case.code) unless test_case.code.strip.empty?
@@ -58,7 +58,7 @@ class Tryouts
         end
 
         testrun.test_cases.each_with_index do |test_case, _index|
-          next if test_case.empty? || !test_case.has_expectations?
+          next if test_case.empty? || !test_case.expectations?
 
           lines << "  it '#{test_case.description}' do"
           unless test_case.code.strip.empty?
