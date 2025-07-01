@@ -22,6 +22,10 @@ AllCops:
     - "bin/bundle"
     - "scripts/archive/*"
     - "tmp/**/*"
+    # We need to prevent autocorrecting the test files, particularly
+    # the tryouts which "do bad things" intentionally to test the
+    # behavior of the parser.
+    - "try/**/*"
     - "vendor/**/*"
 
 Layout/CaseIndentation:
