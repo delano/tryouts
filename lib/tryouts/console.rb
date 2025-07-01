@@ -116,7 +116,7 @@ class Tryouts
     end
 
     def self.default_style
-      style(ATTRIBUTES[:default], ATTRIBUTES[:COLOURS], ATTRIBUTES[:BGCOLOURS])
+      style(ATTRIBUTES[:default], COLOURS[:default], BGCOLOURS[:default])
     end
   end
 end

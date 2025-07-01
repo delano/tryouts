@@ -1,16 +1,21 @@
 # lib/tryouts/testbatch.rb
 
+require_relative 'verbose_formatter'
+
 class Tryouts
   # Modern TestBatch that works with Prism-based data structures
   class TestBatch
-    attr_reader :testrun, :failed, :container, :run_status
+    attr_reader :testrun, :failed, :container, :run_status, :test_results
 
-    def initialize(testrun, shared_context: false)
+    def initialize(testrun, shared_context: false, verbose: false, fails_only: false)
       @testrun = testrun
       @container = Object.new  # Simple object instance for shared context
       @shared_context = shared_context
+      @verbose = verbose
+      @fails_only = fails_only
       @failed = 0
       @run_status = false
+      @test_results = []  # Store detailed results for verbose output
     end
 
     def empty?
@@ -35,6 +40,12 @@ class Tryouts
 
       failed_count = 0
 
+      # Show file header in verbose mode
+      if @verbose
+        formatter = create_verbose_formatter
+        puts formatter.format_file_header
+      end
+
       if @shared_context
         # Shared context mode: setup once, all tests share state
         execute_setup_once
@@ -43,13 +54,23 @@ class Tryouts
           before_test&.call(test_case)
 
           begin
-            test_result = execute_test_case_shared(test_case)
+            test_result, actual_results = execute_test_case_shared(test_case)
+
+            result_data = {
+              test_case: test_case,
+              status: test_result,
+              actual_results: actual_results
+            }
+            @test_results << result_data
+
             failed_count += 1 if test_result == :failed
+
+            # Show verbose output if enabled
+            show_verbose_output(result_data) if should_show_verbose_output(test_result)
+
           rescue StandardError => ex
             failed_count += 1
-            warn Console.color(:red, "Error in test: #{test_case.description}")
-            warn Console.color(:red, ex.message)
-            warn ex.backtrace.join($/), $/
+            handle_test_error(test_case, ex)
           end
 
           yield(test_case) if block_given?
@@ -62,13 +83,23 @@ class Tryouts
           before_test&.call(test_case)
 
           begin
-            test_result = execute_test_case_with_setup(test_case)
+            test_result, actual_results = execute_test_case_with_setup(test_case)
+
+            result_data = {
+              test_case: test_case,
+              status: test_result,
+              actual_results: actual_results
+            }
+            @test_results << result_data
+
             failed_count += 1 if test_result == :failed
+
+            # Show verbose output if enabled
+            show_verbose_output(result_data) if should_show_verbose_output(test_result)
+
           rescue StandardError => ex
             failed_count += 1
-            warn Console.color(:red, "Error in test: #{test_case.description}")
-            warn Console.color(:red, ex.message)
-            warn ex.backtrace.join($/), $/
+            handle_test_error(test_case, ex)
           end
 
           yield(test_case) if block_given?
@@ -114,7 +145,7 @@ class Tryouts
 
     # Execute test case in shared context (no setup per test)
     def execute_test_case_shared(test_case)
-      return :skipped if test_case.empty? || !test_case.has_expectations?
+      return [:skipped, []] if test_case.empty? || !test_case.has_expectations?
 
       test_code = test_case.code
       test_path = test_case.path
@@ -126,19 +157,19 @@ class Tryouts
       # Execute test in shared container context
       result = @container.instance_eval(test_code, test_path, test_line)
 
-      # Evaluate expectations in same shared context
-      expectations_passed = evaluate_expectations_in_context(test_case, result, @container)
+      # Evaluate expectations in same shared context and collect actual results
+      expectations_passed, actual_results = evaluate_expectations_in_context(test_case, result, @container)
 
-      expectations_passed ? :passed : :failed
+      [expectations_passed ? :passed : :failed, actual_results]
     rescue StandardError => ex
       warn Console.color(:red, "Test execution failed: #{ex.message}")
       warn ex.backtrace.join($/), $/
-      :failed
+      [:failed, []]
     end
 
     # Execute test case with fresh setup context
     def execute_test_case_with_setup(test_case)
-      return :skipped if test_case.empty? || !test_case.has_expectations?
+      return [:skipped, []] if test_case.empty? || !test_case.has_expectations?
 
       # Create fresh container for this test case
       fresh_container = Object.new
@@ -163,14 +194,14 @@ class Tryouts
 
       result = fresh_container.instance_eval(test_code, test_path, test_line)
 
-      # Evaluate expectations in same fresh context
-      expectations_passed = evaluate_expectations_in_context(test_case, result, fresh_container)
+      # Evaluate expectations in same fresh context and collect actual results
+      expectations_passed, actual_results = evaluate_expectations_in_context(test_case, result, fresh_container)
 
-      expectations_passed ? :passed : :failed
+      [expectations_passed ? :passed : :failed, actual_results]
     rescue StandardError => ex
       warn Console.color(:red, "Test execution failed: #{ex.message}")
       warn ex.backtrace.join($/), $/
-      :failed
+      [:failed, []]
     end
 
     # Execute teardown code in the container context
@@ -191,21 +222,63 @@ class Tryouts
 
     # Evaluate test case expectations against the result in given context
     def evaluate_expectations_in_context(test_case, result, context)
-      return true if test_case.expectations.empty?
+      return [true, []] if test_case.expectations.empty?
 
-      test_case.expectations.all? do |expectation|
+      actual_results = []
+      all_passed = true
+
+      test_case.expectations.each do |expectation|
         expected_value = context.instance_eval(expectation, test_case.path, test_case.line_range.first)
+        actual_results << result
 
         if result == expected_value
           Tryouts.debug "✓ Expected: #{expected_value.inspect}, Got: #{result.inspect}" if Tryouts.debug?
-          true
         else
           Tryouts.debug "✗ Expected: #{expected_value.inspect}, Got: #{result.inspect}" if Tryouts.debug?
-          false
+          all_passed = false
         end
       rescue StandardError => ex
         warn Console.color(:red, "Expectation evaluation failed: #{ex.message}")
-        false
+        actual_results << "ERROR: #{ex.message}"
+        all_passed = false
+      end
+
+      [all_passed, actual_results]
+    end
+
+    # Helper methods for verbose output
+    def create_verbose_formatter
+      source_lines = File.readlines(@testrun.source_file).map(&:chomp)
+      VerboseFormatter.new(@testrun, source_lines)
+    end
+
+    def should_show_verbose_output(test_result)
+      return false unless @verbose
+      return true unless @fails_only
+      test_result == :failed
+    end
+
+    def show_verbose_output(result_data)
+      formatter = create_verbose_formatter
+      puts formatter.format_test_case(
+        result_data[:test_case],
+        result_data[:status],
+        result_data[:actual_results]
+      )
+    end
+
+    def handle_test_error(test_case, ex)
+      if @verbose
+        result_data = {
+          test_case: test_case,
+          status: :failed,
+          actual_results: ["ERROR: #{ex.message}"]
+        }
+        show_verbose_output(result_data) if should_show_verbose_output(:failed)
+      else
+        warn Console.color(:red, "Error in test: #{test_case.description}")
+        warn Console.color(:red, ex.message)
+        warn ex.backtrace.join($/), $/
       end
     end
   end

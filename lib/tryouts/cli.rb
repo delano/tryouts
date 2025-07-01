@@ -73,16 +73,28 @@ class Tryouts
             case final_options[:framework]
             when :direct
               # Direct execution with TestBatch
-              batch = TestBatch.new(testrun, shared_context: final_options[:shared_context])
+              batch = TestBatch.new(
+                testrun,
+                shared_context: final_options[:shared_context],
+                verbose: final_options[:verbose],
+                fails_only: final_options[:fails_only]
+              )
 
-              context_mode = final_options[:shared_context] ? 'shared' : 'fresh'
-              puts "Running #{file} with #{context_mode} context..."
-
-              success = batch.run do |test_case|
-                puts "  #{test_case.description}: #{batch.failed > 0 ? '❌' : '✅'}"
+              unless final_options[:verbose]
+                context_mode = final_options[:shared_context] ? 'shared' : 'fresh'
+                puts "Running #{file} with #{context_mode} context..."
               end
 
-              puts "Results: #{batch.size} tests, #{batch.failed} failed"
+              success = batch.run do |test_case|
+                unless final_options[:verbose]
+                  puts "  #{test_case.description}: #{batch.failed > 0 ? '❌' : '✅'}"
+                end
+              end
+
+              unless final_options[:verbose]
+                puts "Results: #{batch.size} tests, #{batch.failed} failed"
+              end
+
               return 1 unless success
 
             when :rspec
@@ -133,6 +145,8 @@ class Tryouts
           options[:shared_context] = true
         when '--verbose', '-v'
           options[:verbose] = true
+        when '--fails', '--fails-only', '-f'
+          options[:fails_only] = true
         when '--version', '-V'
           options[:version] = true
         when '--help', '-h'
@@ -165,7 +179,8 @@ class Tryouts
           --generate-rspec      Generate RSpec code only
           --generate-minitest   Generate Minitest code only
           --generate            Generate code only (use with --rspec/--minitest)
-          --verbose, -v         Verbose error output
+          --verbose, -v         Show detailed test output with line numbers
+          --fails, -f           Show only failing tests (with --verbose)
           --help, -h            Show this help
 
         Framework Defaults:
