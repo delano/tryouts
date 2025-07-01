@@ -1,0 +1,123 @@
+[
+  {
+    "type": "code_line",
+    "named": true,
+    "fields": {}
+  },
+  {
+    "type": "description_line",
+    "named": true,
+    "fields": {}
+  },
+  {
+    "type": "expectation_line",
+    "named": true,
+    "fields": {}
+  },
+  {
+    "type": "non_description_line",
+    "named": true,
+    "fields": {}
+  },
+  {
+    "type": "setup_section",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": true,
+      "types": [
+        {
+          "type": "non_description_line",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "source_file",
+    "named": true,
+    "root": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": true,
+      "types": [
+        {
+          "type": "setup_section",
+          "named": true
+        },
+        {
+          "type": "teardown_section",
+          "named": true
+        },
+        {
+          "type": "testcase",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "teardown_section",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": true,
+      "types": [
+        {
+          "type": "non_description_line",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "testcase",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": true,
+      "types": [
+        {
+          "type": "blank_line",
+          "named": true
+        },
+        {
+          "type": "code_line",
+          "named": true
+        },
+        {
+          "type": "description_line",
+          "named": true
+        },
+        {
+          "type": "expectation_line",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "\n",
+    "named": false
+  },
+  {
+    "type": "#",
+    "named": false
+  },
+  {
+    "type": "##",
+    "named": false
+  },
+  {
+    "type": "#=>",
+    "named": false
+  },
+  {
+    "type": "blank_line",
+    "named": true
+  }
+]

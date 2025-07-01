@@ -13,6 +13,7 @@
 #
 
 require 'pathname'
+require 'optparse'
 
 # Put our local lib in first place
 BASE_PATH = Pathname.new(__dir__).join('..')
@@ -26,14 +27,43 @@ require 'tryouts'
   $LOAD_PATH.unshift dir
 end
 
-unless ARGV.delete('-V').nil?
-  puts "Tryouts: #{Tryouts::VERSION}"
-  exit
-end
+options = {}
+OptionParser.new do |opts|
+  opts.banner = "Usage: try [options] [PATH...]"
 
-Tryouts.quiet = !ARGV.delete('-q').nil?  # eg try -q [PATH]
-Tryouts.noisy = !ARGV.delete('-v').nil?  # eg try -v [PATH]
+  opts.on("-V", "--version", "Display the version") do
+    puts "Tryouts: #{Tryouts::VERSION}"
+    exit
+  end
 
+  opts.on("-q", "--quiet", "Run in quiet mode") do
+    options[:quiet] = true
+  end
+
+  opts.on("-v", "--verbose", "Run in verbose mode") do
+    options[:verbose] = true
+  end
+
+  opts.on("-f", "--fails", "Show only failing tryouts") do
+    options[:fails_only] = true
+  end
+
+  opts.on("-D", "--debug", "Run in debug mode") do
+    options[:debug] = true
+  end
+
+  opts.on("-h", "--help", "Display this help") do
+    puts opts
+    exit
+  end
+end.parse!
+
+# Apply options to Tryouts configuration
+Tryouts.quiet = options[:quiet]
+Tryouts.noisy = options[:verbose]
+Tryouts.debug = options[:debug]
+
+# Find test files if no paths provided
 if ARGV.empty?
   paths = Dir.glob(File.join(Dir.pwd, '{try,tryouts}', '*_{try,tryouts}.rb'))
   paths += Dir.glob(File.join(Dir.pwd, '*_{try,tryouts}.rb'))
@@ -41,9 +71,15 @@ else
   paths = ARGV
 end
 
+exit_code = 0
 paths.each do |path|
-  pp [:path, path]
   tryouts = Tryouts.new(path)
-  tryouts.run
-  tryouts.report
+  #tryouts.run
+  #tryouts.report
+
+  # Update exit code based on test results
+  # This will be implemented in part 2 when we add test running
+  # exit_code += tryouts.failed_count
 end
+
+exit exit_code

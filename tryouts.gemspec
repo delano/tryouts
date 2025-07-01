@@ -23,6 +23,7 @@ Gem::Specification.new do |spec|
   spec.add_runtime_dependency 'sysinfo', '~> 0.10'
   spec.add_runtime_dependency 'tree_stand', '~> 0.2.0'
 
+  spec.add_development_dependency 'minitest'
   spec.add_development_dependency 'rspec'
   spec.add_development_dependency 'rubocop'
 end

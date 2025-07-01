@@ -46,5 +46,22 @@
     "prestart": "tree-sitter build --wasm",
     "start": "tree-sitter playground",
     "test": "node --test bindings/node/*_test.js"
+  },
+  "tree-sitter-highlights": "queries/highlights.scm",
+  "tree-sitter": {
+    "grammars": {
+      "tryouts": {
+        "scope": "source.tryouts",
+        "file-types": ["rb", "tryouts"],
+        "path": "src",
+        "content-regex": "\\.(rb|tryouts)$",
+        "injection-regex": "tryouts"
+      }
+    },
+    "highlights": "queries/highlights.scm",
+    "injections": "queries/injections.scm",
+    "locals": "queries/locals.scm",
+    "tags": "queries/tags.scm",
+    "query-path": "queries"
   }
 }

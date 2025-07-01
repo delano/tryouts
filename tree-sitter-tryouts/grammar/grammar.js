@@ -18,11 +18,11 @@ module.exports = grammar({
 
     // Definition of a testcase
     testcase: $ => seq(
-      repeat1($.description_line),
-      repeat($.code_line),
-      repeat1($.expectation_line),
+      field("description", repeat1($.description_line)),
+      field("testcode", repeat($.code_line)),
+      field("expectations", repeat1($.expectation_line))
       // Allow for blank lines within and after a testcase
-      repeat($.blank_line)
+      //optional($.blank_line)
     ),
 
     // Descriptions start with '##'

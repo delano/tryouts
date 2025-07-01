@@ -5,7 +5,7 @@
 
   (testcase
     (description_line) @test.description
-    (code_line)* @test.code
+    (code_line)+ @test.code
     (expectation_line) @test.expectation)* @test
 
   (teardown_section

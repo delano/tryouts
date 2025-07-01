@@ -4,10 +4,18 @@
       "name": "tryouts",
       "camelcase": "Tryouts",
       "scope": "source.tryouts",
+      "rules": {
+        "source": {
+          "type": "STRING",
+          "named": true
+        }
+      },
       "file-types": [
-        "_try.rb"
+        "rb",
+        "tryouts"
       ],
-      "injection-regex": "^tryouts$"
+      "content-regex": "\\.(rb|tryouts)$",
+      "injection-regex": "tryouts"
     }
   ],
   "metadata": {
