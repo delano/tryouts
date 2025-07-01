@@ -38,9 +38,14 @@ class Tryouts
     def run(files, **options)
       @options.merge!(options)
 
+      if options[:version]
+        puts "Tryouts version #{Tryouts::VERSION}"
+        exit 0
+      end
+
       # Apply framework-specific defaults
       framework_defaults = FRAMEWORK_DEFAULTS[@options[:framework]] || {}
-      final_options = framework_defaults.merge(@options)
+      final_options      = framework_defaults.merge(@options)
 
       # Direct execution doesn't use translators
       unless final_options[:framework] == :direct || FRAMEWORKS.key?(final_options[:framework])
@@ -127,6 +132,8 @@ class Tryouts
           options[:shared_context] = true
         when '--verbose', '-v'
           options[:verbose] = true
+        when '--version', '-V'
+          options[:version] = true
         when '--help', '-h'
           print_help
           exit 0

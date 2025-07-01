@@ -1,9 +1,11 @@
 #!/usr/bin/env ruby
-# test_setup_execution.rb
+# test_setup_execution2.rb
 
-require_relative 'lib/tryouts'
 
-test_file = '/Users/d/Projects/opensource/d/tryouts/try/step1_try.rb'
+
+require_relative '../lib/tryouts'
+
+test_file = 'try/step1_try.rb'
 
 puts "Testing TestBatch setup execution with: #{test_file}"
 puts '=' * 50

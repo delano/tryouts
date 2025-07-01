@@ -38,7 +38,7 @@ class Tryouts
       if @shared_context
         # Shared context mode: setup once, all tests share state
         execute_setup_once
-        
+
         test_cases.each do |test_case|
           before_test&.call(test_case)
 
@@ -54,7 +54,7 @@ class Tryouts
 
           yield(test_case) if block_given?
         end
-        
+
         execute_teardown
       else
         # Fresh context mode: setup before each test
@@ -73,7 +73,7 @@ class Tryouts
 
           yield(test_case) if block_given?
         end
-        
+
         execute_teardown
       end
 
