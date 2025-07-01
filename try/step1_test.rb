@@ -1,7 +1,8 @@
 # Generated minitest code for try/step1_try.rb
-# Updated: 2025-07-01 16:33:36 -0700
+# Updated: 2025-07-01 16:38:58 -0700
 
 require 'minitest/test'
+require 'minitest/autorun'
 
 class Teststep1try < Minitest::Test
   def setup
@@ -44,7 +45,7 @@ class Teststep1try < Minitest::Test
     result = begin
       @a += 1
       'foo'
-      
+
     end
     assert_equal 'foo', result
   end
@@ -65,4 +66,3 @@ class Teststep1try < Minitest::Test
     puts x
   end
 end
-

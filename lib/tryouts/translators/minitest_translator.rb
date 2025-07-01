@@ -56,6 +56,7 @@ class Tryouts
 
         lines << ''
         lines << "require 'minitest/test'"
+        lines << "require 'minitest/autorun'"
         lines << ''
         lines << "class #{class_name} < Minitest::Test"
 
