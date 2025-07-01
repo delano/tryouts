@@ -52,6 +52,9 @@ class Tryouts
 
       test_cases << build_test_case(current_test) if current_test
 
+      # Detect teardown: lines after last test case
+      teardown_lines = detect_teardown_lines(test_cases)
+
       Testrun.new(
         setup: build_setup(setup_lines),
         test_cases: test_cases,
@@ -65,9 +68,9 @@ class Tryouts
       case line
       in /^##\s*(.*)/ if ::Regexp.last_match(1)
         [:description, ::Regexp.last_match(1).strip]
-      in /^#\s*TEST\s+\d+:\s*(.*)/ if ::Regexp.last_match(1) # rubocop:disable Lint/DuplicateBranch
+      in /^##?\s*TEST\s+\d+:\s*(.*)/ if ::Regexp.last_match(1) # rubocop:disable Lint/DuplicateBranch
         [:description, ::Regexp.last_match(1).strip]
-      in /^#=>\s*(.*)/ if ::Regexp.last_match(1)
+      in /^#\s*=>\s*(.*)/ if ::Regexp.last_match(1)
         [:expectation, ::Regexp.last_match(1).strip]
       in /^#[^#=>](.*)/ if ::Regexp.last_match(1)
         [:comment, ::Regexp.last_match(1).strip]
@@ -90,7 +93,10 @@ class Tryouts
     def build_test_case(test_data)
       return nil unless test_data
 
-      line_range = test_data[:line_start]..(@lines.size - 1)
+      # Calculate proper end line for this test case
+      start_line = test_data[:line_start]
+      end_line = find_test_end_line_from_data(test_data, start_line)
+      line_range = start_line..end_line
 
       PrismTestCase.new(
         description: test_data[:description].join(' ').strip,
@@ -99,6 +105,20 @@ class Tryouts
         line_range: line_range,
         path: @source_path,
       )
+    end
+
+    def find_test_end_line_from_data(test_data, start_line)
+      # Find next test description line
+      next_test_line = @lines[(start_line + 1)..-1].find_index do |line|
+        line_type, _ = parse_line(line)
+        line_type == :description
+      end
+
+      if next_test_line
+        start_line + next_test_line  # Line before next test
+      else
+        @lines.size - 1  # End of file
+      end
     end
 
     def build_setup(lines)
@@ -133,6 +153,43 @@ class Tryouts
 
     def handle_unknown_line(line, state, index)
       # For now, treat unknown lines as code
+    end
+
+    def detect_teardown_lines(test_cases)
+      return [] if test_cases.empty?
+
+      # Look for explicit teardown marker comment
+      teardown_start = @lines.find_index do |line|
+        line.match?(/^#.*teardown/i)
+      end
+
+      if teardown_start
+        # Everything after teardown marker
+        @lines[(teardown_start + 1)..-1].reject(&:empty?)
+      else
+        # Fallback: use last test case end
+        last_test_end_line = test_cases.map(&:line_range).map(&:last).max || 0
+        return [] if last_test_end_line >= @lines.size - 1
+        @lines[(last_test_end_line + 1)..-1]
+      end
+    end
+
+    def find_test_case_end_line(test_case)
+      # Simple approach: find last non-blank line before next test or end of file
+      test_start = test_case.line_range.first
+
+      # Look for next test case description
+      next_test_line = @lines[(test_start + 1)..-1].find_index do |line|
+        line_type, _ = parse_line(line)
+        line_type == :description
+      end
+
+      if next_test_line
+        actual_next_line = test_start + 1 + next_test_line
+        actual_next_line - 1
+      else
+        @lines.size - 1
+      end
     end
 
     def handle_syntax_errors
