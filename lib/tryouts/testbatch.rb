@@ -34,15 +34,12 @@ class Tryouts
 
       failed_count = 0
 
-      # Execute setup code before any tests
-      execute_setup
-
-      # Run each test case
+      # Run each test case in fresh context
       test_cases.each do |test_case|
         before_test&.call(test_case)
 
         begin
-          test_result = execute_test_case(test_case)
+          test_result = execute_test_case_with_setup(test_case)
           failed_count += 1 if test_result == :failed
         rescue StandardError => ex
           failed_count += 1
@@ -76,26 +73,44 @@ class Tryouts
 
     private
 
-    # Execute setup code in the container context
-    def execute_setup
-      return if @testrun.setup.empty?
+    # Execute test case with fresh setup context
+    def execute_test_case_with_setup(test_case)
+      return :skipped if test_case.empty? || !test_case.has_expectations?
 
-      setup_code = @testrun.setup.code
-      setup_path = @testrun.setup.path
-      setup_line = @testrun.setup.line_range.first
+      # Create fresh container for this test case
+      fresh_container = Object.new
 
-      Tryouts.debug "Executing setup code:\n#{setup_code}" if Tryouts.debug?
+      # Execute setup code first in fresh context
+      unless @testrun.setup.empty?
+        setup_code = @testrun.setup.code
+        setup_path = @testrun.setup.path
+        setup_line = @testrun.setup.line_range.first
 
-      # Execute setup in the container context so instance variables
-      # are available to test cases
-      @container.instance_eval(setup_code, setup_path, setup_line)
+        Tryouts.debug "Executing setup for test: #{test_case.description}" if Tryouts.debug?
+        fresh_container.instance_eval(setup_code, setup_path, setup_line)
+      end
+
+      # Execute test code in same fresh context
+      test_code = test_case.code
+      test_path = test_case.path
+      test_line = test_case.line_range.first
+
+      Tryouts.debug "Executing test case: #{test_case.description}" if Tryouts.debug?
+      Tryouts.debug "Test code:\n#{test_code}" if Tryouts.debug?
+
+      result = fresh_container.instance_eval(test_code, test_path, test_line)
+
+      # Evaluate expectations in same fresh context
+      expectations_passed = evaluate_expectations_in_context(test_case, result, fresh_container)
+
+      expectations_passed ? :passed : :failed
     rescue StandardError => ex
-      warn Console.color(:red, "Setup failed: #{ex.message}")
+      warn Console.color(:red, "Test execution failed: #{ex.message}")
       warn ex.backtrace.join($/), $/
-      raise
+      :failed
     end
 
-    # Execute teardown code in the container context
+    # Execute teardown code in the original container context
     def execute_teardown
       return if @testrun.teardown.empty?
 
@@ -111,38 +126,13 @@ class Tryouts
       warn ex.backtrace.join($/), $/
     end
 
-    # Execute a single test case
-    def execute_test_case(test_case)
-      return :skipped if test_case.empty? || !test_case.has_expectations?
-
-      test_code = test_case.code
-      test_path = test_case.path
-      test_line = test_case.line_range.first
-
-      Tryouts.debug "Executing test case: #{test_case.description}" if Tryouts.debug?
-      Tryouts.debug "Test code:\n#{test_code}" if Tryouts.debug?
-
-      # Execute the test code in the shared container context
-      # This allows instance variables to persist across test cases
-      result = @container.instance_eval(test_code, test_path, test_line)
-
-      # Evaluate expectations in the same context
-      expectations_passed = evaluate_expectations(test_case, result)
-
-      expectations_passed ? :passed : :failed
-    rescue StandardError => ex
-      warn Console.color(:red, "Test execution failed: #{ex.message}")
-      warn ex.backtrace.join($/), $/
-      :failed
-    end
-
-    # Evaluate test case expectations against the result
-    def evaluate_expectations(test_case, result)
+    # Evaluate test case expectations against the result in given context
+    def evaluate_expectations_in_context(test_case, result, context)
       return true if test_case.expectations.empty?
 
       test_case.expectations.all? do |expectation|
-        expected_value = @container.instance_eval(expectation, test_case.path, test_case.line_range.first)
-
+        expected_value = context.instance_eval(expectation, test_case.path, test_case.line_range.first)
+        
         if result == expected_value
           Tryouts.debug "✓ Expected: #{expected_value.inspect}, Got: #{result.inspect}" if Tryouts.debug?
           true

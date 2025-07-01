@@ -2,7 +2,7 @@
 
 puts 'If you see this the setup ran correctly.'
 
-# test matches single quote description start
+# (test 1) test matches single quote description start
 1
 #=> 1
 

@@ -3,10 +3,10 @@
 
 # Quick test of the new Prism parser
 
-require_relative 'lib/tryouts'
+require_relative '../lib/tryouts'
 
 # Test the Prism parser with an existing tryout file
-test_file = '/Users/d/Projects/opensource/d/tryouts/try/step1_try.rb'
+test_file = 'try/step1_try.rb'
 
 puts "Testing Prism parser with: #{test_file}"
 puts '=' * 50
