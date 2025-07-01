@@ -65,6 +65,7 @@ class Tryouts
 
           if final_options[:generate_only]
             puts "# Generated #{final_options[:framework]} code for #{file}"
+            puts "# Updated: #{Time.now}"
             puts translator.generate_code(testrun)
             puts
           else

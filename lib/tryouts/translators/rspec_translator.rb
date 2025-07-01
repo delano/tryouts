@@ -47,8 +47,6 @@ class Tryouts
         file_basename = File.basename(testrun.source_file, '.rb')
         lines         = []
 
-        lines << "# Generated RSpec test from #{testrun.source_file}"
-        lines << "# Generated at: #{Time.now}"
         lines << ''
         lines << "RSpec.describe '#{file_basename}' do"
 

@@ -54,8 +54,6 @@ class Tryouts
         class_name    = "Test#{file_basename.gsub(/[^A-Za-z0-9]/, '')}"
         lines         = []
 
-        lines << "# Generated Minitest from #{testrun.source_file}"
-        lines << "# Generated at: #{Time.now}"
         lines << ''
         lines << "require 'minitest/test'"
         lines << ''
