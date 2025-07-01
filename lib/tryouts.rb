@@ -9,6 +9,9 @@ require_relative 'tryouts/section'
 require_relative 'tryouts/testbatch'
 require_relative 'tryouts/testcase'
 require_relative 'tryouts/version'
+require_relative 'tryouts/data_structures'
+require_relative 'tryouts/prism_parser'
+require_relative 'tryouts/cli'
 
 class Tryouts
   @debug = false
