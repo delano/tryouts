@@ -206,7 +206,7 @@ Layout/FirstHashElementIndentation:
   Enabled: true
 
 Lint/Void:
-  Enabled: true
+  Enabled: false
 
 Lint/CopDirectiveSyntax:
   Enabled: true

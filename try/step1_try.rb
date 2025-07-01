@@ -1,30 +1,41 @@
 # try/step1_try.rb
 
-# TEST 1: test matches result with expectation
+puts 'If you see this the setup ran correctly.'
+
+# test matches single quote description start
+1
+#=> 1
+
+# TEST 2: test matches result with expectation
+2
 #=> 2
 
-## TEST 2: comments, tests, and expectations can
+## TEST 3: comments, tests, and expectations can
 ## contain multiple lines
+3
+3
 # => 3
 # => 2 + 1
 
-# TEST 3: test expectation type matters
+# TEST 4: test expectation type matters
 'foo'.class
 #=> String
 
-# TEST 4: instance variables can be used in expectations
+# TEST 5: instance variables can be used in expectations
 @a = 1
 #=> @a
 
-# TEST 5: test ignores blank lines before expectations
+# TEST 6: test ignores blank lines before expectations
 @a += 1
 
 #=> 'foo'
 
-# TEST 6: test allows whiny expectation markers for textmate users *sigh*
+# TEST 7: test allows whiny expectation markers for textmate users *sigh*
+'foo'
 # =>  'foo'
 
-# TEST 7: test expectations can be commented out
+# TEST 8: test expectations can be commented out
+'this is a skipped test'
 ##=> 'this is a skipped test'
 
 # Everything after this is run as teardown code
