@@ -1,5 +1,6 @@
 # lib/tryouts/cli.rb
 
+require 'optparse'
 require_relative 'prism_parser'
 require_relative 'testbatch'
 require_relative 'translators/rspec_translator'
@@ -103,6 +104,9 @@ class Tryouts
               RSpec::Core::Runner.run([])
             when :minitest
               translator.translate(testrun)
+              # Clear ARGV to prevent Minitest from processing our arguments
+              original_argv = ARGV.dup
+              ARGV.clear
               require 'minitest/autorun'
               # Minitest will automatically discover and run the generated test class
             end
@@ -122,66 +126,39 @@ class Tryouts
 
     def self.parse_args(args)
       options = {}
-      files   = []
 
-      i = 0
-      while i < args.length
-        case args[i]
-        when '--rspec'
+      parser = OptionParser.new do |opts|
+        opts.banner = "Usage: try [OPTIONS] FILE...\n\nModern Tryouts test runner with framework translation"
+
+        opts.separator "\nFramework Options:"
+        opts.on('--direct', 'Direct execution with TestBatch (default)') { options[:framework] = :direct }
+        opts.on('--rspec', 'Use RSpec framework') { options[:framework] = :rspec }
+        opts.on('--minitest', 'Use Minitest framework') { options[:framework] = :minitest }
+
+        opts.separator "\nGeneration Options:"
+        opts.on('--generate-rspec', 'Generate RSpec code only') do
           options[:framework] = :rspec
-        when '--minitest'
-          options[:framework] = :minitest
-        when '--generate-rspec'
-          options[:framework]     = :rspec
           options[:generate_only] = true
-        when '--generate-minitest'
-          options[:framework]     = :minitest
-          options[:generate_only] = true
-        when '--direct'
-          options[:framework] = :direct
-        when '--generate'
-          options[:generate_only] = true
-        when '--shared-context'
-          options[:shared_context] = true
-        when '--verbose', '-v'
-          options[:verbose] = true
-        when '--fails', '--fails-only', '-f'
-          options[:fails_only] = true
-        when '--version', '-V'
-          options[:version] = true
-        when '--help', '-h'
-          print_help
-          exit 0
-        else
-          files << args[i]
         end
-        i += 1
-      end
+        opts.on('--generate-minitest', 'Generate Minitest code only') do
+          options[:framework] = :minitest
+          options[:generate_only] = true
+        end
+        opts.on('--generate', 'Generate code only (use with --rspec/--minitest)') { options[:generate_only] = true }
 
-      [files, options]
-    end
+        opts.separator "\nExecution Options:"
+        opts.on('--shared-context', 'Override default context mode') { options[:shared_context] = true }
+        opts.on('-v', '--verbose', 'Show detailed test output with line numbers') { options[:verbose] = true }
+        opts.on('-f', '--fails', 'Show only failing tests (with --verbose)') { options[:fails_only] = true }
 
-    # opts.on('-q', '--quiet', 'Run in quiet mode') { Tryouts.quiet = true }
-    # opts.on('-v', '--verbose', 'Run in verbose mode') { Tryouts.noisy = true }
-    # opts.on('-f', '--fails', 'Show only failing tryouts') { Tryouts.fails = true }
-    # opts.on('-D', '--debug', 'Run in debug mode') { Tryouts.debug = true }
-    def self.print_help
-      puts <<~HELP
-        Usage: try [OPTIONS] FILE...
+        opts.separator "\nGeneral Options:"
+        opts.on('-V', '--version', 'Show version') { options[:version] = true }
+        opts.on('-h', '--help', 'Show this help') do
+          puts opts
+          exit 0
+        end
 
-        Modern Tryouts test runner with framework translation
-
-        Options:
-          --direct              Direct execution with TestBatch (default)
-          --rspec               Use RSpec framework
-          --minitest            Use Minitest framework
-          --shared-context      Override default context mode
-          --generate-rspec      Generate RSpec code only
-          --generate-minitest   Generate Minitest code only
-          --generate            Generate code only (use with --rspec/--minitest)
-          --verbose, -v         Show detailed test output with line numbers
-          --fails, -f           Show only failing tests (with --verbose)
-          --help, -h            Show this help
+        opts.separator <<~HELP
 
         Framework Defaults:
           Direct:     Shared context (state persists across tests)
@@ -194,16 +171,20 @@ class Tryouts
           try --direct --shared-context test_try.rb # Explicit shared context
           try --generate-rspec test_try.rb         # Output RSpec code only
 
-        Framework Integration:
-          Direct:   Native TestBatch execution with configurable context
-          RSpec:    Generates describe/it blocks with proper setup/teardown
-          Minitest: Generates test class with test_* methods
-
         File Format:
           ## Test description       # Test case marker
           code_to_test             # Ruby code
           #=> expected_result       # Expectation
-      HELP
+        HELP
+      end
+
+      files = parser.parse(args)
+      [files, options]
+    rescue OptionParser::InvalidOption => e
+      warn "Error: #{e.message}"
+      warn "Try 'try --help' for more information."
+      exit 1
     end
+
   end
 end
