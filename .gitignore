@@ -9,6 +9,7 @@
 *.md
 *.txt
 !LICENSE.txt
+!README.md
 .ruby-version
 appendonlydir
 etc/config

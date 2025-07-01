@@ -5,9 +5,10 @@ class Tryouts
   class TestBatch
     attr_reader :testrun, :failed, :container, :run_status
 
-    def initialize(testrun)
+    def initialize(testrun, shared_context: false)
       @testrun = testrun
       @container = Object.new  # Simple object instance for shared context
+      @shared_context = shared_context
       @failed = 0
       @run_status = false
     end
@@ -34,25 +35,47 @@ class Tryouts
 
       failed_count = 0
 
-      # Run each test case in fresh context
-      test_cases.each do |test_case|
-        before_test&.call(test_case)
+      if @shared_context
+        # Shared context mode: setup once, all tests share state
+        execute_setup_once
+        
+        test_cases.each do |test_case|
+          before_test&.call(test_case)
 
-        begin
-          test_result = execute_test_case_with_setup(test_case)
-          failed_count += 1 if test_result == :failed
-        rescue StandardError => ex
-          failed_count += 1
-          warn Console.color(:red, "Error in test: #{test_case.description}")
-          warn Console.color(:red, ex.message)
-          warn ex.backtrace.join($/), $/
+          begin
+            test_result = execute_test_case_shared(test_case)
+            failed_count += 1 if test_result == :failed
+          rescue StandardError => ex
+            failed_count += 1
+            warn Console.color(:red, "Error in test: #{test_case.description}")
+            warn Console.color(:red, ex.message)
+            warn ex.backtrace.join($/), $/
+          end
+
+          yield(test_case) if block_given?
         end
+        
+        execute_teardown
+      else
+        # Fresh context mode: setup before each test
+        test_cases.each do |test_case|
+          before_test&.call(test_case)
 
-        yield(test_case) if block_given?  # For tallying/reporting
+          begin
+            test_result = execute_test_case_with_setup(test_case)
+            failed_count += 1 if test_result == :failed
+          rescue StandardError => ex
+            failed_count += 1
+            warn Console.color(:red, "Error in test: #{test_case.description}")
+            warn Console.color(:red, ex.message)
+            warn ex.backtrace.join($/), $/
+          end
+
+          yield(test_case) if block_given?
+        end
+        
+        execute_teardown
       end
-
-      # Execute teardown code after all tests
-      execute_teardown
 
       @failed = failed_count
       @run_status = true
@@ -72,6 +95,46 @@ class Tryouts
     end
 
     private
+
+    # Execute setup once at the beginning (shared context mode)
+    def execute_setup_once
+      return if @testrun.setup.empty?
+
+      setup_code = @testrun.setup.code
+      setup_path = @testrun.setup.path
+      setup_line = @testrun.setup.line_range.first
+
+      Tryouts.debug "Executing setup once (shared context):\n#{setup_code}" if Tryouts.debug?
+      @container.instance_eval(setup_code, setup_path, setup_line)
+    rescue StandardError => ex
+      warn Console.color(:red, "Setup failed: #{ex.message}")
+      warn ex.backtrace.join($/), $/
+      raise
+    end
+
+    # Execute test case in shared context (no setup per test)
+    def execute_test_case_shared(test_case)
+      return :skipped if test_case.empty? || !test_case.has_expectations?
+
+      test_code = test_case.code
+      test_path = test_case.path
+      test_line = test_case.line_range.first
+
+      Tryouts.debug "Executing test case (shared): #{test_case.description}" if Tryouts.debug?
+      Tryouts.debug "Test code:\n#{test_code}" if Tryouts.debug?
+
+      # Execute test in shared container context
+      result = @container.instance_eval(test_code, test_path, test_line)
+
+      # Evaluate expectations in same shared context
+      expectations_passed = evaluate_expectations_in_context(test_case, result, @container)
+
+      expectations_passed ? :passed : :failed
+    rescue StandardError => ex
+      warn Console.color(:red, "Test execution failed: #{ex.message}")
+      warn ex.backtrace.join($/), $/
+      :failed
+    end
 
     # Execute test case with fresh setup context
     def execute_test_case_with_setup(test_case)
@@ -110,7 +173,7 @@ class Tryouts
       :failed
     end
 
-    # Execute teardown code in the original container context
+    # Execute teardown code in the container context
     def execute_teardown
       return if @testrun.teardown.empty?
 
@@ -132,7 +195,7 @@ class Tryouts
 
       test_case.expectations.all? do |expectation|
         expected_value = context.instance_eval(expectation, test_case.path, test_case.line_range.first)
-        
+
         if result == expected_value
           Tryouts.debug "✓ Expected: #{expected_value.inspect}, Got: #{result.inspect}" if Tryouts.debug?
           true

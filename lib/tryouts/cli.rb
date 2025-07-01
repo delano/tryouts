@@ -1,6 +1,7 @@
 # lib/tryouts/cli.rb
 
 require_relative 'prism_parser'
+require_relative 'testbatch'
 require_relative 'translators/rspec_translator'
 require_relative 'translators/minitest_translator'
 
@@ -11,10 +12,25 @@ class Tryouts
       minitest: Translators::MinitestTranslator,
     }.freeze
 
+    # Framework defaults - very clear configuration
+    FRAMEWORK_DEFAULTS = {
+      direct: {
+        shared_context: true,   # Direct mode uses shared context by default
+        generate_only: false,
+      },
+      rspec: {
+        shared_context: false,  # Framework modes use fresh context
+        generate_only: false,
+      },
+      minitest: {
+        shared_context: false,  # Framework modes use fresh context
+        generate_only: false,
+      },
+    }.freeze
+
     def initialize
       @options = {
-        framework: :rspec,
-        generate_only: false,
+        framework: :direct,     # Direct is now the default
         verbose: false,
       }
     end
@@ -22,11 +38,16 @@ class Tryouts
     def run(files, **options)
       @options.merge!(options)
 
-      unless FRAMEWORKS.key?(@options[:framework])
-        raise ArgumentError, "Unknown framework: #{@options[:framework]}. Available: #{FRAMEWORKS.keys.join(', ')}"
+      # Apply framework-specific defaults
+      framework_defaults = FRAMEWORK_DEFAULTS[@options[:framework]] || {}
+      final_options = framework_defaults.merge(@options)
+
+      # Direct execution doesn't use translators
+      unless final_options[:framework] == :direct || FRAMEWORKS.key?(final_options[:framework])
+        raise ArgumentError, "Unknown framework: #{final_options[:framework]}. Available: #{FRAMEWORKS.keys.join(', ')}, direct"
       end
 
-      translator = FRAMEWORKS[@options[:framework]].new
+      translator = FRAMEWORKS[final_options[:framework]].new unless final_options[:framework] == :direct
 
       files.each do |file|
         unless File.exist?(file)
@@ -37,13 +58,27 @@ class Tryouts
         begin
           testrun = PrismParser.new(file).parse
 
-          if @options[:generate_only]
-            puts "# Generated #{@options[:framework]} code for #{file}"
+          if final_options[:generate_only]
+            puts "# Generated #{final_options[:framework]} code for #{file}"
             puts translator.generate_code(testrun)
             puts
           else
             # Execute the translation and run tests
-            case @options[:framework]
+            case final_options[:framework]
+            when :direct
+              # Direct execution with TestBatch
+              batch = TestBatch.new(testrun, shared_context: final_options[:shared_context])
+
+              context_mode = final_options[:shared_context] ? 'shared' : 'fresh'
+              puts "Running #{file} with #{context_mode} context..."
+
+              success = batch.run do |test_case|
+                puts "  #{test_case.description}: #{batch.failed > 0 ? '❌' : '✅'}"
+              end
+
+              puts "Results: #{batch.size} tests, #{batch.failed} failed"
+              return 1 unless success
+
             when :rspec
               translator.translate(testrun)
               require 'rspec/core'
@@ -59,7 +94,7 @@ class Tryouts
           return 1
         rescue StandardError => ex
           warn "Error processing #{file}: #{ex.message}"
-          warn ex.backtrace.join("\n") if @options[:verbose]
+          warn ex.backtrace.join("\n") if final_options[:verbose]
           return 1
         end
       end
@@ -84,8 +119,12 @@ class Tryouts
         when '--generate-minitest'
           options[:framework]     = :minitest
           options[:generate_only] = true
+        when '--direct'
+          options[:framework] = :direct
         when '--generate'
           options[:generate_only] = true
+        when '--shared-context'
+          options[:shared_context] = true
         when '--verbose', '-v'
           options[:verbose] = true
         when '--help', '-h'
@@ -111,21 +150,29 @@ class Tryouts
         Modern Tryouts test runner with framework translation
 
         Options:
-          --rspec               Use RSpec framework (default)
+          --direct              Direct execution with TestBatch (default)
+          --rspec               Use RSpec framework
           --minitest            Use Minitest framework
+          --shared-context      Override default context mode
           --generate-rspec      Generate RSpec code only
           --generate-minitest   Generate Minitest code only
           --generate            Generate code only (use with --rspec/--minitest)
           --verbose, -v         Verbose error output
           --help, -h            Show this help
 
+        Framework Defaults:
+          Direct:     Shared context (state persists across tests)
+          RSpec:      Fresh context (each test isolated)
+          Minitest:   Fresh context (each test isolated)
+
         Examples:
-          try test_try.rb                    # Run with RSpec (default)
-          try --minitest test_try.rb         # Run with Minitest
-          try --generate-rspec test_try.rb   # Output RSpec code only
-          try *.try.rb                       # Run all tryout files
+          try test_try.rb                          # Direct with shared context
+          try --rspec test_try.rb                  # RSpec with fresh context
+          try --direct --shared-context test_try.rb # Explicit shared context
+          try --generate-rspec test_try.rb         # Output RSpec code only
 
         Framework Integration:
+          Direct:   Native TestBatch execution with configurable context
           RSpec:    Generates describe/it blocks with proper setup/teardown
           Minitest: Generates test class with test_* methods
 

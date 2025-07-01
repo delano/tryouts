@@ -1,8 +1,12 @@
-# Tryouts v2.4 (2024-07-20)
+# Tryouts v3.0-rc1 (2025-07-01)
 
 **Ruby tests that read like documentation.**
 
 A simple test framework for Ruby code that uses introspection to allow defining checks in comments.
+
+> [!WARNING]
+> Version 3 uses Ruby's Prism parser and pattern matching which are built-in to Ruby 3.4 and later.
+
 
 ## Installation
 
