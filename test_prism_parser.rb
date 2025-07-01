@@ -1,5 +1,5 @@
 #!/usr/bin/env ruby
-# frozen_string_literal: true
+# test_prism_parser.rb
 
 # Quick test of the new Prism parser
 
@@ -9,13 +9,13 @@ require_relative 'lib/tryouts'
 test_file = '/Users/d/Projects/opensource/d/tryouts/try/step1_try.rb'
 
 puts "Testing Prism parser with: #{test_file}"
-puts "=" * 50
+puts '=' * 50
 
 begin
-  parser = Tryouts::PrismParser.new(test_file)
+  parser  = Tryouts::PrismParser.new(test_file)
   testrun = parser.parse
 
-  puts "✅ Parsing successful!"
+  puts '✅ Parsing successful!'
   puts "📊 Found #{testrun.total_tests} test cases"
   puts "🏗️  Setup code: #{testrun.setup.empty? ? 'None' : 'Present'}"
   puts "🧹 Teardown code: #{testrun.teardown.empty? ? 'None' : 'Present'}"
@@ -30,12 +30,11 @@ begin
   end
 
   # Test RSpec translation
-  puts "🧪 Testing RSpec translation..."
+  puts '🧪 Testing RSpec translation...'
   rspec_translator = Tryouts::Translators::RSpecTranslator.new
-  rspec_code = rspec_translator.generate_code(testrun)
+  rspec_code       = rspec_translator.generate_code(testrun)
   puts "✅ RSpec code generated (#{rspec_code.lines.count} lines)"
-
-rescue => e
-  puts "❌ Error: #{e.message}"
-  puts e.backtrace.first(5)
+rescue StandardError => ex
+  puts "❌ Error: #{ex.message}"
+  puts ex.backtrace.first(5)
 end

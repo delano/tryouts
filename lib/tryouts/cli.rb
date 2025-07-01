@@ -1,4 +1,4 @@
-# frozen_string_literal: true
+# lib/tryouts/cli.rb
 
 require_relative 'prism_parser'
 require_relative 'translators/rspec_translator'
@@ -8,14 +8,14 @@ class Tryouts
   class CLI
     FRAMEWORKS = {
       rspec: Translators::RSpecTranslator,
-      minitest: Translators::MinitestTranslator
+      minitest: Translators::MinitestTranslator,
     }.freeze
 
     def initialize
       @options = {
         framework: :rspec,
         generate_only: false,
-        verbose: false
+        verbose: false,
       }
     end
 
@@ -30,7 +30,7 @@ class Tryouts
 
       files.each do |file|
         unless File.exist?(file)
-          $stderr.puts "Error: File not found: #{file}"
+          warn "Error: File not found: #{file}"
           next
         end
 
@@ -54,13 +54,12 @@ class Tryouts
               # Minitest will automatically discover and run the generated test class
             end
           end
-
-        rescue TryoutSyntaxError => e
-          $stderr.puts "Syntax error in #{file}: #{e.message}"
+        rescue TryoutSyntaxError => ex
+          warn "Syntax error in #{file}: #{ex.message}"
           return 1
-        rescue StandardError => e
-          $stderr.puts "Error processing #{file}: #{e.message}"
-          $stderr.puts e.backtrace.join("\n") if @options[:verbose]
+        rescue StandardError => ex
+          warn "Error processing #{file}: #{ex.message}"
+          warn ex.backtrace.join("\n") if @options[:verbose]
           return 1
         end
       end
@@ -70,7 +69,7 @@ class Tryouts
 
     def self.parse_args(args)
       options = {}
-      files = []
+      files   = []
 
       i = 0
       while i < args.length
@@ -80,10 +79,10 @@ class Tryouts
         when '--minitest'
           options[:framework] = :minitest
         when '--generate-rspec'
-          options[:framework] = :rspec
+          options[:framework]     = :rspec
           options[:generate_only] = true
         when '--generate-minitest'
-          options[:framework] = :minitest
+          options[:framework]     = :minitest
           options[:generate_only] = true
         when '--generate'
           options[:generate_only] = true

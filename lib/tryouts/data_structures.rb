@@ -1,4 +1,4 @@
-# frozen_string_literal: true
+# lib/tryouts/data_structures.rb
 
 # Modern data structures using Ruby 3.2+ Data classes
 class Tryouts
@@ -41,7 +41,7 @@ class Tryouts
 
     def initialize(message, line_number:, context:, source_file: nil)
       @line_number = line_number
-      @context = context
+      @context     = context
       @source_file = source_file
 
       location = source_file ? "#{source_file}:#{line_number}" : "line #{line_number}"

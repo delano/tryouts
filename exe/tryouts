@@ -1,4 +1,4 @@
 #!/usr/bin/env ruby
-# frozen_string_literal: true
+# exe/tryouts
 
-load File.expand_path("../try", __FILE__)
+load File.expand_path('try', __dir__)

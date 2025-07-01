@@ -1,4 +1,4 @@
-# frozen_string_literal: true
+# lib/tryouts/translators/minitest_translator.rb
 
 class Tryouts
   module Translators
@@ -6,12 +6,12 @@ class Tryouts
       def initialize
         require 'minitest/test'
       rescue LoadError
-        raise "Minitest gem is required for Minitest translation"
+        raise 'Minitest gem is required for Minitest translation'
       end
 
       def translate(testrun)
         file_basename = File.basename(testrun.source_file, '.rb')
-        class_name = "Test#{file_basename.gsub(/[^A-Za-z0-9]/, '')}"
+        class_name    = "Test#{file_basename.gsub(/[^A-Za-z0-9]/, '')}"
 
         test_class = Class.new(Minitest::Test) do
           # Setup method
@@ -27,7 +27,7 @@ class Tryouts
 
             method_name = "test_#{index.to_s.rjust(3, '0')}_#{test_case.description.parameterize}"
             define_method(method_name) do
-              result = instance_eval(test_case.code) if !test_case.code.strip.empty?
+              result = instance_eval(test_case.code) unless test_case.code.strip.empty?
 
               test_case.expectations.each do |expectation|
                 expected_value = instance_eval(expectation)
@@ -51,21 +51,21 @@ class Tryouts
 
       def generate_code(testrun)
         file_basename = File.basename(testrun.source_file, '.rb')
-        class_name = "Test#{file_basename.gsub(/[^A-Za-z0-9]/, '')}"
-        lines = []
+        class_name    = "Test#{file_basename.gsub(/[^A-Za-z0-9]/, '')}"
+        lines         = []
 
         lines << "# Generated Minitest from #{testrun.source_file}"
         lines << "# Generated at: #{Time.now}"
-        lines << ""
+        lines << ''
         lines << "require 'minitest/test'"
-        lines << ""
+        lines << ''
         lines << "class #{class_name} < Minitest::Test"
 
         if testrun.setup && !testrun.setup.empty?
-          lines << "  def setup"
+          lines << '  def setup'
           testrun.setup.code.lines.each { |line| lines << "    #{line.chomp}" }
-          lines << "  end"
-          lines << ""
+          lines << '  end'
+          lines << ''
         end
 
         testrun.test_cases.each_with_index do |test_case, index|
@@ -73,26 +73,26 @@ class Tryouts
 
           method_name = "test_#{index.to_s.rjust(3, '0')}_#{test_case.description.parameterize}"
           lines << "  def #{method_name}"
-          if !test_case.code.strip.empty?
-            lines << "    result = begin"
+          unless test_case.code.strip.empty?
+            lines << '    result = begin'
             test_case.code.lines.each { |line| lines << "      #{line.chomp}" }
-            lines << "    end"
+            lines << '    end'
           end
 
           test_case.expectations.each do |expectation|
             lines << "    assert_equal #{expectation}, result"
           end
-          lines << "  end"
-          lines << ""
+          lines << '  end'
+          lines << ''
         end
 
         if testrun.teardown && !testrun.teardown.empty?
-          lines << "  def teardown"
+          lines << '  def teardown'
           testrun.teardown.code.lines.each { |line| lines << "    #{line.chomp}" }
-          lines << "  end"
+          lines << '  end'
         end
 
-        lines << "end"
+        lines << 'end'
         lines.join("\n")
       end
 
@@ -108,7 +108,9 @@ end
 
 # Add parameterize method to String for convenience
 class String
-  def parameterize
-    downcase.gsub(/[^a-z0-9]+/, '_').gsub(/^_|_$/, '')
-  end unless method_defined?(:parameterize)
+  unless method_defined?(:parameterize)
+    def parameterize
+      downcase.gsub(/[^a-z0-9]+/, '_').gsub(/^_|_$/, '')
+    end
+  end
 end

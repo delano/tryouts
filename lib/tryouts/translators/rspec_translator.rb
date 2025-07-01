@@ -1,4 +1,4 @@
-# frozen_string_literal: true
+# lib/tryouts/translators/rspec_translator.rb
 
 class Tryouts
   module Translators
@@ -6,7 +6,7 @@ class Tryouts
       def initialize
         require 'rspec/core'
       rescue LoadError
-        raise "RSpec gem is required for RSpec translation"
+        raise 'RSpec gem is required for RSpec translation'
       end
 
       def translate(testrun)
@@ -25,7 +25,7 @@ class Tryouts
             next if test_case.empty? || !test_case.has_expectations?
 
             it test_case.description do
-              result = instance_eval(test_case.code) if !test_case.code.strip.empty?
+              result = instance_eval(test_case.code) unless test_case.code.strip.empty?
 
               test_case.expectations.each do |expectation|
                 expected_value = instance_eval(expectation)
@@ -45,44 +45,44 @@ class Tryouts
 
       def generate_code(testrun)
         file_basename = File.basename(testrun.source_file, '.rb')
-        lines = []
+        lines         = []
 
         lines << "# Generated RSpec test from #{testrun.source_file}"
         lines << "# Generated at: #{Time.now}"
-        lines << ""
+        lines << ''
         lines << "RSpec.describe '#{file_basename}' do"
 
         if testrun.setup && !testrun.setup.empty?
-          lines << "  before(:all) do"
+          lines << '  before(:all) do'
           testrun.setup.code.lines.each { |line| lines << "    #{line.chomp}" }
-          lines << "  end"
-          lines << ""
+          lines << '  end'
+          lines << ''
         end
 
         testrun.test_cases.each_with_index do |test_case, _index|
           next if test_case.empty? || !test_case.has_expectations?
 
           lines << "  it '#{test_case.description}' do"
-          if test_case.code.strip.length > 0
-            lines << "    result = begin"
+          unless test_case.code.strip.empty?
+            lines << '    result = begin'
             test_case.code.lines.each { |line| lines << "      #{line.chomp}" }
-            lines << "    end"
+            lines << '    end'
           end
 
           test_case.expectations.each do |expectation|
             lines << "    expect(result).to eq(#{expectation})"
           end
-          lines << "  end"
-          lines << ""
+          lines << '  end'
+          lines << ''
         end
 
         if testrun.teardown && !testrun.teardown.empty?
-          lines << "  after(:all) do"
+          lines << '  after(:all) do'
           testrun.teardown.code.lines.each { |line| lines << "    #{line.chomp}" }
-          lines << "  end"
+          lines << '  end'
         end
 
-        lines << "end"
+        lines << 'end'
         lines.join("\n")
       end
     end

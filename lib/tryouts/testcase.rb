@@ -1,4 +1,4 @@
-# frozen_string_literal: true
+# lib/tryouts/testcase.rb
 
 class Tryouts
   class TestCase
@@ -6,8 +6,8 @@ class Tryouts
 
     def initialize(d, t, e)
       @desc, @test, @exps, @path = d, t, e
-      @testrunner_output = []
-      @console_output = StringIO.new
+      @testrunner_output         = []
+      @console_output            = StringIO.new
     end
 
     def inspect
@@ -22,7 +22,7 @@ class Tryouts
       Tryouts.debug format('%s:%d', @test.path, @test.first)
       Tryouts.debug inspect, $/
 
-      $stdout = @console_output
+      $stdout      = @console_output
       expectations = exps.collect do |exp, _idx|
         exp =~ /\A\#?\s*=>\s*(.+)\Z/
         ::Regexp.last_match(1) # this will be nil if the expectation is commented out
@@ -33,11 +33,11 @@ class Tryouts
       # Evaluate test block only if there are valid expectations
       unless expectations.compact.empty?  # TODO: fast-fail if no expectations
         test_value = Tryouts.eval @test.to_s, @test.path, @test.first
-        @has_run = true
+        @has_run   = true
       end
       Tryouts.info '^^^^^^^^^^^^^^^^^^^'
 
-      Tryouts.info "Capturing STDOUT for expectations"
+      Tryouts.info 'Capturing STDOUT for expectations'
       Tryouts.info 'vvvvvvvvvvvvvvvvvvv'
       expectations.each_with_index do |exp, idx|
         if exp.nil?
@@ -48,7 +48,7 @@ class Tryouts
 
           exp_value = Tryouts.eval(exp, @exps.path, @exps.first + idx)
 
-          test_passed = test_value.eql?(exp_value)
+          test_passed  = test_value.eql?(exp_value)
           @test_result = test_passed ? 1 : -1
           @testrunner_output << test_value.inspect
         end
@@ -60,13 +60,12 @@ class Tryouts
       failed?
 
       @test_result
-    rescue StandardError => e
-      Tryouts.debug "[testcaste.run] #{e.message}", e.backtrace.join($/), $/
+    rescue StandardError => ex
+      Tryouts.debug "[testcaste.run] #{ex.message}", ex.backtrace.join($/), $/
       # Continue raising the exception
-      raise e
+      raise ex
     ensure
       $stdout = STDOUT # restore stdout
-      @test_result
     end
 
     def run?
@@ -80,6 +79,7 @@ class Tryouts
     def passed?
       @test_result == 1
     end
+
     def failed?
       @test_result == -1
     end
@@ -105,6 +105,5 @@ class Tryouts
         'FAILED'
       end
     end
-
   end
 end

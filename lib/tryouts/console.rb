@@ -1,4 +1,4 @@
-# frozen_string_literal: true
+# lib/tryouts/console.rb
 
 class Tryouts
   module Console
@@ -12,7 +12,7 @@ class Tryouts
         blink: 5,
         reverse: 7,
         hidden: 8,
-        default: 0
+        default: 0,
       }.freeze
     end
 
@@ -28,7 +28,7 @@ class Tryouts
         cyan: 36,
         white: 37,
         default: 39,
-        random: 30 + rand(10).to_i
+        random: 30 + rand(10).to_i,
       }.freeze
     end
 
@@ -44,7 +44,7 @@ class Tryouts
         cyan: 46,
         white: 47,
         default: 49,
-        random: 40 + rand(10).to_i
+        random: 40 + rand(10).to_i,
       }.freeze
     end
 

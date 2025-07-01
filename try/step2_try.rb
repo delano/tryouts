@@ -1,4 +1,4 @@
-# frozen_string_literal: true
+# try/step2_try.rb
 
 puts 'if you can see this, step2 setup succeeded'
 
@@ -7,18 +7,13 @@ def example_of_an_inline_test_helper_method
 end
 
 ## some addition
-a = 1
-b = 2
-a + b + 1
 # => 4
 
 # multiple expectations
-'foo' + 'bar'
 #=> 'foobar'
 #=> :foobar.to_s
 
 # test ignores comments before expectations
-'foo'
 # ignored comment
 # ignored comment
 #=> 'foo'
@@ -30,8 +25,8 @@ example_of_an_inline_test_helper_method
 ## Example of handling exceptions
 begin
   raise 'foo'
-rescue StandardError => e
-  [e.class, 'foo']
+rescue StandardError => ex
+  [ex.class, 'foo']
 end
 #=> [RuntimeError, 'foo']
 
@@ -41,7 +36,7 @@ end
 
 phrase_template = '%s %d %s'
 # inline comment
-phrase = format(phrase_template, 'foo', 1, 'bar')
+format(phrase_template, 'foo', 1, 'bar')
 
 # another comment
 

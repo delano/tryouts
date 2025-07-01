@@ -1,13 +1,13 @@
-# frozen_string_literal: true
-#
+# lib/tryouts/section.rb
+
 class Tryouts
   class Section < Array
     attr_accessor :path, :first, :last
 
     def initialize(path, start = 0)
-      @path = path
+      @path  = path
       @first = start
-      @last = start
+      @last  = start
     end
 
     def range

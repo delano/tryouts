@@ -1,4 +1,4 @@
-# frozen_string_literal: true
+# lib/tryouts.rb
 
 require 'stringio'
 
@@ -14,13 +14,13 @@ require_relative 'tryouts/prism_parser'
 require_relative 'tryouts/cli'
 
 class Tryouts
-  @debug = false
-  @quiet = false
-  @noisy = false
-  @fails = false
-  @container = Class.new
-  @cases = []
-  @sysinfo = nil
+  @debug       = false
+  @quiet       = false
+  @noisy       = false
+  @fails       = false
+  @container   = Class.new
+  @cases       = []
+  @sysinfo     = nil
   @testcase_io = StringIO.new
 
   module ClassMethods
@@ -47,11 +47,11 @@ class Tryouts
         parse path
       end
 
-      tryouts_incr = 0
-      skipped_tests = 0
-      failed_tests = 0
+      tryouts_incr    = 0
+      skipped_tests   = 0
+      failed_tests    = 0
       skipped_batches = 0
-      failed_batches = 0
+      failed_batches  = 0
 
       msg format('Ruby %s @ %-60s', RUBY_VERSION, Time.now), $/
 
@@ -62,8 +62,8 @@ class Tryouts
       end
 
       batches.each do |batch|
-        path = batch.path.gsub(%r{#{Dir.pwd}/?}, '')
-        divider = '-' * 70
+        path        = batch.path.gsub(%r{#{Dir.pwd}/?}, '')
+        divider     = '-' * 70
         path_pretty = format('>>>>>  %-20s  %s', path, '').ljust(70, '<')
 
         msg $/
@@ -81,19 +81,19 @@ class Tryouts
         end
 
         batch.run(before_handler) do |tc|
-          tryouts_incr += 1
-          failed_tests += 1 if tc.failed?
+          tryouts_incr  += 1
+          failed_tests  += 1 if tc.failed?
           skipped_tests += 1 if tc.skipped?
-          codelines = tc.testrunner_output.join($/)
-          first_exp_line = tc.exps.first
+          codelines      = tc.testrunner_output.join($/)
+          tc.exps.first
 
-          Tryouts.debug Console.color(:white, "tryouts_incr is now %d" % tryouts_incr)
+          Tryouts.debug Console.color(:white, 'tryouts_incr is now %d' % tryouts_incr)
 
           first_exp_line = tc.exps.first
-          location = format('%s:%d', tc.exps.path, first_exp_line)
+          location       = format('%s:%d', tc.exps.path, first_exp_line)
 
           expectation = Console.color(tc.color, codelines)
-          summary = Console.color(tc.color, "%s @ %s" % [tc.adjective, location])
+          summary     = Console.color(tc.color, format('%s @ %s', tc.adjective, location))
           vmsg '         %s' % expectation
           if tc.failed?
             msg Console.reverse(summary)
@@ -119,12 +119,11 @@ class Tryouts
         end
       end
 
-
       # Create a line of separation before the result summary
       msg $INPUT_RECORD_SEPARATOR  # newline
 
       if tryouts_incr
-        suffix = "tryouts passed"
+        suffix = 'tryouts passed'
         if skipped_tests > 0
           suffix = "#{suffix} (#{skipped_tests} skipped)"
         end
@@ -132,10 +131,10 @@ class Tryouts
         actual_test_size = tryouts_incr - skipped_tests
         if actual_test_size > 0
           success_count = tryouts_incr - failed_tests - skipped_tests
-          total_count = tryouts_incr - skipped_tests
+          total_count   = tryouts_incr - skipped_tests
           msg cformat(success_count, total_count, suffix)
           if Tryouts.debug?
-            msg "tryouts_incr: %d; failed: %d; skipped: %d" % [tryouts_incr, failed_tests, skipped_tests]
+            msg format('tryouts_incr: %d; failed: %d; skipped: %d', tryouts_incr, failed_tests, skipped_tests)
           end
         end
       end
@@ -144,10 +143,10 @@ class Tryouts
       #
       adjusted_batch_size = (batches.size - skipped_batches)
       if batches.size > 1 && adjusted_batch_size > 0
-        suffix = 'batches passed'
+        suffix        = 'batches passed'
         suffix << " (#{skipped_batches} skipped)" if skipped_batches > 0
         success_count = adjusted_batch_size - failed_batches
-        total_count = adjusted_batch_size
+        total_count   = adjusted_batch_size
         msg cformat(success_count, total_count, suffix)
       end
 
@@ -158,7 +157,7 @@ class Tryouts
     end
 
     def cformat(lval, rval, suffix = nil)
-      Console.bright '%d of %d %s' % [lval, rval, suffix]
+      Console.bright format('%d of %d %s', lval, rval, suffix)
     end
 
     def run(path)
@@ -169,9 +168,9 @@ class Tryouts
 
     def parse(path)
       # debug "Loading #{path}"
-      lines = File.readlines path
+      lines      = File.readlines path
       skip_ahead = 0
-      batch = TestBatch.new path, lines
+      batch      = TestBatch.new path, lines
       lines.size.times do |idx|
         skip_ahead -= 1 and next if skip_ahead > 0
 
@@ -180,10 +179,10 @@ class Tryouts
         next unless expectation? line
 
         offset = 0
-        exps = Section.new(path, idx + 1)
+        exps   = Section.new(path, idx + 1)
         exps << line.chomp
         while idx + offset < lines.size
-          offset += 1
+          offset   += 1
           this_line = lines[idx + offset]
           break if ignore?(this_line)
 
@@ -196,10 +195,10 @@ class Tryouts
 
         offset = 0
         buffer = Section.new(path)
-        desc = Section.new(path)
-        test = Section.new(path, idx) # test start the line before the exp.
+        desc   = Section.new(path)
+        test   = Section.new(path, idx) # test start the line before the exp.
         while idx - offset >= 0
-          offset += 1
+          offset   += 1
           this_line = lines[idx - offset].chomp
           buffer.unshift this_line if ignore?(this_line)
           buffer.unshift this_line if comment?(this_line)
@@ -215,10 +214,10 @@ class Tryouts
           end
           next unless test_begin?(this_line) || idx - offset == 0 || expectation?(this_line)
 
-          adjust = expectation?(this_line) ? 2 : 1
+          adjust     = expectation?(this_line) ? 2 : 1
           test.first = idx - offset + buffer.size + adjust
           desc.unshift(*buffer)
-          desc.last = test.first - 1
+          desc.last  = test.first - 1
           desc.first = desc.last - desc.size + 1
           # remove empty lines between the description
           # and the previous expectation
@@ -258,20 +257,19 @@ class Tryouts
 
     def err *msgs
       msgs.each do |line|
-        $stderr.puts Console.color :red, line
+        warn Console.color :red, line
       end
     end
 
     def debug *msgs
-      $stderr.puts(*msgs) if debug?
+      warn(*msgs) if debug?
     end
 
     def eval(str, path, line)
       Kernel.eval str, @container.send(:binding), path, line
-
-    rescue SyntaxError, LoadError => e
-      Tryouts.err Console.color(:red, e.message),
-                  Console.color(:red, e.backtrace.first)
+    rescue SyntaxError, LoadError => ex
+      Tryouts.err Console.color(:red, ex.message),
+        Console.color(:red, ex.backtrace.first)
       nil
     end
 

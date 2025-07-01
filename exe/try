@@ -14,12 +14,12 @@ begin
   if files.empty?
     files = Dir.glob(
       ['./{try,tryouts/,.}/*_{try,tryouts}.rb'],
-      base: Dir.pwd
+      base: Dir.pwd,
     ).sort
   end
 
   exit Tryouts::CLI.new.run(files, **options)
-rescue => e
-  $stderr.puts "Error: #{e.message}"
+rescue StandardError => ex
+  warn "Error: #{ex.message}"
   exit 1
 end
