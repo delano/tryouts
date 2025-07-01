@@ -65,7 +65,7 @@ class Tryouts
       case line
       in /^##\s*(.*)/ if $1
         [:description, $1.strip]
-      in /^#\s*TEST\s+\d+:\s*(.*)/ if $1
+      in /^#\s*TEST\s+\d+:\s*(.*)/ if $1 # rubocop:disable Lint/DuplicateBranch
         [:description, $1.strip]
       in /^#=>\s*(.*)/ if $1
         [:expectation, $1.strip]

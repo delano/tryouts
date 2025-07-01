@@ -49,7 +49,7 @@ class Tryouts
               require 'rspec/core'
               RSpec::Core::Runner.run([])
             when :minitest
-              test_class = translator.translate(testrun)
+              translator.translate(testrun)
               require 'minitest/autorun'
               # Minitest will automatically discover and run the generated test class
             end

@@ -21,7 +21,7 @@ class Tryouts
           end
 
           # Generate test cases
-          testrun.test_cases.each_with_index do |test_case, index|
+          testrun.test_cases.each_with_index do |test_case, _index|
             next if test_case.empty? || !test_case.has_expectations?
 
             it test_case.description do
@@ -59,7 +59,7 @@ class Tryouts
           lines << ""
         end
 
-        testrun.test_cases.each_with_index do |test_case, index|
+        testrun.test_cases.each_with_index do |test_case, _index|
           next if test_case.empty? || !test_case.has_expectations?
 
           lines << "  it '#{test_case.description}' do"
