@@ -25,7 +25,7 @@ class Tryouts
             next if test_case.empty? || !test_case.has_expectations?
 
             it test_case.description do
-              result = instance_eval(test_case.code) if test_case.code.strip.any?
+              result = instance_eval(test_case.code) if !test_case.code.strip.empty?
 
               test_case.expectations.each do |expectation|
                 expected_value = instance_eval(expectation)
@@ -63,7 +63,7 @@ class Tryouts
           next if test_case.empty? || !test_case.has_expectations?
 
           lines << "  it '#{test_case.description}' do"
-          if test_case.code.strip.any?
+          if test_case.code.strip.length > 0
             lines << "    result = begin"
             test_case.code.lines.each { |line| lines << "      #{line.chomp}" }
             lines << "    end"

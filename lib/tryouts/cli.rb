@@ -101,6 +101,10 @@ class Tryouts
       [files, options]
     end
 
+    # opts.on('-q', '--quiet', 'Run in quiet mode') { Tryouts.quiet = true }
+    # opts.on('-v', '--verbose', 'Run in verbose mode') { Tryouts.noisy = true }
+    # opts.on('-f', '--fails', 'Show only failing tryouts') { Tryouts.fails = true }
+    # opts.on('-D', '--debug', 'Run in debug mode') { Tryouts.debug = true }
     def self.print_help
       puts <<~HELP
         Usage: try [OPTIONS] FILE...

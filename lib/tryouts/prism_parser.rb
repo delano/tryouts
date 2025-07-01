@@ -14,6 +14,7 @@ class Tryouts
 
     def parse
       return handle_syntax_errors if @result.failure?
+
       parse_tryouts_structure
     end
 
@@ -29,47 +30,48 @@ class Tryouts
       @lines.each_with_index do |line, index|
         line_type, content = parse_line(line)
 
-        case state
-        when :setup
-          if line_type == :description
-            state = :test
-            current_test = init_test_case(content, index)
-          elsif line_type == :code
-            setup_lines << line
-          end
-        when :test
-          if line_type == :description
-            test_cases << build_test_case(current_test) if current_test
-            current_test = init_test_case(content, index)
-          elsif line_type == :code
-            current_test[:code] << line if current_test
-          elsif line_type == :expectation
-            current_test[:expectations] << content if current_test
-          elsif line_type == :blank || line_type == :comment
-            add_to_current_context(line, state, current_test, setup_lines)
-          end
+        case [state, line_type]
+        in [:setup, :description]
+          state = :test
+          current_test = init_test_case(content, index)
+        in [:test, :description]
+          test_cases << build_test_case(current_test) if current_test
+          current_test = init_test_case(content, index)
+        in [:test, :code]
+          current_test[:code] << line if current_test
+        in [:test, :expectation]
+          current_test[:expectations] << content if current_test
+        in [:setup, :code]
+          setup_lines << line
+        in [:test, :blank | :comment]
+          add_to_current_context(line, state, current_test, setup_lines)
+        else
+          handle_unknown_line(line, state, index)
         end
       end
 
       test_cases << build_test_case(current_test) if current_test
 
       Testrun.new(
-        build_setup(setup_lines),
-        test_cases,
-        build_teardown(teardown_lines),
-        @source_path,
-        { parsed_at: Time.now, parser: :prism }
+        setup: build_setup(setup_lines),
+        test_cases: test_cases,
+        teardown: build_teardown(teardown_lines),
+        source_file: @source_path,
+        metadata: { parsed_at: Time.now, parser: :prism }
       )
     end
 
     def parse_line(line)
-      if line =~ /^##\s*(.*)/
+      case line
+      in /^##\s*(.*)/ if $1
         [:description, $1.strip]
-      elsif line =~ /^#=>\s*(.*)/
+      in /^#\s*TEST\s+\d+:\s*(.*)/ if $1
+        [:description, $1.strip]
+      in /^#=>\s*(.*)/ if $1
         [:expectation, $1.strip]
-      elsif line =~ /^#[^#=>](.*)/
+      in /^#[^#=>](.*)/ if $1
         [:comment, $1.strip]
-      elsif line =~ /^\s*$/
+      in /^\s*$/
         [:blank, nil]
       else
         [:code, line]
@@ -90,7 +92,7 @@ class Tryouts
 
       line_range = test_data[:line_start]..(@lines.size - 1)
 
-      TestCase.new(
+      PrismTestCase.new(
         description: test_data[:description].join(' ').strip,
         code: test_data[:code].join("\n"),
         expectations: test_data[:expectations],
@@ -131,7 +133,6 @@ class Tryouts
 
     def handle_unknown_line(line, state, index)
       # For now, treat unknown lines as code
-      # Could be enhanced with warnings in debug mode
     end
 
     def handle_syntax_errors

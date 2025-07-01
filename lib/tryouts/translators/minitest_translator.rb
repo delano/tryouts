@@ -27,7 +27,7 @@ class Tryouts
 
             method_name = "test_#{index.to_s.rjust(3, '0')}_#{test_case.description.parameterize}"
             define_method(method_name) do
-              result = instance_eval(test_case.code) if test_case.code.strip.any?
+              result = instance_eval(test_case.code) if !test_case.code.strip.empty?
 
               test_case.expectations.each do |expectation|
                 expected_value = instance_eval(expectation)
@@ -73,7 +73,7 @@ class Tryouts
 
           method_name = "test_#{index.to_s.rjust(3, '0')}_#{test_case.description.parameterize}"
           lines << "  def #{method_name}"
-          if test_case.code.strip.any?
+          if !test_case.code.strip.empty?
             lines << "    result = begin"
             test_case.code.lines.each { |line| lines << "      #{line.chomp}" }
             lines << "    end"
