@@ -2,40 +2,39 @@
 
 puts 'If you see this the setup ran correctly.'
 
-# (test 1) test matches single quote description start
-1
-#=> 1
-
-# TEST 2: test matches result with expectation
-2
+# TEST 1: test matches result with expectation
+a = 1 + 1
 #=> 2
 
-## TEST 3: comments, tests, and expectations can
+## TEST 2: comments, tests, and expectations can
 ## contain multiple lines
-3
-3
+a = 1
+b = 2
+a + b
 # => 3
 # => 2 + 1
 
-# TEST 4: test expectation type matters
+# TEST 3: test expectation type matters
 'foo'.class
 #=> String
 
-# TEST 5: instance variables can be used in expectations
+# TEST 4: instance variables can be used in expectations
 @a = 1
+@a
 #=> @a
 
-# TEST 6: test ignores blank lines before expectations
+# TEST 5: test ignores blank lines before expectations
 @a += 1
+'foo'
 
 #=> 'foo'
 
-# TEST 7: test allows whiny expectation markers for textmate users *sigh*
+# TEST 6: test allows whiny expectation markers for textmate users *sigh*
 'foo'
 # =>  'foo'
 
-# TEST 8: test expectations can be commented out
-'this is a skipped test'
+# TEST 7: test expectations can be commented out
+'foo'
 ##=> 'this is a skipped test'
 
 # Everything after this is run as teardown code
@@ -44,5 +43,5 @@ x = begin
   raise
 rescue StandardError
   'if you can see this, teardown succeeded'
-end
+end  # noqa
 puts x

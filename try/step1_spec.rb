@@ -1,23 +1,24 @@
 # Generated rspec code for try/step1_try.rb
 # Generated RSpec test from try/step1_try.rb
-# Generated at: 2025-07-01 15:27:13 -0700
+# Generated at: 2025-07-01 15:45:53 -0700
 
 RSpec.describe 'step1_try' do
   before(:all) do
     puts 'If you see this the setup ran correctly.'
-    1
   end
 
   it 'test matches result with expectation' do
     result = begin
-      2
+      a = 1 + 1
     end
     expect(result).to eq(2)
   end
 
   it 'contain multiple lines' do
     result = begin
-      3
+      a = 1
+      b = 2
+      a + b
     end
     expect(result).to eq(3)
     expect(result).to eq(2 + 1)
@@ -33,6 +34,7 @@ RSpec.describe 'step1_try' do
   it 'instance variables can be used in expectations' do
     result = begin
       @a = 1
+      @a
     end
     expect(result).to eq(@a)
   end
@@ -40,6 +42,7 @@ RSpec.describe 'step1_try' do
   it 'test ignores blank lines before expectations' do
     result = begin
       @a += 1
+      'foo'
 
     end
     expect(result).to eq('foo')
@@ -57,7 +60,7 @@ RSpec.describe 'step1_try' do
       raise
     rescue StandardError
       'if you can see this, teardown succeeded'
-    end
+    end  # noqa
     puts x
   end
 end

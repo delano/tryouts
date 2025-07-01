@@ -7,13 +7,18 @@ def example_of_an_inline_test_helper_method
 end
 
 ## some addition
+a = 1
+b = 2
+a + b + 1
 # => 4
 
 # multiple expectations
+'foo' + 'bar'
 #=> 'foobar'
 #=> :foobar.to_s
 
 # test ignores comments before expectations
+'foo'
 # ignored comment
 # ignored comment
 #=> 'foo'
@@ -25,8 +30,8 @@ example_of_an_inline_test_helper_method
 ## Example of handling exceptions
 begin
   raise 'foo'
-rescue StandardError => ex
-  [ex.class, 'foo']
+rescue StandardError => e
+  [e.class, 'foo']
 end
 #=> [RuntimeError, 'foo']
 
@@ -36,7 +41,7 @@ end
 
 phrase_template = '%s %d %s'
 # inline comment
-format(phrase_template, 'foo', 1, 'bar')
+phrase = format(phrase_template, 'foo', 1, 'bar')
 
 # another comment
 
