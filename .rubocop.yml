@@ -131,6 +131,9 @@ Style/GuardClause:
   MinBodyLength: 3
   AllowConsecutiveConditionals: false
 
+Style/Next:
+  Enabled: false
+
 Style/SymbolArray:
   EnforcedStyle: brackets
   Enabled: true
