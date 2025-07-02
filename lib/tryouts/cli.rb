@@ -109,10 +109,8 @@ class Tryouts
               # Show summary unless in fails-only mode with failures to show
               unless final_options[:verbose]
                 failed_count = test_results.count { |r| r[:status] == :failed }
-
-                if !final_options[:fails_only] || failed_count == 0
-                  puts "Results: #{batch.size} tests, #{failed_count} failed"
-                end
+                puts "Results: #{batch.size} tests, #{failed_count} failed"
+                puts
               end
 
               return 1 unless success
@@ -124,7 +122,6 @@ class Tryouts
             when :minitest
               translator.translate(testrun)
               # Clear ARGV to prevent Minitest from processing our arguments
-              original_argv = ARGV.dup
               ARGV.clear
               require 'minitest/autorun'
               # Minitest will automatically discover and run the generated test class
@@ -163,7 +160,10 @@ class Tryouts
           options[:framework]     = :minitest
           options[:generate_only] = true
         end
-        opts.on('--generate', 'Generate code only (use with --rspec/--minitest)') { options[:generate_only] = true }
+        opts.on('--generate', 'Generate code only (use with --rspec/--minitest)') do
+          options[:generate_only] = true
+          options[:framework]   ||= :rspec
+        end
 
         opts.separator "\nExecution Options:"
         opts.on('--shared-context', 'Override default context mode') { options[:shared_context]       = true }
