@@ -141,18 +141,21 @@ class Tryouts
         elsif final_options[:generate_only]
           handle_generate_only_mode(file, testrun, final_options, translator)
         else
-          return execute_tests(file, testrun, final_options, global_tally, translator)
+          execute_tests(file, testrun, final_options, global_tally, translator)
         end
       rescue TryoutSyntaxError => ex
-        return handle_syntax_error(file, ex)
+        handle_syntax_error(file, ex)
       rescue StandardError => ex
-        return handle_general_error(file, ex, final_options)
+        handle_general_error(file, ex, final_options)
+      else
+        0
       end
 
-      0
+    rescue SystemStackError, LoadError => ex
+      handle_general_error(file, ex, final_options)
     end
 
-    def handle_inspect_mode(file, testrun, final_options, translator)
+    def handle_inspect_mode(file, testrun, final_options, _translator)
       Tryouts.debug 'CLI#run: Inspection mode activated.'
       puts "Inspecting: #{file}"
       puts '=' * 50
