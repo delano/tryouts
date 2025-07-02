@@ -29,10 +29,14 @@ class Tryouts
 
       @lines.each_with_index do |line, index|
         token = case line
-                in /^##\s*(.*)$/ # Test description
+                in /^##\s*(.*)$/ # Test description format: ## description
+                  { type: :description, content: $1.strip, line: index }
+                in /^#\s*TEST\s*\d*:\s*(.*)$/ # Test description format: # TEST N: description
                   { type: :description, content: $1.strip, line: index }
                 in /^#\s*=>\s*(.*)$/ # Expectation
                   { type: :expectation, content: $1.strip, line: index, ast: parse_expectation($1.strip) }
+                in /^##\s*=>\s*(.*)$/ # Commented out expectation (should be ignored)
+                  { type: :comment, content: '=>' + $1.strip, line: index }
                 in /^#\s*(.*)$/ # Comment
                   { type: :comment, content: $1.strip, line: index }
                 in /^\s*$/ # Blank line
@@ -59,6 +63,11 @@ class Tryouts
           blocks << current_block if block_has_content?(current_block)
           current_block = new_test_block.merge(description: desc, start_line: line_num)
 
+        in [{ expectations: [], start_line: nil }, { type: :code, content: String => code, line: Integer => line_num }]
+          # First code in a new block - set start_line
+          current_block[:code] << token
+          current_block[:start_line] = line_num
+
         in [{ expectations: [] }, { type: :code, content: String => code }]
           # Code before expectations - add to current block
           current_block[:code] << token
@@ -66,7 +75,7 @@ class Tryouts
         in [{ expectations: Array => exps }, { type: :code }] if !exps.empty?
           # Code after expectations - finalize current block and start new one
           blocks << current_block
-          current_block = new_test_block.merge(code: [token])
+          current_block = new_test_block.merge(code: [token], start_line: token[:line])
 
         in [_, { type: :expectation }]
           current_block[:expectations] << token
@@ -176,8 +185,8 @@ class Tryouts
         code: [],
         expectations: [],
         comments: [],
-        start_line: 0,
-        end_line: 0,
+        start_line: nil,
+        end_line: nil,
       }
     end
 
