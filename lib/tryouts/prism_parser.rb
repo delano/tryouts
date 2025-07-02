@@ -28,12 +28,7 @@ class Tryouts
       teardown_lines = []
 
       @lines.each_with_index do |line, index|
-        line_type, content = parse_line(line)
-
-        # Handle potential descriptions by looking ahead
-        if line_type == :potential_description
-          line_type = is_description_line?(index) ? :description : :comment
-        end
+        line_type, content = parse_line(line, index)
 
         case [state, line_type]
         in [:setup, :description]
@@ -69,7 +64,7 @@ class Tryouts
       )
     end
 
-    def parse_line(line)
+    def parse_line(line, line_index = nil)
       case line
       in /^##\s*(.*)/ if ::Regexp.last_match(1)
         [:description, ::Regexp.last_match(1).strip]
@@ -77,8 +72,8 @@ class Tryouts
         [:description, ::Regexp.last_match(1).strip]
       in /^#\s*=>\s*(.*)/ if ::Regexp.last_match(1)
         [:expectation, ::Regexp.last_match(1).strip]
-      in /^#\s+([^=].*)/ if ::Regexp.last_match(1) && !::Regexp.last_match(1).strip.empty?
-        [:potential_description, ::Regexp.last_match(1).strip]
+      in /^#\s+(.*)/ if ::Regexp.last_match(1) && !::Regexp.last_match(1).strip.empty? && line_index && is_test_description?(line_index)
+        [:description, ::Regexp.last_match(1).strip]
       in /^#[^#=>](.*)/ if ::Regexp.last_match(1)
         [:comment, ::Regexp.last_match(1).strip]
       in /^\s*$/
@@ -88,36 +83,28 @@ class Tryouts
       end
     end
 
-    def is_description_line?(line_index)
-      # Look ahead to see if this comment is followed by actual code (not just expectations)
+    def is_test_description?(line_index)
+      # Look ahead to see if this comment is followed by code (not just more comments/expectations)
+      return false unless line_index
+
       next_lines = @lines[(line_index + 1)..-1]
       return false if next_lines.nil? || next_lines.empty?
 
-      # Skip blank lines and comments to find the next significant line
-      found_code = false
+      # Find the next non-blank, non-comment line
       next_lines.each do |next_line|
-        next_line_type, _ = parse_line(next_line)
-        case next_line_type
-        when :code
-          found_code = true
-          break
-        when :expectation, :description, :potential_description
-          break # Found another test element, stop looking
-        when :blank, :comment
-          next # Skip blanks and regular comments
+        case next_line
+        when /^\s*$/ # blank line
+          next
+        when /^#[^>]/ # comment (not expectation)
+          next
+        when /^#\s*=>/ # expectation
+          return false # This comment is followed by expectations, not a test description
+        else # code line
+          return true # This comment is followed by code, so it's a test description
         end
       end
       
-      # Only treat as description if we found code and the comment looks like a test description
-      return false unless found_code
-      
-      # Additional heuristics to identify test descriptions
-      line_content = @lines[line_index]
-      test_keywords = /\b(test|should|can|will|example|scenario)\b/i
-      
-      # Accept if it contains test-related keywords or starts with common test patterns
-      line_content.match?(test_keywords) || 
-        line_content.match?(/^#\s+\w+/) # Simple word-based description
+      false
     end
 
     def init_test_case(description, line_index)
