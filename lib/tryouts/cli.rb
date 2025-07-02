@@ -69,10 +69,9 @@ class Tryouts
           if final_options[:inspect]
             puts "Inspecting: #{file}"
             puts '=' * 50
-            puts '✅ Parsing successful!'
-            puts "📊 Found #{testrun.total_tests} test cases"
-            puts "🏗️  Setup code: #{testrun.setup.empty? ? 'None' : 'Present'}"
-            puts "🧹 Teardown code: #{testrun.teardown.empty? ? 'None' : 'Present'}"
+            puts "Found #{testrun.total_tests} test cases"
+            puts "Setup code: #{testrun.setup.empty? ? 'None' : 'Present'}"
+            puts "Teardown code: #{testrun.teardown.empty? ? 'None' : 'Present'}"
             puts
 
             testrun.test_cases.each_with_index do |tc, i|
@@ -85,10 +84,10 @@ class Tryouts
 
             # Test framework translations if requested
             if final_options[:framework] != :direct
-              puts "🧪 Testing #{final_options[:framework]} translation..."
+              puts "Testing #{final_options[:framework]} translation..."
               translator      = FRAMEWORKS[final_options[:framework]].new
               translated_code = translator.generate_code(testrun)
-              puts "✅ #{final_options[:framework].to_s.capitalize} code generated (#{translated_code.lines.count} lines)"
+              puts "#{final_options[:framework].to_s.capitalize} code generated (#{translated_code.lines.count} lines)"
               puts
             end
 
@@ -132,7 +131,7 @@ class Tryouts
                   show_test = !final_options[:fails_only] || last_result&.dig(:status) == :failed
 
                   if show_test
-                    puts "  #{test_case.description}: #{status_emoji}"
+                    # puts "  #{test_case.description}: #{status_emoji}"
                   end
                 end
               end

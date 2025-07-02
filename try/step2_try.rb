@@ -44,5 +44,4 @@ phrase_template = '%s %d %s'
 phrase = format(phrase_template, 'foo', 1, 'bar')
 
 # another comment
-
 #=> 'foo 1 bar'

@@ -37,8 +37,8 @@ class Tryouts
                   { type: :expectation, content: $1.strip, line: index, ast: parse_expectation($1.strip) }
                 in /^##\s*=>\s*(.*)$/ # Commented out expectation (should be ignored)
                   { type: :comment, content: '=>' + $1.strip, line: index }
-                in /^#\s*(.*)$/ # Comment
-                  { type: :comment, content: $1.strip, line: index }
+                in /^#\s*(.*)$/ # Single hash comment - potential description
+                  { type: :potential_description, content: $1.strip, line: index }
                 in /^\s*$/ # Blank line
                   { type: :blank, line: index }
                 else # Ruby code
@@ -48,7 +48,44 @@ class Tryouts
         tokens << token
       end
 
-      tokens
+      # Post-process to convert potential_descriptions to descriptions or comments
+      classify_potential_descriptions(tokens)
+    end
+
+    # Convert potential_descriptions to descriptions or comments based on context
+    def classify_potential_descriptions(tokens)
+      # Find sequences of potential_description + code + expectation
+      # Only the first potential_description in each sequence becomes a description
+
+      tokens.map.with_index do |token, index|
+        if token[:type] == :potential_description
+          # Look back to see if there are uncompleted descriptions before this
+          preceding_tokens = tokens[0...index].reverse
+
+          # Find the most recent description or expectation
+          last_meaningful = preceding_tokens.find { |t| t[:type] == :description || t[:type] == :expectation }
+
+          # If the last meaningful token was a description (not completed with expectation),
+          # then this potential_description should remain a comment
+          if last_meaningful&.dig(:type) == :description
+            token.merge(type: :comment)
+          else
+            # Look ahead for next code and expectation
+            following_tokens = tokens[(index + 1)..]
+            next_code_index = following_tokens.find_index { |t| t[:type] == :code }
+            next_expectation_index = following_tokens.find_index { |t| t[:type] == :expectation }
+
+            # Must have both code and expectation following to be a description
+            if next_code_index && next_expectation_index && next_code_index < next_expectation_index
+              token.merge(type: :description)
+            else
+              token.merge(type: :comment)
+            end
+          end
+        else
+          token
+        end
+      end
     end
 
     # Group tokens into logical test blocks using pattern matching
@@ -59,9 +96,16 @@ class Tryouts
       tokens.each do |token|
         case [current_block, token]
         in [_, { type: :description, content: String => desc, line: Integer => line_num }]
-          # Start new test block on description
-          blocks << current_block if block_has_content?(current_block)
-          current_block = new_test_block.merge(description: desc, start_line: line_num)
+          # Only combine descriptions if current block has a description but no code/expectations yet
+          # Allow blank lines between multi-line descriptions
+          if !current_block[:description].empty? && current_block[:code].empty? && current_block[:expectations].empty?
+            # Multi-line description continuation
+            current_block[:description] = [current_block[:description], desc].join(' ').strip
+          else
+            # Start new test block on description
+            blocks << current_block if block_has_content?(current_block)
+            current_block = new_test_block.merge(description: desc, start_line: line_num)
+          end
 
         in [{ expectations: [], start_line: nil }, { type: :code, content: String => code, line: Integer => line_num }]
           # First code in a new block - set start_line
@@ -81,7 +125,6 @@ class Tryouts
           current_block[:expectations] << token
 
         in [_, { type: :comment | :blank }]
-          # Add context to appropriate section
           add_context_to_block(current_block, token)
         end
       end
@@ -221,7 +264,7 @@ class Tryouts
                      in { expectations: Array => exps } if !exps.empty?
                        :test
                      else
-                       :setup # Default fallback
+                       :preamble # Default fallback
                      end
 
         block.merge(type: block_type, end_line: calculate_end_line(block))

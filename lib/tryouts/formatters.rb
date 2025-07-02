@@ -37,7 +37,7 @@ class Tryouts
     include FormatterInterface
 
     def initialize(options = {})
-      @line_width  = options.fetch(:line_width, 80)
+      @line_width  = options.fetch(:line_width, 70)
       @show_passed = options.fetch(:show_passed, true)
     end
 
