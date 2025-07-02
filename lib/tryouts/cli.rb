@@ -151,6 +151,9 @@ class Tryouts
         0
       end
 
+    rescue Timeout::Error, SystemExit => ex
+      handle_timeout_error(file, ex)
+
     rescue SystemStackError, LoadError => ex
       handle_general_error(file, ex, final_options)
     end
@@ -246,6 +249,12 @@ class Tryouts
       end
 
       0
+    end
+
+    def handle_timeout_error(file, ex)
+      Tryouts.debug "CLI#run: Timeout error in #{file}: #{ex.message}"
+      warn "Timeout error in #{file}: #{ex.message}"
+      1
     end
 
     def handle_syntax_error(file, ex)
