@@ -83,22 +83,33 @@ class Tryouts
       end
 
       def test_result(test_case, result_status, actual_results = [], elapsed_time = nil)
-        return unless @show_passed || result_status == :failed
+        should_show = @show_passed || result_status != :passed
 
-        case result_status
-        when :passed
-          status_line = Console.color(:green, 'PASSED')
-        when :failed
-          status_line = Console.color(:red, 'FAILED')
-          show_failure_details(test_case, actual_results)
-        when :skipped
-          status_line = Console.color(:yellow, 'SKIPPED')
+        return unless should_show
+
+        status_line = case result_status
+                      when :passed
+          Console.color(:green, 'PASSED')
+                      when :failed
+          Console.color(:red, 'FAILED')
+                      when :error
+          Console.color(:red, 'ERROR')
+                      when :skipped
+          Console.color(:yellow, 'SKIPPED')
         else
-          status_line = 'UNKNOWN'
-        end
+          'UNKNOWN'
+                      end
 
-        location = "#{Console.pretty_path(test_case.path)}:#{test_case.line_range.last + 1}"
-        puts indent_text("#{status_line} @ #{location}", 3)
+        location = "#{Console.pretty_path(test_case.path)}:#{test_case.line_range.first + 1}"
+        puts indent_text("#{status_line} #{test_case.description} @ #{location}", 2)
+
+        # Show source code for verbose mode
+        show_test_source_code(test_case)
+
+        # Show failure details for failed tests
+        if [:failed, :error].include?(result_status)
+          show_failure_details(test_case, actual_results)
+        end
       end
 
       # Setup/teardown operations
@@ -204,17 +215,58 @@ class Tryouts
 
       private
 
+      def show_test_source_code(test_case)
+        puts indent_text('Source code:', 3)
+
+        # Read the source file and extract the relevant lines
+        source_lines = File.readlines(test_case.path)
+        start_line   = test_case.line_range.first
+        end_line     = test_case.line_range.last
+
+        (start_line..end_line).each do |line_num|
+          line_content = source_lines[line_num]&.chomp || ''
+          line_display = format('%3d: %s', line_num + 1, line_content)
+
+          # Highlight expectation lines
+          if test_case.expectations.any? { |exp| line_content.include?(exp) }
+            line_display = Console.color(:yellow, line_display)
+          end
+
+          puts indent_text(line_display, 4)
+        end
+        puts
+      end
+
       def show_failure_details(test_case, actual_results)
         return if actual_results.empty?
 
-        puts indent_text('Expected vs Actual:', 4)
-        actual_results.each_with_index do |result, idx|
+        puts indent_text('Expected vs Actual:', 3)
+
+        actual_results.each_with_index do |actual, idx|
           expected_line = test_case.expectations[idx] if test_case.expectations
+
           if expected_line
-            puts indent_text("Expected: #{expected_line}", 5)
+            puts indent_text("Expected: #{Console.color(:green, expected_line)}", 4)
+            puts indent_text("Actual:   #{Console.color(:red, actual.inspect)}", 4)
+          else
+            puts indent_text("Actual:   #{Console.color(:red, actual.inspect)}", 4)
           end
-          puts indent_text("Actual:   #{result.inspect}", 5)
+
+          # Show difference if both are strings
+          if expected_line && actual.is_a?(String) && expected_line.is_a?(String)
+            show_string_diff(expected_line, actual)
+          end
+
+          puts
         end
+      end
+
+      def show_string_diff(expected, actual)
+        return if expected == actual
+
+        puts indent_text('Difference:', 4)
+        puts indent_text("- #{Console.color(:red, actual)}", 5)
+        puts indent_text("+ #{Console.color(:green, expected)}", 5)
       end
 
       def file_header_visual(file_path)
@@ -251,6 +303,7 @@ class Tryouts
       end
 
       def test_result(test_case, result_status, actual_results = [], elapsed_time = nil)
+        # Only show failed/error tests, but with full source code
         return if result_status == :passed
 
         super

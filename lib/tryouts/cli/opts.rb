@@ -2,7 +2,6 @@
 
 class Tryouts
   class CLI
-
     HELP = <<~HELP
 
       Framework Defaults:
@@ -22,7 +21,6 @@ class Tryouts
         code_to_test             # Ruby code
         #=> expected_result       # Expectation
     HELP
-
 
     class << self
       def parse_args(args)
@@ -56,8 +54,8 @@ class Tryouts
           opts.on('--no-shared-context', 'Override default context mode') { options[:shared_context]    = false }
           opts.on('-v', '--verbose', 'Show detailed test output with line numbers') { options[:verbose] = true }
           opts.on('-f', '--fails', 'Show only failing tests (with --verbose)') { options[:fails_only]   = true }
-          opts.on('-q', '--quiet', 'Minimal output (dots and summary only)') { options[:quiet] = true }
-          opts.on('-c', '--compact', 'Compact single-line output') { options[:compact] = true }
+          opts.on('-q', '--quiet', 'Minimal output (dots and summary only)') { options[:quiet]          = true }
+          opts.on('-c', '--compact', 'Compact single-line output') { options[:compact]                  = true }
 
           opts.separator "\nInspection Options:"
           opts.on('-i', '--inspect', 'Inspect file structure without running tests') { options[:inspect] = true }
@@ -87,6 +85,5 @@ class Tryouts
         exit 1
       end
     end
-
   end
 end

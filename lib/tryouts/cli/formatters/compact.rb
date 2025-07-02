@@ -15,7 +15,7 @@ class Tryouts
 
       # Phase-level output - minimal for compact mode
       def phase_header(message, file_count = nil)
-        puts "#{message}..."
+        puts "#{message} (#{file_count})..."
       end
 
       # File-level operations - compact single lines

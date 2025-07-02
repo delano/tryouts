@@ -1,5 +1,7 @@
 # lib/tryouts/testbatch.rb
 
+require 'stringio'
+
 class Tryouts
   # Modern TestBatch using Ruby 3.4+ patterns and formatter system
   class TestBatch
@@ -30,11 +32,11 @@ class Tryouts
       show_file_header
 
       if shared_context?
-        @output_manager&.info("Running global setup...", 2)
+        @output_manager&.info('Running global setup...', 2)
         execute_global_setup
       end
 
-      idx = 0
+      idx               = 0
       execution_results = test_cases.map do |test_case|
         @output_manager&.trace("Test #{idx + 1}/#{test_cases.size}: #{test_case.description}", 2)
         idx += 1
@@ -220,7 +222,13 @@ class Tryouts
 
       if setup && !setup.code.empty? && @options[:shared_context]
         @output_manager&.setup_start(setup.line_range)
-        @container.instance_eval(setup.code, setup.path, setup.line_range.first + 1)
+
+        # Capture setup output instead of letting it print directly
+        captured_output = capture_output do
+          @container.instance_eval(setup.code, setup.path, setup.line_range.first + 1)
+        end
+
+        @output_manager&.setup_output(captured_output) if captured_output && !captured_output.empty?
       end
     rescue StandardError => ex
       raise "Global setup failed: #{ex.message}"
@@ -268,28 +276,35 @@ class Tryouts
       fails_only = @options[:fails_only] == true  # Convert to proper boolean
       status     = result[:status]
 
-      # rubocop:disable Lint/DuplicateBranch
-      #
-      # NOTE: Do not fix rubocop.
-      #
-      # I find the vertical alignment of the case in more readable than the
-      # default Rubocop preference which suggests combining into a single line:
-      #
-      #   in [true, true, :failed | :error] | [true, false, _] | [false, _, _]
-      #
       case [verbose, fails_only, status]
       when [true, true, :failed], [true, true, :error]
         true
-      when [true, false], [false]
+      when [true, false, :passed], [true, false, :failed], [true, false, :error]
+        true
+      when [false, false, :passed], [false, false, :failed], [false, false, :error]
         true
       else
         false
       end
-      # rubocop:enable Lint/DuplicateBranch
     end
 
     def shared_context?
       @options[:shared_context] == true
+    end
+
+    def capture_output
+      old_stdout = $stdout
+      old_stderr = $stderr
+      $stdout    = StringIO.new
+      $stderr    = StringIO.new
+
+      yield
+
+      captured = $stdout.string + $stderr.string
+      captured.empty? ? nil : captured
+    ensure
+      $stdout = old_stdout
+      $stderr = old_stderr
     end
 
     def handle_batch_error(exception)
@@ -297,7 +312,7 @@ class Tryouts
       @failed_count = 1
 
       error_message = "Batch execution failed: #{exception.message}"
-      backtrace = exception.respond_to?(:backtrace) ? exception.backtrace.join($/) : nil
+      backtrace     = exception.respond_to?(:backtrace) ? exception.backtrace.join($/) : nil
 
       @output_manager&.error(error_message, backtrace)
     end
