@@ -86,12 +86,12 @@ class Tryouts
             # Test framework translations if requested
             if final_options[:framework] != :direct
               puts "🧪 Testing #{final_options[:framework]} translation..."
-              translator = FRAMEWORKS[final_options[:framework]].new
+              translator      = FRAMEWORKS[final_options[:framework]].new
               translated_code = translator.generate_code(testrun)
               puts "✅ #{final_options[:framework].to_s.capitalize} code generated (#{translated_code.lines.count} lines)"
               puts
             end
-            
+
             next
           end
 

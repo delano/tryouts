@@ -1,21 +1,21 @@
 # lib/tryouts/testbatch.rb
 
-require_relative 'verbose_formatter'
+require_relative 'formatters'
 
 class Tryouts
-  # Modern TestBatch that works with Prism-based data structures
+  # Modern TestBatch using Ruby 3.4+ patterns and formatter system
   class TestBatch
-    attr_reader :testrun, :failed, :container, :run_status, :test_results
+    attr_reader :testrun, :failed_count, :container, :status, :results, :formatter
 
-    def initialize(testrun, shared_context: false, verbose: false, fails_only: false)
-      @testrun        = testrun
-      @container      = Object.new  # Simple object instance for shared context
-      @shared_context = shared_context
-      @verbose        = verbose
-      @fails_only     = fails_only
-      @failed         = 0
-      @run_status     = false
-      @test_results   = []  # Store detailed results for verbose output
+    def initialize(testrun, **options)
+      @testrun = testrun
+      @container = Object.new
+      @options = options
+      @formatter = FormatterFactory.create(options)
+      @failed_count = 0
+      @status = :pending
+      @results = []
+      @start_time = nil
     end
 
     def empty?
@@ -34,227 +34,257 @@ class Tryouts
       @testrun.source_file
     end
 
-    # Execute the test batch
-    def run(before_test = nil)
-      return if empty?
+    def failed?
+      @failed_count > 0
+    end
 
-      failed_count = 0
+    def completed?
+      @status == :completed
+    end
 
-      # Show file header in verbose mode
-      if @verbose
-        formatter = create_verbose_formatter
-        puts formatter.format_file_header
-      end
+    # Main execution pipeline using functional composition
+    def run(before_test_hook = nil, &block)
+      return false if empty?
 
-      execute_test_case_method_name = if @shared_context
-        :execute_test_case_shared
-      else
-        :execute_test_case_pristine
-      end
+      @start_time = Time.now
 
-      # Shared context mode: setup once, all tests share state
-      execute_setup_once if @shared_context
+      begin
+        show_file_header
+        execute_global_setup if shared_context?
 
-      test_cases.each do |test_case|
-        before_test&.call(test_case)
-
-        begin
-          test_result, actual_results = send(execute_test_case_method_name, test_case)
-
-          result_data = {
-            test_case: test_case,
-            status: test_result,
-            actual_results: actual_results,
-          }
-          @test_results << result_data
-
-          failed_count += 1 if test_result == :failed
-
-          # Show verbose output if enabled
-          show_verbose_output(result_data) if show_verbose_output?(test_result)
-        rescue StandardError => ex
-          failed_count += 1
-          handle_test_error(test_case, ex)
+        execution_results = test_cases.map do |test_case|
+          execute_single_test(test_case, before_test_hook, &block)
         end
 
-        yield(test_case) if block_given?
+        execute_global_teardown
+        finalize_results(execution_results)
+
+        @status = :completed
+        !failed?
+      rescue StandardError => ex
+        handle_batch_error(ex)
+        false
       end
-
-      execute_teardown # run for all values of execute_test_case_method_name
-
-      @failed     = failed_count
-      @run_status = true
-      !failed?
-    rescue StandardError => ex
-      @failed = 1
-      warn ex.message, ex.backtrace.join($/), $/
-      false
-    end
-
-    def failed?
-      @failed > 0
-    end
-
-    def run?
-      @run_status
     end
 
     private
 
-    # Execute setup once at the beginning (shared context mode)
-    def execute_setup_once
-      return if @testrun.setup.empty?
+    # Pattern matching for execution strategy selection
+    def execute_single_test(test_case, before_test_hook = nil)
+      before_test_hook&.call(test_case)
 
-      setup_code = @testrun.setup.code
-      setup_path = @testrun.setup.path
-      setup_line = @testrun.setup.line_range.first
+      result = case @options[:shared_context]
+               in true
+                 execute_with_shared_context(test_case)
+               in false | nil
+                 execute_with_fresh_context(test_case)
+               else
+                 raise "Invalid execution context configuration"
+               end
 
-      Tryouts.debug "Executing setup once (shared context):\n#{setup_code}" if Tryouts.debug?
-      @container.instance_eval(setup_code, setup_path, setup_line)
-    rescue StandardError => ex
-      warn Console.color(:red, "Setup failed: #{ex.message}")
-      warn ex.backtrace.join($/), $/
-      raise
+      process_test_result(result)
+      yield(test_case) if block_given?
+      result
     end
 
-    # Execute test case in shared context (no setup per test)
-    def execute_test_case_shared(test_case)
-      return [:skipped, []] if test_case.empty? || !test_case.expectations?
+    # Shared context execution - setup runs once, all tests share state
+    def execute_with_shared_context(test_case)
+      case test_case
+      in { code: String => code, path: String => path, line_range: Range => range }
+        result_value = @container.instance_eval(code, path, range.first + 1)
+        expectations_result = evaluate_expectations(test_case, result_value, @container)
 
-      test_code = test_case.code
-      test_path = test_case.path
-      test_line = test_case.line_range.first
-
-      Tryouts.debug "Executing test case (shared): #{test_case.description}" if Tryouts.debug?
-      Tryouts.debug "Test code:\n#{test_code}" if Tryouts.debug?
-
-      # Execute test in shared container context
-      result = @container.instance_eval(test_code, test_path, test_line)
-
-      # Evaluate expectations in same shared context and collect actual results
-      expectations_passed, actual_results = evaluate_expectations_in_context(test_case, result, @container)
-
-      [expectations_passed ? :passed : :failed, actual_results]
+        build_test_result(test_case, result_value, expectations_result)
+      else
+        build_error_result(test_case, "Invalid test case structure")
+      end
     rescue StandardError => ex
-      warn Console.color(:red, "Test execution failed: #{ex.message}")
-      warn ex.backtrace.join($/), $/
-      [:failed, []]
+      build_error_result(test_case, ex.message, ex)
     end
 
-    # Execute test case with fresh setup context
-    def execute_test_case_pristine(test_case)
-      return [:skipped, []] if test_case.empty? || !test_case.expectations?
-
-      # Create fresh container for this test case
+    # Fresh context execution - setup runs per test, isolated state
+    def execute_with_fresh_context(test_case)
       fresh_container = Object.new
 
-      # Execute setup code first in fresh context
-      unless @testrun.setup.empty?
-        setup_code = @testrun.setup.code
-        setup_path = @testrun.setup.path
-        setup_line = @testrun.setup.line_range.first
+      case [@testrun.setup, test_case]
+      in [{ code: String => setup_code, path: String => setup_path }, test_case]
+        # Execute setup in fresh context
+        fresh_container.instance_eval(setup_code, setup_path, 1) unless setup_code.empty?
 
-        Tryouts.debug "Executing setup for test: #{test_case.description}" if Tryouts.debug?
-        fresh_container.instance_eval(setup_code, setup_path, setup_line)
-      end
+        # Execute test in same fresh context
+        case test_case
+        in { code: String => code, path: String => path, line_range: Range => range }
+          result_value = fresh_container.instance_eval(code, path, range.first + 1)
+          expectations_result = evaluate_expectations(test_case, result_value, fresh_container)
 
-      # Execute test code in same fresh context
-      test_code = test_case.code
-      test_path = test_case.path
-      test_line = test_case.line_range.first
-
-      Tryouts.debug "Executing test case: #{test_case.description}" if Tryouts.debug?
-      Tryouts.debug "Test code:\n#{test_code}" if Tryouts.debug?
-
-      result = fresh_container.instance_eval(test_code, test_path, test_line)
-
-      # Evaluate expectations in same fresh context and collect actual results
-      expectations_passed, actual_results = evaluate_expectations_in_context(test_case, result, fresh_container)
-
-      [expectations_passed ? :passed : :failed, actual_results]
-    rescue StandardError => ex
-      warn Console.color(:red, "Test execution failed: #{ex.message}")
-      warn ex.backtrace.join($/), $/
-      [:failed, []]
-    end
-
-    # Execute teardown code in the container context
-    def execute_teardown
-      return if @testrun.teardown.empty?
-
-      teardown_code = @testrun.teardown.code
-      teardown_path = @testrun.teardown.path
-      teardown_line = @testrun.teardown.line_range.first
-
-      Tryouts.debug "Executing teardown code:\n#{teardown_code}" if Tryouts.debug?
-
-      @container.instance_eval(teardown_code, teardown_path, teardown_line)
-    rescue StandardError => ex
-      warn Console.color(:red, "Teardown failed: #{ex.message}")
-      warn ex.backtrace.join($/), $/
-    end
-
-    # Evaluate test case expectations against the result in given context
-    def evaluate_expectations_in_context(test_case, result, context)
-      return [true, []] if test_case.expectations.empty?
-
-      actual_results = []
-      all_passed     = true
-
-      test_case.expectations.each do |expectation|
-        expected_value = context.instance_eval(expectation, test_case.path, test_case.line_range.first)
-        actual_results << result
-
-        if result == expected_value
-          Tryouts.debug "✓ Expected: #{expected_value.inspect}, Got: #{result.inspect}" if Tryouts.debug?
-        else
-          Tryouts.debug "✗ Expected: #{expected_value.inspect}, Got: #{result.inspect}" if Tryouts.debug?
-          all_passed = false
+          build_test_result(test_case, result_value, expectations_result)
         end
-      rescue StandardError => ex
-        warn Console.color(:red, "Expectation evaluation failed: #{ex.message}")
-        actual_results << "ERROR: #{ex.message}"
-        all_passed = false
+      else
+        build_error_result(test_case, "Invalid setup or test case structure")
       end
-
-      [all_passed, actual_results]
+    rescue StandardError => ex
+      build_error_result(test_case, ex.message, ex)
     end
 
-    # Helper methods for verbose output
-    def create_verbose_formatter
-      source_lines = File.readlines(@testrun.source_file).map(&:chomp)
-      VerboseFormatter.new(@testrun, source_lines)
+    # Evaluate expectations using pattern matching for clean result handling
+    def evaluate_expectations(test_case, actual_result, context)
+      case test_case.expectations
+      in []
+        { passed: true, actual_results: [], expected_results: [] }
+      in Array => expectations
+        evaluation_results = expectations.map do |expectation|
+          evaluate_single_expectation(expectation, actual_result, context, test_case)
+        end
+
+        {
+          passed: evaluation_results.all? { |r| r[:passed] },
+          actual_results: evaluation_results.map { |r| r[:actual] },
+          expected_results: evaluation_results.map { |r| r[:expected] }
+        }
+      end
     end
 
-    def show_verbose_output?(test_result)
-      return false unless @verbose
-      return true unless @fails_only
+    def evaluate_single_expectation(expectation, actual_result, context, test_case)
+      case test_case
+      in { path: String => path, line_range: Range => range }
+        expected_value = context.instance_eval(expectation, path, range.first + 1)
 
-      test_result == :failed
+        {
+          passed: actual_result == expected_value,
+          actual: actual_result,
+          expected: expected_value,
+          expectation: expectation
+        }
+      end
+    rescue StandardError => ex
+      {
+        passed: false,
+        actual: actual_result,
+        expected: "ERROR: #{ex.message}",
+        expectation: expectation
+      }
     end
 
-    def show_verbose_output(result_data)
-      formatter = create_verbose_formatter
-      puts formatter.format_test_case(
-        result_data[:test_case],
-        result_data[:status],
-        result_data[:actual_results],
-      )
-    end
-
-    def handle_test_error(test_case, ex)
-      if @verbose
-        result_data = {
+    # Build structured test results using pattern matching
+    def build_test_result(test_case, result_value, expectations_result)
+      case expectations_result
+      in { passed: true, actual_results: Array => actuals }
+        {
+          test_case: test_case,
+          status: :passed,
+          result_value: result_value,
+          actual_results: actuals,
+          error: nil
+        }
+      in { passed: false, actual_results: Array => actuals }
+        {
           test_case: test_case,
           status: :failed,
-          actual_results: ["ERROR: #{ex.message}"],
+          result_value: result_value,
+          actual_results: actuals,
+          error: nil
         }
-        show_verbose_output(result_data) if show_verbose_output?(:failed)
       else
-        warn Console.color(:red, "Error in test: #{test_case.description}")
-        warn Console.color(:red, ex.message)
-        warn ex.backtrace.join($/), $/
+        build_error_result(test_case, "Invalid expectations result structure")
       end
+    end
+
+    def build_error_result(test_case, message, exception = nil)
+      {
+        test_case: test_case,
+        status: :error,
+        result_value: nil,
+        actual_results: ["ERROR: #{message}"],
+        error: exception
+      }
+    end
+
+    # Process and display test results using formatter
+    def process_test_result(result)
+      @results << result
+
+      case result
+      in { status: :failed | :error }
+        @failed_count += 1
+      end
+
+      show_test_result(result) if should_show_result?(result)
+    end
+
+    # Global setup execution for shared context mode
+    def execute_global_setup
+      case [@testrun.setup, @options[:shared_context]]
+      in [{ code: String => code, path: String => path, line_range: Range => range }, true]
+        @container.instance_eval(code, path, range.first + 1) unless code.empty?
+      end
+    rescue StandardError => ex
+      raise "Global setup failed: #{ex.message}"
+    end
+
+    # Global teardown execution
+    def execute_global_teardown
+      case @testrun.teardown
+      in { code: String => code, path: String => path, line_range: Range => range }
+        @container.instance_eval(code, path, range.first + 1) unless code.empty?
+      end
+    rescue StandardError => ex
+      warn Console.color(:red, "Teardown failed: #{ex.message}")
+    end
+
+    # Result finalization and summary display
+    def finalize_results(_execution_results)
+      elapsed_time = Time.now - @start_time
+      show_summary(elapsed_time)
+    end
+
+    # Display methods using formatter system
+    def show_file_header
+      header = @formatter.format_file_header(@testrun)
+      puts header unless header.empty?
+    end
+
+    def show_test_result(result)
+      case result
+      in { test_case: test_case, status: status, actual_results: actuals }
+        output = @formatter.format_test_result(test_case, status, actuals)
+        puts output unless output.empty?
+      end
+    end
+
+    def show_summary(elapsed_time)
+      summary = @formatter.format_summary(size, @failed_count, elapsed_time)
+      puts summary unless summary.empty?
+    end
+
+    # Helper methods using pattern matching
+    def should_show_result?(result)
+      case [@options[:verbose], @options[:fails_only], result[:status]]
+      in [true, true, :failed | :error]
+        true
+      in [true, false, _] | [false, _, _]
+        true
+      else
+        false
+      end
+    end
+
+    def shared_context?
+      @options[:shared_context] == true
+    end
+
+    def handle_batch_error(exception)
+      @status = :error
+      @failed_count = 1
+
+      error_message = case exception
+                      in StandardError => ex
+                        "Batch execution failed: #{ex.message}"
+                      else
+                        "Unknown batch execution error"
+                      end
+
+      warn Console.color(:red, error_message)
+      warn exception.backtrace.join($/), $/ if exception.respond_to?(:backtrace)
     end
   end
 end
