@@ -37,22 +37,22 @@ class Tryouts
     include FormatterInterface
 
     def initialize(options = {})
-      @line_width = options.fetch(:line_width, 80)
+      @line_width  = options.fetch(:line_width, 80)
       @show_passed = options.fetch(:show_passed, true)
     end
 
     def format_file_header(testrun)
       case testrun
       in { source_file: String => path }
-        file_name = File.basename(path)
+        file_name      = File.basename(path)
         header_content = ">>>>>  #{file_name}  "
-        padding = '<' * (@line_width - header_content.length)
+        padding        = '<' * (@line_width - header_content.length)
 
         [
           '-' * @line_width,
           header_content + padding,
           '-' * @line_width,
-          ''
+          '',
         ].join("\n")
       else
         ''
@@ -65,7 +65,7 @@ class Tryouts
         output = build_test_output(test_case, result_status, actual_results)
         output.join("\n")
       else
-        "# Invalid test case format"
+        '# Invalid test case format'
       end
     end
 
@@ -76,17 +76,17 @@ class Tryouts
       in [Integer => total, Integer => failed] if failed > 0
         failure_summary(total, failed, elapsed_time)
       else
-        "Summary unavailable"
+        'Summary unavailable'
       end
     end
 
     private
 
     def build_test_output(test_case, result_status, actual_results)
-      output = ["", "# #{test_case.description}"]
+      output = ['', "# #{test_case.description}"]
 
       source_lines = read_source_lines(test_case.path)
-      test_lines = parse_test_lines(test_case, source_lines)
+      test_lines   = parse_test_lines(test_case, source_lines)
 
       # Add code lines with line numbers
       output.concat(format_code_lines(test_lines[:code]))
@@ -101,14 +101,14 @@ class Tryouts
     end
 
     def parse_test_lines(test_case, source_lines)
-      range = test_case.line_range
-      code_lines = []
+      range             = test_case.line_range
+      code_lines        = []
       expectation_lines = []
 
       range.each do |line_idx|
         next if line_idx >= source_lines.length
 
-        line = source_lines[line_idx]
+        line        = source_lines[line_idx]
         line_number = line_idx + 1
 
         case line
@@ -137,7 +137,7 @@ class Tryouts
           [expectation_line]
         in result
           result_str = result.inspect
-          padding = [@line_width - result_str.length, 10].max
+          padding    = [@line_width - result_str.length, 10].max
           [expectation_line, (' ' * padding) + result_str]
         end
       end
@@ -150,7 +150,7 @@ class Tryouts
       in [Integer => last_line, :failed]
         Console.color(:red, "FAILED @ #{test_case.path}:#{last_line + 1}")
       else
-        "STATUS UNKNOWN"
+        'STATUS UNKNOWN'
       end
     end
 
@@ -159,13 +159,13 @@ class Tryouts
     end
 
     def success_summary(total, elapsed_time)
-      time_str = elapsed_time ? " (#{elapsed_time.round(2)}s)" : ""
+      time_str = elapsed_time ? " (#{elapsed_time.round(2)}s)" : ''
       Console.color(:green, "All #{total} tests passed#{time_str}")
     end
 
     def failure_summary(total, failed, elapsed_time)
-      passed = total - failed
-      time_str = elapsed_time ? " (#{elapsed_time.round(2)}s)" : ""
+      passed   = total - failed
+      time_str = elapsed_time ? " (#{elapsed_time.round(2)}s)" : ''
       Console.color(:red, "#{failed} of #{total} tests failed, #{passed} passed#{time_str}")
     end
   end
@@ -179,9 +179,9 @@ class Tryouts
     def format_test_result(test_case, result_status, actual_results = [])
       case result_status
       in :passed
-        "" # Don't show passed tests
+        '' # Don't show passed tests
       in :failed | _
-        super(test_case, result_status, actual_results)
+        super
       end
     end
   end
@@ -195,13 +195,13 @@ class Tryouts
     end
 
     def format_file_header(testrun)
-      return "" unless @show_file_header
+      return '' unless @show_file_header
 
       case testrun
       in { source_file: String => path }
         "Running: #{File.basename(path)}"
       else
-        ""
+        ''
       end
     end
 
@@ -210,26 +210,30 @@ class Tryouts
       in [{ description: String => desc }, :passed]
         Console.color(:green, "✓ #{desc}")
       in [{ description: String => desc }, :failed]
-        failure_details = actual_results.empty? ? "" : " (got: #{actual_results.first.inspect})"
+        failure_details = actual_results.empty? ? '' : " (got: #{actual_results.first.inspect})"
         Console.color(:red, "✗ #{desc}#{failure_details}")
       in [{ description: String => desc }, :skipped]
         Console.color(:yellow, "- #{desc}")
       else
-        "? #{test_case.description rescue 'Unknown test'}"
+        "? #{begin
+               test_case.description
+        rescue StandardError
+               'Unknown test'
+        end}"
       end
     end
 
     def format_summary(total_tests, failed_count, elapsed_time = nil)
       case [total_tests, failed_count]
       in [Integer => total, 0]
-        time_str = elapsed_time ? " (#{elapsed_time.round(2)}s)" : ""
+        time_str = elapsed_time ? " (#{elapsed_time.round(2)}s)" : ''
         Console.color(:green, "#{total} tests passed#{time_str}")
       in [Integer => total, Integer => failed] if failed > 0
-        passed = total - failed
-        time_str = elapsed_time ? " (#{elapsed_time.round(2)}s)" : ""
+        passed   = total - failed
+        time_str = elapsed_time ? " (#{elapsed_time.round(2)}s)" : ''
         Console.color(:red, "#{failed} failed, #{passed} passed#{time_str}")
       else
-        "Tests completed"
+        'Tests completed'
       end
     end
   end
@@ -239,19 +243,19 @@ class Tryouts
     include FormatterInterface
 
     def format_file_header(_testrun)
-      "" # No file header in quiet mode
+      '' # No file header in quiet mode
     end
 
     def format_test_result(_test_case, result_status, _actual_results = [])
       case result_status
       in :passed
-        Console.color(:green, ".")
+        Console.color(:green, '.')
       in :failed
-        Console.color(:red, "F")
+        Console.color(:red, 'F')
       in :skipped
-        Console.color(:yellow, "S")
+        Console.color(:yellow, 'S')
       else
-        "?"
+        '?'
       end
     end
 
@@ -276,11 +280,11 @@ class Tryouts
       blue: "\e[34m",
       magenta: "\e[35m",
       cyan: "\e[36m",
-      reset: "\e[0m"
+      reset: "\e[0m",
     }
 
     def self.color(color_name, text)
-      case [color_name, ENV['NO_COLOR']]
+      case [color_name, ENV.fetch('NO_COLOR', nil)]
       in [Symbol => color, nil] if COLORS[color]
         "#{COLORS[color]}#{text}#{COLORS[:reset]}"
       else

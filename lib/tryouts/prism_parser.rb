@@ -121,14 +121,14 @@ class Tryouts
     def extract_pure_code_from_blocks(blocks)
       blocks
         .flat_map { |block| block[:code] }
-        .filter_map { |token|
+        .filter_map do |token|
           case token
           in { type: :code, content: String => content }
             content
           else
             nil
           end
-        }
+        end
         .join("\n")
     end
 
@@ -141,14 +141,14 @@ class Tryouts
 
     def extract_code_content(code_tokens)
       code_tokens
-        .filter_map { |token|
+        .filter_map do |token|
           case token
           in { type: :code, content: String => content }
             content
           else
             nil
           end
-        }
+        end
         .join("\n")
     end
 

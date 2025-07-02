@@ -17,14 +17,14 @@ class Tryouts
     end
 
     def initialize(testrun, **options)
-      @testrun = testrun
-      @container = Object.new
-      @options = options
-      @formatter = FormatterFactory.create(options)
+      @testrun      = testrun
+      @container    = Object.new
+      @options      = options
+      @formatter    = FormatterFactory.create(options)
       @failed_count = 0
-      @status = :pending
-      @results = []
-      @start_time = nil
+      @status       = :pending
+      @results      = []
+      @start_time   = nil
     end
 
     def empty?
@@ -52,7 +52,7 @@ class Tryouts
     end
 
     # Main execution pipeline using functional composition
-    def run(before_test_hook = nil, &block)
+    def run(before_test_hook = nil, &)
       return false if empty?
 
       @start_time = Time.now
@@ -62,7 +62,7 @@ class Tryouts
         execute_global_setup if shared_context?
 
         execution_results = test_cases.map do |test_case|
-          execute_single_test(test_case, before_test_hook, &block)
+          execute_single_test(test_case, before_test_hook, &)
         end
 
         execute_global_teardown
@@ -88,7 +88,7 @@ class Tryouts
                in false | nil
                  execute_with_fresh_context(test_case)
                else
-                 raise "Invalid execution context configuration"
+                 raise 'Invalid execution context configuration'
                end
 
       process_test_result(result)
@@ -100,12 +100,12 @@ class Tryouts
     def execute_with_shared_context(test_case)
       case test_case
       in { code: String => code, path: String => path, line_range: Range => range }
-        result_value = @container.instance_eval(code, path, range.first + 1)
+        result_value        = @container.instance_eval(code, path, range.first + 1)
         expectations_result = evaluate_expectations(test_case, result_value, @container)
 
         build_test_result(test_case, result_value, expectations_result)
       else
-        build_error_result(test_case, "Invalid test case structure")
+        build_error_result(test_case, 'Invalid test case structure')
       end
     rescue StandardError => ex
       build_error_result(test_case, ex.message, ex)
@@ -123,13 +123,13 @@ class Tryouts
         # Execute test in same fresh context
         case test_case
         in { code: String => code, path: String => path, line_range: Range => range }
-          result_value = fresh_container.instance_eval(code, path, range.first + 1)
+          result_value        = fresh_container.instance_eval(code, path, range.first + 1)
           expectations_result = evaluate_expectations(test_case, result_value, fresh_container)
 
           build_test_result(test_case, result_value, expectations_result)
         end
       else
-        build_error_result(test_case, "Invalid setup or test case structure")
+        build_error_result(test_case, 'Invalid setup or test case structure')
       end
     rescue StandardError => ex
       build_error_result(test_case, ex.message, ex)
@@ -148,7 +148,7 @@ class Tryouts
         {
           passed: evaluation_results.all? { |r| r[:passed] },
           actual_results: evaluation_results.map { |r| r[:actual] },
-          expected_results: evaluation_results.map { |r| r[:expected] }
+          expected_results: evaluation_results.map { |r| r[:expected] },
         }
       end
     end
@@ -162,7 +162,7 @@ class Tryouts
           passed: actual_result == expected_value,
           actual: actual_result,
           expected: expected_value,
-          expectation: expectation
+          expectation: expectation,
         }
       end
     rescue StandardError => ex
@@ -170,7 +170,7 @@ class Tryouts
         passed: false,
         actual: actual_result,
         expected: "ERROR: #{ex.message}",
-        expectation: expectation
+        expectation: expectation,
       }
     end
 
@@ -183,7 +183,7 @@ class Tryouts
           status: :passed,
           result_value: result_value,
           actual_results: actuals,
-          error: nil
+          error: nil,
         }
       in { passed: false, actual_results: Array => actuals }
         {
@@ -191,10 +191,10 @@ class Tryouts
           status: :failed,
           result_value: result_value,
           actual_results: actuals,
-          error: nil
+          error: nil,
         }
       else
-        build_error_result(test_case, "Invalid expectations result structure")
+        build_error_result(test_case, 'Invalid expectations result structure')
       end
     end
 
@@ -204,7 +204,7 @@ class Tryouts
         status: :error,
         result_value: nil,
         actual_results: ["ERROR: #{message}"],
-        error: exception
+        error: exception,
       }
     end
 
@@ -240,7 +240,7 @@ class Tryouts
         puts "DEBUG: Teardown code:\n#{code}" if ENV['DEBUG']
         @container.instance_eval(code, path, range.first + 1) unless code.empty?
       else
-        puts "DEBUG: No teardown code detected" if ENV['DEBUG']
+        puts 'DEBUG: No teardown code detected' if ENV['DEBUG']
       end
     rescue StandardError => ex
       warn Console.color(:red, "Teardown failed: #{ex.message}")
@@ -289,14 +289,14 @@ class Tryouts
     end
 
     def handle_batch_error(exception)
-      @status = :error
+      @status       = :error
       @failed_count = 1
 
       error_message = case exception
                       in StandardError => ex
                         "Batch execution failed: #{ex.message}"
                       else
-                        "Unknown batch execution error"
+                        'Unknown batch execution error'
                       end
 
       warn Console.color(:red, error_message)
