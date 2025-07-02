@@ -78,7 +78,7 @@ class Tryouts
                 testrun,
                 shared_context: final_options[:shared_context],
                 verbose: final_options[:verbose],
-                fails_only: final_options[:fails_only]
+                fails_only: final_options[:fails_only],
               )
 
               unless final_options[:verbose]
@@ -151,29 +151,29 @@ class Tryouts
 
         opts.separator "\nFramework Options:"
         opts.on('--direct', 'Direct execution with TestBatch (default)') { options[:framework] = :direct }
-        opts.on('--rspec', 'Use RSpec framework') { options[:framework] = :rspec }
-        opts.on('--minitest', 'Use Minitest framework') { options[:framework] = :minitest }
+        opts.on('--rspec', 'Use RSpec framework') { options[:framework]                        = :rspec }
+        opts.on('--minitest', 'Use Minitest framework') { options[:framework]                  = :minitest }
 
         opts.separator "\nGeneration Options:"
         opts.on('--generate-rspec', 'Generate RSpec code only') do
-          options[:framework] = :rspec
+          options[:framework]     = :rspec
           options[:generate_only] = true
         end
         opts.on('--generate-minitest', 'Generate Minitest code only') do
-          options[:framework] = :minitest
+          options[:framework]     = :minitest
           options[:generate_only] = true
         end
         opts.on('--generate', 'Generate code only (use with --rspec/--minitest)') { options[:generate_only] = true }
 
         opts.separator "\nExecution Options:"
-        opts.on('--shared-context', 'Override default context mode') { options[:shared_context] = true }
-        opts.on('--no-shared-context', 'Override default context mode') { options[:shared_context] = false }
+        opts.on('--shared-context', 'Override default context mode') { options[:shared_context]       = true }
+        opts.on('--no-shared-context', 'Override default context mode') { options[:shared_context]    = false }
         opts.on('-v', '--verbose', 'Show detailed test output with line numbers') { options[:verbose] = true }
-        opts.on('-f', '--fails', 'Show only failing tests (with --verbose)') { options[:fails_only] = true }
+        opts.on('-f', '--fails', 'Show only failing tests (with --verbose)') { options[:fails_only]   = true }
 
         opts.separator "\nGeneral Options:"
         opts.on('-V', '--version', 'Show version') { options[:version] = true }
-        opts.on('-D', '--debug', 'Enable debug mode') { Tryouts.debug = true }
+        opts.on('-D', '--debug', 'Enable debug mode') { Tryouts.debug  = true }
         opts.on('-h', '--help', 'Show this help') do
           puts opts
           exit 0
@@ -181,31 +181,30 @@ class Tryouts
 
         opts.separator <<~HELP
 
-        Framework Defaults:
-          Tryouts:    Shared context (state persists across tests)
-          RSpec:      Fresh context (each test isolated)
-          Minitest:   Fresh context (each test isolated)
+          Framework Defaults:
+            Tryouts:    Shared context (state persists across tests)
+            RSpec:      Fresh context (each test isolated)
+            Minitest:   Fresh context (each test isolated)
 
-        Examples:
-          try test_try.rb                          # Tryouts test runner with shared context
-          try --rspec test_try.rb                  # RSpec with fresh context
-          try --direct --shared-context test_try.rb # Explicit shared context
-          try --generate-rspec test_try.rb         # Output RSpec code only
+          Examples:
+            try test_try.rb                          # Tryouts test runner with shared context
+            try --rspec test_try.rb                  # RSpec with fresh context
+            try --direct --shared-context test_try.rb # Explicit shared context
+            try --generate-rspec test_try.rb         # Output RSpec code only
 
-        File Format:
-          ## Test description       # Test case marker
-          code_to_test             # Ruby code
-          #=> expected_result       # Expectation
+          File Format:
+            ## Test description       # Test case marker
+            code_to_test             # Ruby code
+            #=> expected_result       # Expectation
         HELP
       end
 
       files = parser.parse(args)
       [files, options]
-    rescue OptionParser::InvalidOption => e
-      warn "Error: #{e.message}"
+    rescue OptionParser::InvalidOption => ex
+      warn "Error: #{ex.message}"
       warn "Try 'try --help' for more information."
       exit 1
     end
-
   end
 end
