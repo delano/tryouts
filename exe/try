@@ -13,7 +13,7 @@ begin
   # Default file discovery if no files specified
   if files.empty?
     files = Dir.glob(
-      ['./{try,tryouts/,.}/*_{try,tryouts}.rb'],
+      ['./{try,tryouts/,.}/*_{try,tryout,tryouts}.rb'],
       base: Dir.pwd,
     ).sort
   end
