@@ -86,14 +86,33 @@ class Tryouts
                 puts "Running #{file} with #{context_mode} context..."
               end
 
+              # Track test results for non-verbose output
+              test_results = []
+
               success = batch.run do |test_case|
+                # Get the last test result from batch
+                last_result = batch.test_results.last
+                test_results << last_result if last_result
+
                 unless final_options[:verbose]
-                  puts "  #{test_case.description}: #{batch.failed > 0 ? '❌' : '✅'}"
+                  status_emoji = last_result&.dig(:status) == :failed ? '❌' : '✅'
+
+                  # Show test if not in fails-only mode, or if it failed
+                  show_test = !final_options[:fails_only] || last_result&.dig(:status) == :failed
+
+                  if show_test
+                    puts "  #{test_case.description}: #{status_emoji}"
+                  end
                 end
               end
 
+              # Show summary unless in fails-only mode with failures to show
               unless final_options[:verbose]
-                puts "Results: #{batch.size} tests, #{batch.failed} failed"
+                failed_count = test_results.count { |r| r[:status] == :failed }
+
+                if !final_options[:fails_only] || failed_count == 0
+                  puts "Results: #{batch.size} tests, #{failed_count} failed"
+                end
               end
 
               return 1 unless success
