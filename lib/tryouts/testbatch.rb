@@ -1,7 +1,5 @@
 # lib/tryouts/testbatch.rb
 
-require_relative 'formatters'
-
 class Tryouts
   # Modern TestBatch using Ruby 3.4+ patterns and formatter system
   class TestBatch
@@ -12,7 +10,7 @@ class Tryouts
       @testrun      = testrun
       @container    = Object.new
       @options      = options
-      @formatter    = FormatterFactory.create(options)
+      @formatter    = Tryouts::CLI::FormatterFactory.create(options)
       @failed_count = 0
       @status       = :pending
       @results      = []

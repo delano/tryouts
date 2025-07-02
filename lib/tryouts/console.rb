@@ -73,50 +73,51 @@ class Tryouts
         Console.bgcolor(col, self)
       end
     end
+    class << self
+      def bright(str)
+        str = [style(ATTRIBUTES[:bright]), str, default_style].join
+        str.extend Console::InstanceMethods
+        str
+      end
 
-    def self.bright(str)
-      str = [style(ATTRIBUTES[:bright]), str, default_style].join
-      str.extend Console::InstanceMethods
-      str
-    end
+      def underline(str)
+        str = [style(ATTRIBUTES[:underline]), str, default_style].join
+        str.extend Console::InstanceMethods
+        str
+      end
 
-    def self.underline(str)
-      str = [style(ATTRIBUTES[:underline]), str, default_style].join
-      str.extend Console::InstanceMethods
-      str
-    end
+      def reverse(str)
+        str = [style(ATTRIBUTES[:reverse]), str, default_style].join
+        str.extend Console::InstanceMethods
+        str
+      end
 
-    def self.reverse(str)
-      str = [style(ATTRIBUTES[:reverse]), str, default_style].join
-      str.extend Console::InstanceMethods
-      str
-    end
+      def color(col, str)
+        str = [style(COLOURS[col]), str, default_style].join
+        str.extend Console::InstanceMethods
+        str
+      end
 
-    def self.color(col, str)
-      str = [style(COLOURS[col]), str, default_style].join
-      str.extend Console::InstanceMethods
-      str
-    end
+      def att(name, str)
+        str = [style(ATTRIBUTES[name]), str, default_style].join
+        str.extend Console::InstanceMethods
+        str
+      end
 
-    def self.att(name, str)
-      str = [style(ATTRIBUTES[name]), str, default_style].join
-      str.extend Console::InstanceMethods
-      str
-    end
+      def bgcolor(col, str)
+        str = [style(ATTRIBUTES[col]), str, default_style].join
+        str.extend Console::InstanceMethods
+        str
+      end
 
-    def self.bgcolor(col, str)
-      str = [style(ATTRIBUTES[col]), str, default_style].join
-      str.extend Console::InstanceMethods
-      str
-    end
+      def style(*att)
+        # => \e[8;34;42m
+        "\e[%sm" % att.join(';')
+      end
 
-    def self.style(*att)
-      # => \e[8;34;42m
-      "\e[%sm" % att.join(';')
-    end
-
-    def self.default_style
-      style(ATTRIBUTES[:default], COLOURS[:default], BGCOLOURS[:default])
+      def default_style
+        style(ATTRIBUTES[:default], COLOURS[:default], BGCOLOURS[:default])
+      end
     end
   end
 end
