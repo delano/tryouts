@@ -46,65 +46,41 @@ class Tryouts
         puts formatter.format_file_header
       end
 
-      if @shared_context
-        # Shared context mode: setup once, all tests share state
-        execute_setup_once
-
-        test_cases.each do |test_case|
-          before_test&.call(test_case)
-
-          begin
-            test_result, actual_results = execute_test_case_shared(test_case)
-
-            result_data = {
-              test_case: test_case,
-              status: test_result,
-              actual_results: actual_results,
-            }
-            @test_results << result_data
-
-            failed_count += 1 if test_result == :failed
-
-            # Show verbose output if enabled
-            show_verbose_output(result_data) if show_verbose_output?(test_result)
-          rescue StandardError => ex
-            failed_count += 1
-            handle_test_error(test_case, ex)
-          end
-
-          yield(test_case) if block_given?
-        end
-
-        execute_teardown
+      execute_test_case_method_name = if @shared_context
+        :execute_test_case_shared
       else
-        # Fresh context mode: setup before each test
-        test_cases.each do |test_case|
-          before_test&.call(test_case)
+        :execute_test_case_pristine
+      end
 
-          begin
-            test_result, actual_results = execute_test_case_with_setup(test_case)
+      # Shared context mode: setup once, all tests share state
+      execute_setup_once if @shared_context
 
-            result_data = {
-              test_case: test_case,
-              status: test_result,
-              actual_results: actual_results,
-            }
-            @test_results << result_data
+      test_cases.each do |test_case|
+        before_test&.call(test_case)
 
-            failed_count += 1 if test_result == :failed
+        begin
+          test_result, actual_results = send(execute_test_case_method_name, test_case)
 
-            # Show verbose output if enabled
-            show_verbose_output(result_data) if show_verbose_output?(test_result)
-          rescue StandardError => ex
-            failed_count += 1
-            handle_test_error(test_case, ex)
-          end
+          result_data = {
+            test_case: test_case,
+            status: test_result,
+            actual_results: actual_results,
+          }
+          @test_results << result_data
 
-          yield(test_case) if block_given?
+          failed_count += 1 if test_result == :failed
+
+          # Show verbose output if enabled
+          show_verbose_output(result_data) if show_verbose_output?(test_result)
+        rescue StandardError => ex
+          failed_count += 1
+          handle_test_error(test_case, ex)
         end
 
-        execute_teardown
+        yield(test_case) if block_given?
       end
+
+      execute_teardown # run for all values of execute_test_case_method_name
 
       @failed     = failed_count
       @run_status = true
@@ -166,7 +142,7 @@ class Tryouts
     end
 
     # Execute test case with fresh setup context
-    def execute_test_case_with_setup(test_case)
+    def execute_test_case_pristine(test_case)
       return [:skipped, []] if test_case.empty? || !test_case.expectations?
 
       # Create fresh container for this test case
