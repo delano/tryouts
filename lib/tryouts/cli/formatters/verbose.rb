@@ -7,16 +7,17 @@ class Tryouts
       include FormatterInterface
 
       def initialize(options = {})
-        @line_width  = options.fetch(:line_width, 70)
+        @line_width  = options.fetch(:line_width, 60)
         @show_passed = options.fetch(:show_passed, true)
       end
 
       def format_file_header(testrun)
         case testrun
         in { source_file: String => path }
-          file_name      = File.basename(path)
+          file_name      = Console.pretty_path(path)
           header_content = ">>>>>  #{file_name}  "
-          padding        = '<' * (@line_width - header_content.length)
+          rpadding_len   = @line_width - header_content.length
+          padding        = '<' * rpadding_len
 
           [
             '-' * @line_width,
@@ -24,6 +25,7 @@ class Tryouts
             '-' * @line_width,
             '',
           ].join("\n")
+
         else
           ''
         end

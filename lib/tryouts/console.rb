@@ -1,5 +1,7 @@
 # lib/tryouts/console.rb
 
+require 'pathname'
+
 class Tryouts
   module Console
     # ANSI escape sequence numbers for text attributes
@@ -117,6 +119,18 @@ class Tryouts
 
       def default_style
         style(ATTRIBUTES[:default], COLOURS[:default], BGCOLOURS[:default])
+      end
+
+      # Converts an absolute file path to a path relative to the application's
+      # base directory. This simplifies logging and error reporting by showing
+      # only the relevant parts of file paths instead of lengthy absolute paths.
+      #
+      def pretty_path(file)
+        return nil if file.nil?
+
+        file     = File.expand_path(file) # be absolutely sure
+        basepath = File.expand_path('..', TRYOUTS_LIB_HOME)
+        Pathname.new(file).relative_path_from(basepath).to_s
       end
     end
   end

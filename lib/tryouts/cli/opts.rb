@@ -62,7 +62,10 @@ class Tryouts
 
           opts.separator "\nGeneral Options:"
           opts.on('-V', '--version', 'Show version') { options[:version] = true }
-          opts.on('-D', '--debug', 'Enable debug mode') { Tryouts.debug  = true }
+          opts.on('-D', '--debug', 'Enable debug mode') do
+            options[:debug] = true
+            Tryouts.debug   = true
+          end
           opts.on('-h', '--help', 'Show this help') do
             Tryouts.debug 'CLI::parse_args: Help flag detected. Showing help and exiting.'
             puts opts

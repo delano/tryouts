@@ -18,7 +18,9 @@ begin
     ).sort
   end
 
-  exit Tryouts::CLI.new.run(files, **options)
+  cli = Tryouts::CLI.new
+  exit cli.run(files, **options)
+
 rescue StandardError => ex
   warn "Error: #{ex.message}"
   exit 1
