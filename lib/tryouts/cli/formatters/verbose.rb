@@ -15,7 +15,7 @@ class Tryouts
       end
 
       # Phase-level output
-      def phase_header(message, file_count = nil)
+      def phase_header(message, _file_count = nil)
         separator_line = '=' * @line_width
         header_line    = message.center(@line_width)
 
@@ -54,12 +54,12 @@ class Tryouts
         puts indent_text(message, 2)
       end
 
-      def file_execution_start(file_path, test_count, context_mode)
+      def file_execution_start(_file_path, test_count, context_mode)
         message = "Running #{test_count} tests with #{context_mode} context"
         puts indent_text(message, 1)
       end
 
-      def file_result(file_path, total_tests, failed_count, elapsed_time)
+      def file_result(_file_path, total_tests, failed_count, elapsed_time)
         status = if failed_count > 0
           Console.color(:red, "✗ #{failed_count}/#{total_tests} tests failed")
         else
@@ -82,7 +82,7 @@ class Tryouts
         puts indent_text(Console.color(:dim, message), 2)
       end
 
-      def test_result(test_case, result_status, actual_results = [], elapsed_time = nil)
+      def test_result(test_case, result_status, actual_results = [], _elapsed_time = nil)
         should_show = @show_passed || result_status != :passed
 
         return unless should_show
@@ -208,7 +208,7 @@ class Tryouts
           puts '-' * @line_width
         when :dotted
           puts '.' * @line_width
-        else
+        else # rubocop:disable Lint/DuplicateBranch
           puts '-' * @line_width
         end
       end

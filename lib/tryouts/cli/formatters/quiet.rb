@@ -38,7 +38,7 @@ class Tryouts
         # Silent in quiet mode
       end
 
-      def test_result(test_case, result_status, actual_results = [], elapsed_time = nil)
+      def test_result(_test_case, result_status, _actual_results = [], _elapsed_time = nil)
         case result_status
         when :passed
           print Console.color(:green, '.')
@@ -111,7 +111,7 @@ class Tryouts
         # Silent in quiet mode
       end
 
-      def error_message(message, details = nil)
+      def error_message(message, _details = nil)
         return unless @show_errors
 
         puts

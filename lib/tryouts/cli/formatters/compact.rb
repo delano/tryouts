@@ -28,7 +28,7 @@ class Tryouts
         puts "Running: #{pretty_path} (#{framework}/#{context})"
       end
 
-      def file_parsed(file_path, test_count, setup_present: false, teardown_present: false)
+      def file_parsed(_file_path, test_count, setup_present: false, teardown_present: false)
         # Don't show parsing info in compact mode unless debug
         return unless @show_debug
 
@@ -40,12 +40,12 @@ class Tryouts
         puts "  Parsed #{test_count} tests#{suffix}"
       end
 
-      def file_execution_start(file_path, test_count, context_mode)
+      def file_execution_start(file_path, test_count, _context_mode)
         pretty_path = Console.pretty_path(file_path)
         puts "#{pretty_path}: #{test_count} tests"
       end
 
-      def file_result(file_path, total_tests, failed_count, elapsed_time)
+      def file_result(_file_path, total_tests, failed_count, elapsed_time)
         if failed_count > 0
           status = Console.color(:red, '✗')
           detail = "#{failed_count}/#{total_tests} failed"
@@ -59,7 +59,7 @@ class Tryouts
       end
 
       # Test-level operations - only show in debug mode for compact
-      def test_start(test_case, index, total)
+      def test_start(test_case, index, _total)
         return unless @show_debug
 
         desc = test_case.description.to_s
@@ -67,7 +67,7 @@ class Tryouts
         puts "    Running: #{desc}"
       end
 
-      def test_result(test_case, result_status, actual_results = [], elapsed_time = nil)
+      def test_result(test_case, result_status, actual_results = [], _elapsed_time = nil)
         # Only show failed tests in compact mode unless show_passed is true
         return if result_status == :passed && !@show_passed
 
@@ -93,7 +93,7 @@ class Tryouts
       end
 
       # Setup/teardown operations - minimal output
-      def setup_start(line_range)
+      def setup_start(_line_range)
         return unless @show_debug
 
         puts '    Setup...'
@@ -108,7 +108,7 @@ class Tryouts
         puts "    Setup output (#{lines} lines)"
       end
 
-      def teardown_start(line_range)
+      def teardown_start(_line_range)
         return unless @show_debug
 
         puts '    Teardown...'
