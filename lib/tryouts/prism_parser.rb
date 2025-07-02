@@ -8,16 +8,16 @@ class Tryouts
   # Transforms Ruby test files into structured test data using token-based parsing.
   class PrismParser
     def initialize(source_path)
-      @source_path = source_path
-      @source = File.read(source_path)
-      @lines = @source.lines.map(&:chomp)
+      @source_path  = source_path
+      @source       = File.read(source_path)
+      @lines        = @source.lines.map(&:chomp)
       @prism_result = Prism.parse(@source)
     end
 
     def parse
       return handle_syntax_errors if @prism_result.failure?
 
-      tokens = tokenize_content
+      tokens      = tokenize_content
       test_blocks = group_into_test_blocks(tokens)
       process_test_blocks(test_blocks)
     end
@@ -50,7 +50,7 @@ class Tryouts
 
     # Group tokens into logical test blocks using pattern matching
     def group_into_test_blocks(tokens)
-      blocks = []
+      blocks        = []
       current_block = new_test_block
 
       tokens.each do |token|
@@ -84,8 +84,8 @@ class Tryouts
 
     # Process classified test blocks into domain objects
     def process_test_blocks(classified_blocks)
-      setup_blocks = classified_blocks.filter { |block| block[:type] == :setup }
-      test_blocks = classified_blocks.filter { |block| block[:type] == :test }
+      setup_blocks    = classified_blocks.filter { |block| block[:type] == :setup }
+      test_blocks     = classified_blocks.filter { |block| block[:type] == :test }
       teardown_blocks = classified_blocks.filter { |block| block[:type] == :teardown }
 
       Testrun.new(
@@ -122,7 +122,7 @@ class Tryouts
         expectations: [],
         comments: [],
         start_line: 0,
-        end_line: 0
+        end_line: 0,
       }
     end
 
@@ -186,7 +186,7 @@ class Tryouts
           code: extract_code_content(code_tokens),
           expectations: exp_tokens.map { |token| token[:content] },
           line_range: start_line..end_line,
-          path: @source_path
+          path: @source_path,
         )
       else
         raise "Invalid test block structure: #{block}"
@@ -198,16 +198,17 @@ class Tryouts
 
       combined_code = setup_blocks
         .flat_map { |block| block[:code] }
+        .filter { |token| token[:type] == :code }
         .map { |token| token[:content] }
         .join("\n")
 
       line_ranges = setup_blocks.map { |block| block[:start_line]..block[:end_line] }
-      full_range = line_ranges.empty? ? (0..0) : (line_ranges.first.first..line_ranges.last.last)
+      full_range  = line_ranges.empty? ? (0..0) : (line_ranges.first.first..line_ranges.last.last)
 
       Setup.new(
         code: combined_code,
         line_range: full_range,
-        path: @source_path
+        path: @source_path,
       )
     end
 
@@ -216,16 +217,17 @@ class Tryouts
 
       combined_code = teardown_blocks
         .flat_map { |block| block[:code] }
+        .filter { |token| token[:type] == :code }
         .map { |token| token[:content] }
         .join("\n")
 
       line_ranges = teardown_blocks.map { |block| block[:start_line]..block[:end_line] }
-      full_range = line_ranges.empty? ? (0..0) : (line_ranges.first.first..line_ranges.last.last)
+      full_range  = line_ranges.empty? ? (0..0) : (line_ranges.first.first..line_ranges.last.last)
 
       Teardown.new(
         code: combined_code,
         line_range: full_range,
-        path: @source_path
+        path: @source_path,
       )
     end
 
@@ -244,7 +246,7 @@ class Tryouts
           error.message,
           line_number: error.location.start_line,
           context: line_context,
-          source_file: @source_path
+          source_file: @source_path,
         )
       end
 

@@ -7,6 +7,15 @@ class Tryouts
   class TestBatch
     attr_reader :testrun, :failed_count, :container, :status, :results, :formatter
 
+    # Compatibility methods for legacy CLI code
+    def test_results
+      @results
+    end
+
+    def failed
+      @failed_count
+    end
+
     def initialize(testrun, **options)
       @testrun = testrun
       @container = Object.new
@@ -206,6 +215,8 @@ class Tryouts
       case result
       in { status: :failed | :error }
         @failed_count += 1
+      else
+        # Handle :passed and other statuses - no failed count increment needed
       end
 
       show_test_result(result) if should_show_result?(result)
@@ -225,10 +236,15 @@ class Tryouts
     def execute_global_teardown
       case @testrun.teardown
       in { code: String => code, path: String => path, line_range: Range => range }
+        puts "DEBUG: Teardown detected, code length: #{code.length}" if ENV['DEBUG']
+        puts "DEBUG: Teardown code:\n#{code}" if ENV['DEBUG']
         @container.instance_eval(code, path, range.first + 1) unless code.empty?
+      else
+        puts "DEBUG: No teardown code detected" if ENV['DEBUG']
       end
     rescue StandardError => ex
       warn Console.color(:red, "Teardown failed: #{ex.message}")
+      puts "DEBUG: Teardown code was: #{@testrun.teardown&.code || 'nil'}" if ENV['DEBUG']
     end
 
     # Result finalization and summary display
