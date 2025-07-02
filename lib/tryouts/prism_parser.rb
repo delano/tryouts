@@ -35,9 +35,14 @@ class Tryouts
           state        = :test
           current_test = init_test_case(content, index)
         in [:setup, :potential_description]
-          # Treat as description in setup phase
-          state        = :test
-          current_test = init_test_case(content, index)
+          # Check if this looks like a filename comment or should be treated as setup
+          if looks_like_filename_comment?(content, index)
+            setup_lines << line
+          else
+            # Treat as description in setup phase
+            state        = :test
+            current_test = init_test_case(content, index)
+          end
         in [:test, :description]
           # If current test has no code or expectations, combine descriptions
           if current_test && current_test[:code].empty? && current_test[:expectations].empty?
@@ -47,12 +52,15 @@ class Tryouts
             current_test = init_test_case(content, index)
           end
         in [:test, :potential_description]
-          # Check if current test should be finalized
-          if current_test && !current_test[:expectations].empty?
+          # If current test has code but no expectations yet, treat as comment within test
+          if current_test && !current_test[:code].empty? && current_test[:expectations].empty?
+            current_test[:code] << line
+          # If current test has expectations, finalize it and start new test
+          elsif current_test && !current_test[:expectations].empty?
             test_cases << build_test_case(current_test)
             current_test = init_test_case(content, index)
+          # If current test has no content, combine descriptions
           elsif current_test && current_test[:code].empty? && current_test[:expectations].empty?
-            # Combine with existing description
             current_test[:description] << content
           else
             # Start new potential test case
@@ -110,6 +118,16 @@ class Tryouts
       end
     end
 
+    def looks_like_filename_comment?(content, line_index)
+      # Filename comments typically:
+      # 1. Are at the beginning of the file (within first few lines)
+      # 2. Contain file extensions like .rb
+      # 3. Don't contain test-related language
+      return true if line_index < 3 && content.match?(/\.(rb|py|js|ts|java|cpp|c)$/)
+      return true if line_index == 0 # First line is often a filename comment
+      false
+    end
+
     def init_test_case(description, line_index)
       {
         description: [description],
@@ -137,17 +155,31 @@ class Tryouts
     end
 
     def find_test_end_line_from_data(test_data, start_line)
-      # Find next test description line
-      next_test_line = @lines[(start_line + 1)..-1].find_index do |line|
+      # Find the last line that belongs to this test case
+      # Look for the last expectation or code line before the next test or end of file
+
+      current_line = start_line
+      last_content_line = start_line
+
+      # Scan forward to find the extent of this test case
+      @lines[(start_line + 1)..-1].each_with_index do |line, offset|
+        line_index = start_line + 1 + offset
         line_type, _ = parse_line(line)
-        line_type == :description
+
+        case line_type
+        when :description, :potential_description
+          # Found next test case, stop here
+          break
+        when :expectation, :code
+          # This line belongs to current test case
+          last_content_line = line_index
+        when :comment, :blank
+          # Skip comments and blanks, but don't update last_content_line
+          next
+        end
       end
 
-      if next_test_line
-        start_line + next_test_line  # Line before next test
-      else
-        @lines.size - 1  # End of file
-      end
+      last_content_line
     end
 
     def build_setup(lines)
