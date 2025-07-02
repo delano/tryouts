@@ -56,6 +56,15 @@ class Tryouts
 
       translator = FRAMEWORKS[final_options[:framework]].new unless final_options[:framework] == :direct
 
+      # Initialize global tallying for multiple files
+      global_tally = {
+        total_tests: 0,
+        total_failed: 0,
+        file_count: 0,
+        start_time: Time.now,
+        successful_files: 0,
+      }
+
       files.each do |file|
         unless File.exist?(file)
           warn "Error: File not found: #{file}"
@@ -63,7 +72,8 @@ class Tryouts
         end
 
         begin
-          testrun = PrismParser.new(file).parse
+          testrun                    = PrismParser.new(file).parse
+          global_tally[:file_count] += 1
 
           # Handle inspection mode
           if final_options[:inspect]
@@ -136,10 +146,15 @@ class Tryouts
                 end
               end
 
+              # Update global tally with this file's results
+              file_failed_count                = test_results.count { |r| r[:status] == :failed }
+              global_tally[:total_tests]      += batch.size
+              global_tally[:total_failed]     += file_failed_count
+              global_tally[:successful_files] += 1 if success
+
               # Show summary unless in fails-only mode with failures to show
               unless final_options[:verbose]
-                failed_count = test_results.count { |r| r[:status] == :failed }
-                puts "Results: #{batch.size} tests, #{failed_count} failed"
+                puts "Results: #{batch.size} tests, #{file_failed_count} failed"
                 puts
               end
 
@@ -167,7 +182,32 @@ class Tryouts
         end
       end
 
+
+      # Show grand total if multiple files were processed
+      if global_tally[:file_count] > 1 && final_options[:framework] == :direct && !final_options[:generate_only] && !final_options[:inspect]
+        show_grand_total(global_tally, final_options)
+      end
+
       0 # success
+    end
+
+    private
+
+    def show_grand_total(tally, options)
+      elapsed_time = Time.now - tally[:start_time]
+      passed_count = tally[:total_tests] - tally[:total_failed]
+
+      puts '=' * 60
+      puts 'Grand Total:'
+
+      if tally[:total_failed] > 0
+        puts "#{tally[:total_failed]} failed, #{passed_count} passed (#{format('%.2f', elapsed_time)}s)"
+      else
+        puts "#{tally[:total_tests]} tests passed (#{format('%.2f', elapsed_time)}s)"
+      end
+
+      puts "Results: #{tally[:total_tests]} tests, #{tally[:total_failed]} failed"
+      puts "Files processed: #{tally[:successful_files]}/#{tally[:file_count]} successful"
     end
 
     def self.parse_args(args)
