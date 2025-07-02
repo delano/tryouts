@@ -30,6 +30,11 @@ class Tryouts
       @lines.each_with_index do |line, index|
         line_type, content = parse_line(line)
 
+        # Handle potential descriptions by looking ahead
+        if line_type == :potential_description
+          line_type = is_description_line?(index) ? :description : :comment
+        end
+
         case [state, line_type]
         in [:setup, :description]
           state        = :test
@@ -72,6 +77,8 @@ class Tryouts
         [:description, ::Regexp.last_match(1).strip]
       in /^#\s*=>\s*(.*)/ if ::Regexp.last_match(1)
         [:expectation, ::Regexp.last_match(1).strip]
+      in /^#\s+([^=].*)/ if ::Regexp.last_match(1) && !::Regexp.last_match(1).strip.empty?
+        [:potential_description, ::Regexp.last_match(1).strip]
       in /^#[^#=>](.*)/ if ::Regexp.last_match(1)
         [:comment, ::Regexp.last_match(1).strip]
       in /^\s*$/
@@ -79,6 +86,38 @@ class Tryouts
       else
         [:code, line]
       end
+    end
+
+    def is_description_line?(line_index)
+      # Look ahead to see if this comment is followed by actual code (not just expectations)
+      next_lines = @lines[(line_index + 1)..-1]
+      return false if next_lines.nil? || next_lines.empty?
+
+      # Skip blank lines and comments to find the next significant line
+      found_code = false
+      next_lines.each do |next_line|
+        next_line_type, _ = parse_line(next_line)
+        case next_line_type
+        when :code
+          found_code = true
+          break
+        when :expectation, :description, :potential_description
+          break # Found another test element, stop looking
+        when :blank, :comment
+          next # Skip blanks and regular comments
+        end
+      end
+      
+      # Only treat as description if we found code and the comment looks like a test description
+      return false unless found_code
+      
+      # Additional heuristics to identify test descriptions
+      line_content = @lines[line_index]
+      test_keywords = /\b(test|should|can|will|example|scenario)\b/i
+      
+      # Accept if it contains test-related keywords or starts with common test patterns
+      line_content.match?(test_keywords) || 
+        line_content.match?(/^#\s+\w+/) # Simple word-based description
     end
 
     def init_test_case(description, line_index)

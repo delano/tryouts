@@ -33,6 +33,7 @@ class Tryouts
       @options = {
         framework: :direct,     # Direct is now the default
         verbose: false,
+        inspect: false,
       }
     end
 
@@ -63,6 +64,36 @@ class Tryouts
 
         begin
           testrun = PrismParser.new(file).parse
+
+          # Handle inspection mode
+          if final_options[:inspect]
+            puts "Inspecting: #{file}"
+            puts '=' * 50
+            puts '✅ Parsing successful!'
+            puts "📊 Found #{testrun.total_tests} test cases"
+            puts "🏗️  Setup code: #{testrun.setup.empty? ? 'None' : 'Present'}"
+            puts "🧹 Teardown code: #{testrun.teardown.empty? ? 'None' : 'Present'}"
+            puts
+
+            testrun.test_cases.each_with_index do |tc, i|
+              puts "Test #{i + 1}: #{tc.description}"
+              puts "  Code lines: #{tc.code.lines.count}"
+              puts "  Expectations: #{tc.expectations.size}"
+              puts "  Range: #{tc.line_range}"
+              puts
+            end
+
+            # Test framework translations if requested
+            if final_options[:framework] != :direct
+              puts "🧪 Testing #{final_options[:framework]} translation..."
+              translator = FRAMEWORKS[final_options[:framework]].new
+              translated_code = translator.generate_code(testrun)
+              puts "✅ #{final_options[:framework].to_s.capitalize} code generated (#{translated_code.lines.count} lines)"
+              puts
+            end
+            
+            next
+          end
 
           if final_options[:generate_only]
             puts "# Generated #{final_options[:framework]} code for #{file}"
@@ -171,6 +202,9 @@ class Tryouts
         opts.on('-v', '--verbose', 'Show detailed test output with line numbers') { options[:verbose] = true }
         opts.on('-f', '--fails', 'Show only failing tests (with --verbose)') { options[:fails_only]   = true }
 
+        opts.separator "\nInspection Options:"
+        opts.on('-i', '--inspect', 'Inspect file structure without running tests') { options[:inspect] = true }
+
         opts.separator "\nGeneral Options:"
         opts.on('-V', '--version', 'Show version') { options[:version] = true }
         opts.on('-D', '--debug', 'Enable debug mode') { Tryouts.debug  = true }
@@ -191,6 +225,7 @@ class Tryouts
             try --rspec test_try.rb                  # RSpec with fresh context
             try --direct --shared-context test_try.rb # Explicit shared context
             try --generate-rspec test_try.rb         # Output RSpec code only
+            try --inspect test_try.rb                # Inspect file structure and validation
 
           File Format:
             ## Test description       # Test case marker
