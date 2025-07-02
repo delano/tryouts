@@ -7,15 +7,6 @@ class Tryouts
   class TestBatch
     attr_reader :testrun, :failed_count, :container, :status, :results, :formatter
 
-    # Compatibility methods for legacy CLI code
-    def test_results
-      @results
-    end
-
-    def failed
-      @failed_count
-    end
-
     def initialize(testrun, **options)
       @testrun      = testrun
       @container    = Object.new
@@ -25,6 +16,30 @@ class Tryouts
       @status       = :pending
       @results      = []
       @start_time   = nil
+    end
+
+    # Main execution pipeline using functional composition
+    def run(before_test_hook = nil, &)
+      return false if empty?
+
+      @start_time = Time.now
+
+      begin
+        show_file_header
+        execute_global_setup if shared_context?
+
+        execution_results = test_cases.map do |test_case|
+          execute_single_test(test_case, before_test_hook, &)
+        end
+
+        execute_global_teardown
+        finalize_results(execution_results)
+
+        !failed?
+      rescue StandardError => ex
+        handle_batch_error(ex)
+        false
+      end
     end
 
     def empty?
@@ -49,31 +64,6 @@ class Tryouts
 
     def completed?
       @status == :completed
-    end
-
-    # Main execution pipeline using functional composition
-    def run(before_test_hook = nil, &)
-      return false if empty?
-
-      @start_time = Time.now
-
-      begin
-        show_file_header
-        execute_global_setup if shared_context?
-
-        execution_results = test_cases.map do |test_case|
-          execute_single_test(test_case, before_test_hook, &)
-        end
-
-        execute_global_teardown
-        finalize_results(execution_results)
-
-        @status = :completed
-        !failed?
-      rescue StandardError => ex
-        handle_batch_error(ex)
-        false
-      end
     end
 
     private
@@ -249,6 +239,7 @@ class Tryouts
 
     # Result finalization and summary display
     def finalize_results(_execution_results)
+      @status      = :completed
       elapsed_time = Time.now - @start_time
       show_summary(elapsed_time)
     end
@@ -278,6 +269,13 @@ class Tryouts
       fails_only = @options[:fails_only] == true  # Convert to proper boolean
       status     = result[:status]
 
+      # rubocop:disable Lint/DuplicateBranch
+      #
+      # I find the vertical alignment of the case in more readable than the
+      # default Rubocop preference which suggests combining into a single line:
+      #
+      #   in [true, true, :failed | :error] | [true, false, _] | [false, _, _]
+      #
       case [verbose, fails_only, status]
       in [true, true, :failed | :error]
         true
@@ -286,6 +284,7 @@ class Tryouts
       else
         false
       end
+      # rubocop:enable Lint/DuplicateBranch
     end
 
     def shared_context?

@@ -29,6 +29,26 @@ class Tryouts
       },
     }.freeze
 
+    HELP = <<~HELP
+
+      Framework Defaults:
+        Tryouts:    Shared context (state persists across tests)
+        RSpec:      Fresh context (each test isolated)
+        Minitest:   Fresh context (each test isolated)
+
+      Examples:
+        try test_try.rb                          # Tryouts test runner with shared context
+        try --rspec test_try.rb                  # RSpec with fresh context
+        try --direct --shared-context test_try.rb # Explicit shared context
+        try --generate-rspec test_try.rb         # Output RSpec code only
+        try --inspect test_try.rb                # Inspect file structure and validation
+
+      File Format:
+        ## Test description       # Test case marker
+        code_to_test             # Ruby code
+        #=> expected_result       # Expectation
+    HELP
+
     def initialize
       @options = {
         framework: :direct,     # Direct is now the default
@@ -131,19 +151,9 @@ class Tryouts
 
               success = batch.run do |test_case|
                 # Get the last test result from batch
-                last_result = batch.test_results.last
+                last_result = batch.results.last
                 test_results << last_result if last_result
 
-                unless final_options[:verbose]
-                  status_emoji = last_result&.dig(:status) == :failed ? '❌' : '✅'
-
-                  # Show test if not in fails-only mode, or if it failed
-                  show_test = !final_options[:fails_only] || last_result&.dig(:status) == :failed
-
-                  if show_test
-                    # puts "  #{test_case.description}: #{status_emoji}"
-                  end
-                end
               end
 
               # Update global tally with this file's results
@@ -184,16 +194,16 @@ class Tryouts
 
 
       # Show grand total if multiple files were processed
-      if global_tally[:file_count] > 1 && final_options[:framework] == :direct && !final_options[:generate_only] && !final_options[:inspect]
+      # if global_tally[:file_count] > 1 && final_options[:framework] == :direct && !final_options[:generate_only] && !final_options[:inspect]
         show_grand_total(global_tally, final_options)
-      end
+      # end
 
       0 # success
     end
 
     private
 
-    def show_grand_total(tally, options)
+    def show_grand_total(tally, _options)
       elapsed_time = Time.now - tally[:start_time]
       passed_count = tally[:total_tests] - tally[:total_failed]
 
@@ -210,75 +220,61 @@ class Tryouts
       puts "Files processed: #{tally[:successful_files]}/#{tally[:file_count]} successful"
     end
 
-    def self.parse_args(args)
-      options = {}
+    class << self
 
-      parser = OptionParser.new do |opts|
-        opts.banner = "Usage: try [OPTIONS] FILE...\n\nModern Tryouts test runner with framework translation"
 
-        opts.separator "\nFramework Options:"
-        opts.on('--direct', 'Direct execution with TestBatch (default)') { options[:framework] = :direct }
-        opts.on('--rspec', 'Use RSpec framework') { options[:framework]                        = :rspec }
-        opts.on('--minitest', 'Use Minitest framework') { options[:framework]                  = :minitest }
+      def parse_args(args)
+        options = {}
 
-        opts.separator "\nGeneration Options:"
-        opts.on('--generate-rspec', 'Generate RSpec code only') do
-          options[:framework]     = :rspec
-          options[:generate_only] = true
+        parser = OptionParser.new do |opts|
+          opts.banner = "Usage: try [OPTIONS] FILE...\n\nModern Tryouts test runner with framework translation"
+
+          opts.separator "\nFramework Options:"
+          opts.on('--direct', 'Direct execution with TestBatch (default)') { options[:framework] = :direct }
+          opts.on('--rspec', 'Use RSpec framework') { options[:framework]                        = :rspec }
+          opts.on('--minitest', 'Use Minitest framework') { options[:framework]                  = :minitest }
+
+          opts.separator "\nGeneration Options:"
+          opts.on('--generate-rspec', 'Generate RSpec code only') do
+            options[:framework]     = :rspec
+            options[:generate_only] = true
+          end
+          opts.on('--generate-minitest', 'Generate Minitest code only') do
+            options[:framework]     = :minitest
+            options[:generate_only] = true
+          end
+          opts.on('--generate', 'Generate code only (use with --rspec/--minitest)') do
+            options[:generate_only] = true
+            options[:framework]   ||= :rspec
+          end
+
+          opts.separator "\nExecution Options:"
+          opts.on('--shared-context', 'Override default context mode') { options[:shared_context]       = true }
+          opts.on('--no-shared-context', 'Override default context mode') { options[:shared_context]    = false }
+          opts.on('-v', '--verbose', 'Show detailed test output with line numbers') { options[:verbose] = true }
+          opts.on('-f', '--fails', 'Show only failing tests (with --verbose)') { options[:fails_only]   = true }
+
+          opts.separator "\nInspection Options:"
+          opts.on('-i', '--inspect', 'Inspect file structure without running tests') { options[:inspect] = true }
+
+          opts.separator "\nGeneral Options:"
+          opts.on('-V', '--version', 'Show version') { options[:version] = true }
+          opts.on('-D', '--debug', 'Enable debug mode') { Tryouts.debug  = true }
+          opts.on('-h', '--help', 'Show this help') do
+            puts opts
+            exit 0
+          end
+
+          opts.separator HELP.freeze
         end
-        opts.on('--generate-minitest', 'Generate Minitest code only') do
-          options[:framework]     = :minitest
-          options[:generate_only] = true
-        end
-        opts.on('--generate', 'Generate code only (use with --rspec/--minitest)') do
-          options[:generate_only] = true
-          options[:framework]   ||= :rspec
-        end
 
-        opts.separator "\nExecution Options:"
-        opts.on('--shared-context', 'Override default context mode') { options[:shared_context]       = true }
-        opts.on('--no-shared-context', 'Override default context mode') { options[:shared_context]    = false }
-        opts.on('-v', '--verbose', 'Show detailed test output with line numbers') { options[:verbose] = true }
-        opts.on('-f', '--fails', 'Show only failing tests (with --verbose)') { options[:fails_only]   = true }
-
-        opts.separator "\nInspection Options:"
-        opts.on('-i', '--inspect', 'Inspect file structure without running tests') { options[:inspect] = true }
-
-        opts.separator "\nGeneral Options:"
-        opts.on('-V', '--version', 'Show version') { options[:version] = true }
-        opts.on('-D', '--debug', 'Enable debug mode') { Tryouts.debug  = true }
-        opts.on('-h', '--help', 'Show this help') do
-          puts opts
-          exit 0
-        end
-
-        opts.separator <<~HELP
-
-          Framework Defaults:
-            Tryouts:    Shared context (state persists across tests)
-            RSpec:      Fresh context (each test isolated)
-            Minitest:   Fresh context (each test isolated)
-
-          Examples:
-            try test_try.rb                          # Tryouts test runner with shared context
-            try --rspec test_try.rb                  # RSpec with fresh context
-            try --direct --shared-context test_try.rb # Explicit shared context
-            try --generate-rspec test_try.rb         # Output RSpec code only
-            try --inspect test_try.rb                # Inspect file structure and validation
-
-          File Format:
-            ## Test description       # Test case marker
-            code_to_test             # Ruby code
-            #=> expected_result       # Expectation
-        HELP
+        files = parser.parse(args)
+        [files, options]
+      rescue OptionParser::InvalidOption => ex
+        warn "Error: #{ex.message}"
+        warn "Try 'try --help' for more information."
+        exit 1
       end
-
-      files = parser.parse(args)
-      [files, options]
-    rescue OptionParser::InvalidOption => ex
-      warn "Error: #{ex.message}"
-      warn "Try 'try --help' for more information."
-      exit 1
     end
   end
 end
