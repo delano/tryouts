@@ -61,15 +61,15 @@ class Tryouts
       # Validate all files exist before processing
       validate_files_exist(files)
 
-      final_options = apply_framework_defaults(@options)
-      validate_framework(final_options)
-      translator    = initialize_translator(final_options)
-      global_tally  = initialize_global_tally
+      runtime_options = apply_framework_defaults(@options)
+      validate_framework(runtime_options)
+      translator      = initialize_translator(runtime_options)
+      global_tally    = initialize_global_tally
 
       # Process all files
-      result = process_files(files, final_options, global_tally, translator)
+      result = process_files(files, runtime_options, global_tally, translator)
 
-      show_grand_total(global_tally, final_options) if global_tally[:file_count] > 1
+      show_grand_total(global_tally, runtime_options) if global_tally[:file_count] > 1
 
       result
     end
@@ -85,11 +85,11 @@ class Tryouts
       end
     end
 
-    def process_files(files, final_options, global_tally, translator)
+    def process_files(files, runtime_options, global_tally, translator)
       count = 0 # Number of files with errors
 
       files.each do |file|
-        result = process_file(file, final_options, global_tally, translator)
+        result = process_file(file, runtime_options, global_tally, translator)
         count += result unless result.zero?
         status = result.zero? ? Console.color(:green, 'PASS') : Console.color(:red, 'FAIL')
         @output_manager.info "#{status} #{Console.pretty_path(file)} (#{result} failures)", 1
@@ -111,14 +111,14 @@ class Tryouts
       # Framework info already logged in run method
     end
 
-    def validate_framework(final_options)
-      unless final_options[:framework] == :direct || FRAMEWORKS.key?(final_options[:framework])
-        raise ArgumentError, "Unknown framework: #{final_options[:framework]}. Available: #{FRAMEWORKS.keys.join(', ')}, direct"
+    def validate_framework(runtime_options)
+      unless runtime_options[:framework] == :direct || FRAMEWORKS.key?(runtime_options[:framework])
+        raise ArgumentError, "Unknown framework: #{runtime_options[:framework]}. Available: #{FRAMEWORKS.keys.join(', ')}, direct"
       end
     end
 
-    def initialize_translator(final_options)
-      translator = FRAMEWORKS[final_options[:framework]].new unless final_options[:framework] == :direct
+    def initialize_translator(runtime_options)
+      translator = FRAMEWORKS[runtime_options[:framework]].new unless runtime_options[:framework] == :direct
       translator
     end
 
@@ -132,33 +132,33 @@ class Tryouts
       }
     end
 
-    def process_file(file, final_options, global_tally, translator)
+    def process_file(file, runtime_options, global_tally, translator)
       begin
         testrun                    = PrismParser.new(file).parse
         global_tally[:file_count] += 1
         @output_manager.file_parsed(file, testrun.total_tests)
 
-        if final_options[:inspect]
-          handle_inspect_mode(file, testrun, final_options, translator)
-        elsif final_options[:generate_only]
-          handle_generate_only_mode(file, testrun, final_options, translator)
+        if runtime_options[:inspect]
+          handle_inspect_mode(file, testrun, runtime_options, translator)
+        elsif runtime_options[:generate_only]
+          handle_generate_only_mode(file, testrun, runtime_options, translator)
         else
-          execute_tests(file, testrun, final_options, global_tally, translator)
+          execute_tests(file, testrun, runtime_options, global_tally, translator)
         end
       rescue TryoutSyntaxError => ex
         handle_syntax_error(file, ex)
       rescue StandardError => ex
-        handle_general_error(file, ex, final_options)
+        handle_general_error(file, ex, runtime_options)
       else
         0
       end
     rescue Timeout::Error, SystemExit => ex
       handle_timeout_error(file, ex)
     rescue SystemStackError, LoadError => ex
-      handle_general_error(file, ex, final_options)
+      handle_general_error(file, ex, runtime_options)
     end
 
-    def handle_inspect_mode(file, testrun, final_options, _translator)
+    def handle_inspect_mode(file, testrun, runtime_options, _translator)
       @output_manager.raw("Inspecting: #{file}")
       @output_manager.separator(:heavy)
       @output_manager.raw("Found #{testrun.total_tests} test cases")
@@ -174,38 +174,38 @@ class Tryouts
         @output_manager.raw('')
       end
 
-      return unless final_options[:framework] != :direct
+      return unless runtime_options[:framework] != :direct
 
-      @output_manager.raw("Testing #{final_options[:framework]} translation...")
-      framework_klass    = FRAMEWORKS[final_options[:framework]]
+      @output_manager.raw("Testing #{runtime_options[:framework]} translation...")
+      framework_klass    = FRAMEWORKS[runtime_options[:framework]]
       inspect_translator = framework_klass.new
 
       translated_code = inspect_translator.generate_code(testrun)
-      @output_manager.raw("#{final_options[:framework].to_s.capitalize} code generated (#{translated_code.lines.count} lines)")
+      @output_manager.raw("#{runtime_options[:framework].to_s.capitalize} code generated (#{translated_code.lines.count} lines)")
       @output_manager.raw('')
     end
 
-    def handle_generate_only_mode(file, testrun, final_options, translator)
-      @output_manager.raw("# Generated #{final_options[:framework]} code for #{file}")
+    def handle_generate_only_mode(file, testrun, runtime_options, translator)
+      @output_manager.raw("# Generated #{runtime_options[:framework]} code for #{file}")
       @output_manager.raw("# Updated: #{Time.now}")
       @output_manager.raw(translator.generate_code(testrun))
       @output_manager.raw('')
     end
 
-    def execute_tests(file, testrun, final_options, global_tally, translator)
+    def execute_tests(file, testrun, runtime_options, global_tally, translator)
       file_start = Time.now
-      case final_options[:framework]
+      case runtime_options[:framework]
       when :direct
         batch = TestBatch.new(
           testrun,
-          shared_context: final_options[:shared_context],
-          verbose: final_options[:verbose],
-          fails_only: final_options[:fails_only],
+          shared_context: runtime_options[:shared_context],
+          verbose: runtime_options[:verbose],
+          fails_only: runtime_options[:fails_only],
           output_manager: @output_manager,
         )
 
-        unless final_options[:verbose]
-          context_mode = final_options[:shared_context] ? 'shared' : 'fresh'
+        unless runtime_options[:verbose]
+          context_mode = runtime_options[:shared_context] ? 'shared' : 'fresh'
           @output_manager.file_execution_start(file, testrun.total_tests, context_mode)
         end
 
@@ -222,11 +222,6 @@ class Tryouts
 
         duration = Time.now - file_start if defined?(file_start)
         @output_manager.file_success(file, batch.size, file_failed_count, duration)
-
-        unless final_options[:verbose]
-          @output_manager.batch_summary(batch.size, file_failed_count, duration)
-          @output_manager.raw('')
-        end
 
         return 1 unless success
 
@@ -255,18 +250,18 @@ class Tryouts
       1
     end
 
-    def handle_general_error(file, ex, final_options)
+    def handle_general_error(file, ex, runtime_options)
       @output_manager.error_phase
       @output_manager.info "File: #{Console.pretty_path(file)}", 1
       @output_manager.info "Error: #{Console.color(:red, ex.class.name)}", 1
       @output_manager.info "Message: #{ex.message}", 1
 
-      if final_options[:verbose]
+      if runtime_options[:verbose]
         @output_manager.trace 'Backtrace:', 1
         ex.backtrace.first(5).each { |line| @output_manager.trace line, 2 }
       end
 
-      backtrace_details = final_options[:verbose] ? ex.backtrace.first(3).join("\n") : nil
+      backtrace_details = runtime_options[:verbose] ? ex.backtrace.first(3).join("\n") : nil
       @output_manager.file_failure(file, ex.message, backtrace_details)
       1
     end

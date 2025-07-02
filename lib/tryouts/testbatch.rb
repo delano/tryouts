@@ -213,7 +213,7 @@ class Tryouts
         @failed_count += 1
       end
 
-      show_test_result(result) if should_show_result?(result)
+      show_test_result(result)
     end
 
     # Global setup execution for shared context mode
@@ -271,22 +271,6 @@ class Tryouts
     end
 
     # Helper methods using pattern matching
-    def should_show_result?(result)
-      verbose    = @options[:verbose]
-      fails_only = @options[:fails_only] == true  # Convert to proper boolean
-      status     = result[:status]
-
-      case [verbose, fails_only, status]
-      when [true, true, :failed], [true, true, :error]
-        true
-      when [true, false, :passed], [true, false, :failed], [true, false, :error]
-        true
-      when [false, false, :passed], [false, false, :failed], [false, false, :error]
-        true
-      else
-        false
-      end
-    end
 
     def shared_context?
       @options[:shared_context] == true
