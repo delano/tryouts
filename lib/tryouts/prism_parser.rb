@@ -28,15 +28,37 @@ class Tryouts
       teardown_lines = []
 
       @lines.each_with_index do |line, index|
-        line_type, content = parse_line(line, index)
+        line_type, content = parse_line(line)
 
         case [state, line_type]
         in [:setup, :description]
           state        = :test
           current_test = init_test_case(content, index)
-        in [:test, :description]
-          test_cases << build_test_case(current_test) if current_test
+        in [:setup, :potential_description]
+          # Treat as description in setup phase
+          state        = :test
           current_test = init_test_case(content, index)
+        in [:test, :description]
+          # If current test has no code or expectations, combine descriptions
+          if current_test && current_test[:code].empty? && current_test[:expectations].empty?
+            current_test[:description] << content
+          else
+            test_cases << build_test_case(current_test) if current_test
+            current_test = init_test_case(content, index)
+          end
+        in [:test, :potential_description]
+          # Check if current test should be finalized
+          if current_test && !current_test[:expectations].empty?
+            test_cases << build_test_case(current_test)
+            current_test = init_test_case(content, index)
+          elsif current_test && current_test[:code].empty? && current_test[:expectations].empty?
+            # Combine with existing description
+            current_test[:description] << content
+          else
+            # Start new potential test case
+            test_cases << build_test_case(current_test) if current_test
+            current_test = init_test_case(content, index)
+          end
         in [:test, :code]
           current_test[:code] << line if current_test
         in [:test, :expectation]
@@ -52,19 +74,24 @@ class Tryouts
 
       test_cases << build_test_case(current_test) if current_test
 
+      # Filter out test cases that don't meet minimum requirements (description + expectation)
+      valid_test_cases = test_cases.select do |test_case|
+        !test_case.description.strip.empty? && !test_case.expectations.empty?
+      end
+
       # Detect teardown: lines after last test case
-      teardown_lines = detect_teardown_lines(test_cases)
+      teardown_lines = detect_teardown_lines(valid_test_cases)
 
       Testrun.new(
         setup: build_setup(setup_lines),
-        test_cases: test_cases,
+        test_cases: valid_test_cases,
         teardown: build_teardown(teardown_lines),
         source_file: @source_path,
         metadata: { parsed_at: Time.now, parser: :prism },
       )
     end
 
-    def parse_line(line, line_index = nil)
+    def parse_line(line)
       case line
       in /^##\s*(.*)/ if ::Regexp.last_match(1)
         [:description, ::Regexp.last_match(1).strip]
@@ -72,8 +99,8 @@ class Tryouts
         [:description, ::Regexp.last_match(1).strip]
       in /^#\s*=>\s*(.*)/ if ::Regexp.last_match(1)
         [:expectation, ::Regexp.last_match(1).strip]
-      in /^#\s+(.*)/ if ::Regexp.last_match(1) && !::Regexp.last_match(1).strip.empty? && line_index && is_test_description?(line_index)
-        [:description, ::Regexp.last_match(1).strip]
+      in /^#\s+(.*)/ if ::Regexp.last_match(1) && !::Regexp.last_match(1).strip.empty?
+        [:potential_description, ::Regexp.last_match(1).strip]
       in /^#[^#=>](.*)/ if ::Regexp.last_match(1)
         [:comment, ::Regexp.last_match(1).strip]
       in /^\s*$/
@@ -81,30 +108,6 @@ class Tryouts
       else
         [:code, line]
       end
-    end
-
-    def is_test_description?(line_index)
-      # Look ahead to see if this comment is followed by code (not just more comments/expectations)
-      return false unless line_index
-
-      next_lines = @lines[(line_index + 1)..-1]
-      return false if next_lines.nil? || next_lines.empty?
-
-      # Find the next non-blank, non-comment line
-      next_lines.each do |next_line|
-        case next_line
-        when /^\s*$/ # blank line
-          next
-        when /^#[^>]/ # comment (not expectation)
-          next
-        when /^#\s*=>/ # expectation
-          return false # This comment is followed by expectations, not a test description
-        else # code line
-          return true # This comment is followed by code, so it's a test description
-        end
-      end
-      
-      false
     end
 
     def init_test_case(description, line_index)
