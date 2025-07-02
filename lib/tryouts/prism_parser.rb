@@ -1,11 +1,10 @@
-# lib/tryouts/prism_parser.rb
+# Modern Ruby 3.4+ solution for the teardown bug
 
 require 'prism'
 require_relative 'data_structures'
 
 class Tryouts
-  # Modernized PrismParser using Ruby 3.4 pattern matching and functional programming.
-  # Transforms Ruby test files into structured test data using token-based parsing.
+  # Fixed PrismParser with pattern matching for robust token filtering
   class PrismParser
     def initialize(source_path)
       @source_path  = source_path
@@ -93,8 +92,64 @@ class Tryouts
         test_cases: test_blocks.map { |block| build_test_case(block) },
         teardown: build_teardown(teardown_blocks),
         source_file: @source_path,
-        metadata: { parsed_at: Time.now, parser: :prism_v2 },
+        metadata: { parsed_at: Time.now, parser: :prism_v2_fixed },
       )
+    end
+
+    def build_setup(setup_blocks)
+      return Setup.new(code: '', line_range: 0..0, path: @source_path) if setup_blocks.empty?
+
+      Setup.new(
+        code: extract_pure_code_from_blocks(setup_blocks),
+        line_range: calculate_block_range(setup_blocks),
+        path: @source_path,
+      )
+    end
+
+    def build_teardown(teardown_blocks)
+      return Teardown.new(code: '', line_range: 0..0, path: @source_path) if teardown_blocks.empty?
+
+      Teardown.new(
+        code: extract_pure_code_from_blocks(teardown_blocks),
+        line_range: calculate_block_range(teardown_blocks),
+        path: @source_path,
+      )
+    end
+
+    # Modern Ruby 3.4+ pattern matching for robust code extraction
+    # This filters out comments added by add_context_to_block explicitly
+    def extract_pure_code_from_blocks(blocks)
+      blocks
+        .flat_map { |block| block[:code] }
+        .filter_map { |token|
+          case token
+          in { type: :code, content: String => content }
+            content
+          else
+            nil
+          end
+        }
+        .join("\n")
+    end
+
+    def calculate_block_range(blocks)
+      return 0..0 if blocks.empty?
+
+      line_ranges = blocks.map { |block| block[:start_line]..block[:end_line] }
+      line_ranges.first.first..line_ranges.last.last
+    end
+
+    def extract_code_content(code_tokens)
+      code_tokens
+        .filter_map { |token|
+          case token
+          in { type: :code, content: String => content }
+            content
+          else
+            nil
+          end
+        }
+        .join("\n")
     end
 
     def parse_ruby_line(line)
@@ -191,51 +246,6 @@ class Tryouts
       else
         raise "Invalid test block structure: #{block}"
       end
-    end
-
-    def build_setup(setup_blocks)
-      return Setup.new(code: '', line_range: 0..0, path: @source_path) if setup_blocks.empty?
-
-      combined_code = setup_blocks
-        .flat_map { |block| block[:code] }
-        .filter { |token| token[:type] == :code }
-        .map { |token| token[:content] }
-        .join("\n")
-
-      line_ranges = setup_blocks.map { |block| block[:start_line]..block[:end_line] }
-      full_range  = line_ranges.empty? ? (0..0) : (line_ranges.first.first..line_ranges.last.last)
-
-      Setup.new(
-        code: combined_code,
-        line_range: full_range,
-        path: @source_path,
-      )
-    end
-
-    def build_teardown(teardown_blocks)
-      return Teardown.new(code: '', line_range: 0..0, path: @source_path) if teardown_blocks.empty?
-
-      combined_code = teardown_blocks
-        .flat_map { |block| block[:code] }
-        .filter { |token| token[:type] == :code }
-        .map { |token| token[:content] }
-        .join("\n")
-
-      line_ranges = teardown_blocks.map { |block| block[:start_line]..block[:end_line] }
-      full_range  = line_ranges.empty? ? (0..0) : (line_ranges.first.first..line_ranges.last.last)
-
-      Teardown.new(
-        code: combined_code,
-        line_range: full_range,
-        path: @source_path,
-      )
-    end
-
-    def extract_code_content(code_tokens)
-      code_tokens
-        .filter { |token| token[:type] == :code }
-        .map { |token| token[:content] }
-        .join("\n")
     end
 
     def handle_syntax_errors
