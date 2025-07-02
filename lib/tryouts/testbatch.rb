@@ -274,7 +274,11 @@ class Tryouts
 
     # Helper methods using pattern matching
     def should_show_result?(result)
-      case [@options[:verbose], @options[:fails_only], result[:status]]
+      verbose    = @options[:verbose]
+      fails_only = @options[:fails_only] == true  # Convert to proper boolean
+      status     = result[:status]
+
+      case [verbose, fails_only, status]
       in [true, true, :failed | :error]
         true
       in [true, false, _] | [false, _, _]

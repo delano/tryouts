@@ -61,7 +61,7 @@ class Tryouts
 
     def format_test_result(test_case, result_status, actual_results = [])
       case [test_case, result_status]
-      in [{ description: String => desc, line_range: Range => range }, :passed | :failed]
+      in [Tryouts::PrismTestCase, :passed | :failed]
         output = build_test_output(test_case, result_status, actual_results)
         output.join("\n")
       else
@@ -83,19 +83,23 @@ class Tryouts
     private
 
     def build_test_output(test_case, result_status, actual_results)
-      output = ['', "# #{test_case.description}"]
+      description = test_case.description || ''
+      output      = ['', "# #{description}"]
 
       source_lines = read_source_lines(test_case.path)
       test_lines   = parse_test_lines(test_case, source_lines)
 
       # Add code lines with line numbers
-      output.concat(format_code_lines(test_lines[:code]))
+      code_output = format_code_lines(test_lines[:code])
+      output.concat(code_output)
 
       # Add expectation lines with results
-      output.concat(format_expectation_lines(test_lines[:expectations], actual_results))
+      expectation_output = format_expectation_lines(test_lines[:expectations], actual_results)
+      output.concat(expectation_output)
 
       # Add status line
-      output << format_status_line(test_case, result_status)
+      status_line = format_status_line(test_case, result_status)
+      output << status_line
 
       output
     end
@@ -117,7 +121,9 @@ class Tryouts
         in /^##?\s*(.*)/ | /^#[^#=>]/ | /^\s*$/
           next # Skip descriptions, comments, blanks
         else
-          code_lines << { line_number: line_number, content: line } unless line.strip.empty?
+          unless line.strip.empty?
+            code_lines << { line_number: line_number, content: line }
+          end
         end
       end
 
