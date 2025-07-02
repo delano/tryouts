@@ -50,6 +50,7 @@ class Tryouts
     HELP
 
     def initialize
+      Tryouts.debug 'CLI#initialize: Initializing CLI.'
       @options = {
         framework: :direct,     # Direct is now the default
         verbose: false,
@@ -58,23 +59,29 @@ class Tryouts
     end
 
     def run(files, **options)
+      Tryouts.debug "CLI#run: Starting with files: #{files.inspect}, options: #{options.inspect}"
       @options.merge!(options)
 
       if options[:version]
+        Tryouts.debug 'CLI#run: Version flag detected. Showing version and exiting.'
         puts "Tryouts version #{Tryouts::VERSION}"
         exit 0
       end
 
       # Apply framework-specific defaults
       framework_defaults = FRAMEWORK_DEFAULTS[@options[:framework]] || {}
+      Tryouts.debug "CLI#run: Applying framework defaults: #{framework_defaults.inspect}"
       final_options      = framework_defaults.merge(@options)
+      Tryouts.debug "CLI#run: Final options: #{final_options.inspect}"
 
       # Direct execution doesn't use translators
       unless final_options[:framework] == :direct || FRAMEWORKS.key?(final_options[:framework])
+        Tryouts.debug "CLI#run: Unknown framework detected: #{final_options[:framework]}"
         raise ArgumentError, "Unknown framework: #{final_options[:framework]}. Available: #{FRAMEWORKS.keys.join(', ')}, direct"
       end
 
       translator = FRAMEWORKS[final_options[:framework]].new unless final_options[:framework] == :direct
+      Tryouts.debug "CLI#run: Translator initialized for #{final_options[:framework]}." if translator
 
       # Initialize global tallying for multiple files
       global_tally = {
@@ -84,19 +91,24 @@ class Tryouts
         start_time: Time.now,
         successful_files: 0,
       }
+      Tryouts.debug "CLI#run: Global tally initialized: #{global_tally.inspect}"
 
       files.each do |file|
+        Tryouts.debug "CLI#run: Processing file: #{file}"
         unless File.exist?(file)
           warn "Error: File not found: #{file}"
           next
         end
 
         begin
+          Tryouts.debug "CLI#run: Parsing file with PrismParser: #{file}"
           testrun                    = PrismParser.new(file).parse
           global_tally[:file_count] += 1
+          Tryouts.debug "CLI#run: Parsed #{testrun.total_tests} test cases from #{file}. Current file count: #{global_tally[:file_count]}"
 
           # Handle inspection mode
           if final_options[:inspect]
+            Tryouts.debug 'CLI#run: Inspection mode activated.'
             puts "Inspecting: #{file}"
             puts '=' * 50
             puts "Found #{testrun.total_tests} test cases"
@@ -114,6 +126,7 @@ class Tryouts
 
             # Test framework translations if requested
             if final_options[:framework] != :direct
+              Tryouts.debug "CLI#run: Testing framework translation for #{final_options[:framework]} in inspect mode."
               puts "Testing #{final_options[:framework]} translation..."
               translator      = FRAMEWORKS[final_options[:framework]].new
               translated_code = translator.generate_code(testrun)
@@ -125,14 +138,17 @@ class Tryouts
           end
 
           if final_options[:generate_only]
+            Tryouts.debug "CLI#run: Generate-only mode activated for #{final_options[:framework]}."
             puts "# Generated #{final_options[:framework]} code for #{file}"
             puts "# Updated: #{Time.now}"
             puts translator.generate_code(testrun)
             puts
           else
+            Tryouts.debug "CLI#run: Executing tests for #{file} with framework: #{final_options[:framework]}"
             # Execute the translation and run tests
             case final_options[:framework]
             when :direct
+              Tryouts.debug 'CLI#run: Direct execution mode.'
               # Direct execution with TestBatch
               batch = TestBatch.new(
                 testrun,
@@ -148,19 +164,21 @@ class Tryouts
 
               # Track test results for non-verbose output
               test_results = []
-
-              success = batch.run do |test_case|
+              Tryouts.debug "CLI#run: Starting TestBatch run for #{file}."
+              success      = batch.run do |test_case|
                 # Get the last test result from batch
                 last_result = batch.results.last
                 test_results << last_result if last_result
-
+                Tryouts.debug "CLI#run: TestBatch callback for #{test_case.description}, status: #{last_result[:status]}" if last_result
               end
+              Tryouts.debug "CLI#run: TestBatch run finished for #{file}. Success: #{success}"
 
               # Update global tally with this file's results
               file_failed_count                = test_results.count { |r| r[:status] == :failed }
               global_tally[:total_tests]      += batch.size
               global_tally[:total_failed]     += file_failed_count
               global_tally[:successful_files] += 1 if success
+              Tryouts.debug "CLI#run: Updated global tally for #{file}. Total tests: #{global_tally[:total_tests]}, Total failed: #{global_tally[:total_failed]}"
 
               # Show summary unless in fails-only mode with failures to show
               unless final_options[:verbose]
@@ -171,39 +189,47 @@ class Tryouts
               return 1 unless success
 
             when :rspec
+              Tryouts.debug 'CLI#run: RSpec execution mode.'
               translator.translate(testrun)
               require 'rspec/core'
               RSpec::Core::Runner.run([])
+              Tryouts.debug 'CLI#run: RSpec execution completed.'
             when :minitest
+              Tryouts.debug 'CLI#run: Minitest execution mode.'
               translator.translate(testrun)
               # Clear ARGV to prevent Minitest from processing our arguments
               ARGV.clear
               require 'minitest/autorun'
               # Minitest will automatically discover and run the generated test class
+              Tryouts.debug 'CLI#run: Minitest execution completed.'
             end
           end
         rescue TryoutSyntaxError => ex
+          Tryouts.debug "CLI#run: Syntax error in #{file}: #{ex.message}"
           warn "Syntax error in #{file}: #{ex.message}"
           return 1
         rescue StandardError => ex
+          Tryouts.debug "CLI#run: General error processing #{file}: #{ex.message}"
           warn "Error processing #{file}: #{ex.message}"
           warn ex.backtrace.join("\n") if final_options[:verbose]
           return 1
         end
       end
 
-
       # Show grand total if multiple files were processed
       # if global_tally[:file_count] > 1 && final_options[:framework] == :direct && !final_options[:generate_only] && !final_options[:inspect]
-        show_grand_total(global_tally, final_options)
+      Tryouts.debug "CLI#run: Showing grand total. File count: #{global_tally[:file_count]}"
+      show_grand_total(global_tally, final_options)
       # end
 
+      Tryouts.debug 'CLI#run: CLI execution finished successfully.'
       0 # success
     end
 
     private
 
     def show_grand_total(tally, _options)
+      Tryouts.debug "CLI#show_grand_total: Calculating and displaying grand total. Tally: #{tally.inspect}"
       elapsed_time = Time.now - tally[:start_time]
       passed_count = tally[:total_tests] - tally[:total_failed]
 
@@ -218,12 +244,12 @@ class Tryouts
 
       puts "Results: #{tally[:total_tests]} tests, #{tally[:total_failed]} failed"
       puts "Files processed: #{tally[:successful_files]}/#{tally[:file_count]} successful"
+      Tryouts.debug 'CLI#show_grand_total: Grand total displayed.'
     end
 
     class << self
-
-
       def parse_args(args)
+        Tryouts.debug "CLI::parse_args: Parsing arguments: #{args.inspect}"
         options = {}
 
         parser = OptionParser.new do |opts|
@@ -261,6 +287,7 @@ class Tryouts
           opts.on('-V', '--version', 'Show version') { options[:version] = true }
           opts.on('-D', '--debug', 'Enable debug mode') { Tryouts.debug  = true }
           opts.on('-h', '--help', 'Show this help') do
+            Tryouts.debug 'CLI::parse_args: Help flag detected. Showing help and exiting.'
             puts opts
             exit 0
           end
@@ -269,8 +296,10 @@ class Tryouts
         end
 
         files = parser.parse(args)
+        Tryouts.debug "CLI::parse_args: Parsed files: #{files.inspect}, options: #{options.inspect}"
         [files, options]
       rescue OptionParser::InvalidOption => ex
+        Tryouts.debug "CLI::parse_args: Invalid option error: #{ex.message}"
         warn "Error: #{ex.message}"
         warn "Try 'try --help' for more information."
         exit 1

@@ -8,6 +8,7 @@ class Tryouts
     attr_reader :testrun, :failed_count, :container, :status, :results, :formatter
 
     def initialize(testrun, **options)
+      Tryouts.debug "TestBatch#initialize: Initializing with options: #{options.inspect}"
       @testrun      = testrun
       @container    = Object.new
       @options      = options
@@ -20,23 +21,38 @@ class Tryouts
 
     # Main execution pipeline using functional composition
     def run(before_test_hook = nil, &)
-      return false if empty?
+      Tryouts.debug "TestBatch#run: Starting test run for #{@testrun.source_file}"
+      if empty?
+        Tryouts.debug 'TestBatch#run: No test cases found, skipping run.'
+        return false
+      end
 
       @start_time = Time.now
 
       begin
+        Tryouts.debug 'TestBatch#run: Showing file header.'
         show_file_header
-        execute_global_setup if shared_context?
+        if shared_context?
+          Tryouts.debug 'TestBatch#run: Executing global setup (shared context).'
+          execute_global_setup
+        end
 
+        Tryouts.debug "TestBatch#run: Executing test cases (#{test_cases.size} total)."
         execution_results = test_cases.map do |test_case|
           execute_single_test(test_case, before_test_hook, &)
         end
+        Tryouts.debug 'TestBatch#run: All test cases executed.'
 
+        Tryouts.debug 'TestBatch#run: Executing global teardown.'
         execute_global_teardown
+        Tryouts.debug 'TestBatch#run: Finalizing results.'
         finalize_results(execution_results)
 
+        @status = :completed
+        Tryouts.debug "TestBatch#run: Test run completed. Status: #{@status}, Failed: #{failed?}"
         !failed?
       rescue StandardError => ex
+        Tryouts.debug "TestBatch#run: An error occurred during batch execution: #{ex.message}"
         handle_batch_error(ex)
         false
       end
@@ -70,6 +86,7 @@ class Tryouts
 
     # Pattern matching for execution strategy selection
     def execute_single_test(test_case, before_test_hook = nil)
+      Tryouts.debug "TestBatch#execute_single_test: Running test case: #{test_case.description}"
       before_test_hook&.call(test_case)
 
       result = case @options[:shared_context]
@@ -200,6 +217,7 @@ class Tryouts
 
     # Process and display test results using formatter
     def process_test_result(result)
+      Tryouts.debug "TestBatch#process_test_result: Processing result for #{result[:test_case].description}, status: #{result[:status]}"
       @results << result
 
       case result
@@ -214,27 +232,32 @@ class Tryouts
 
     # Global setup execution for shared context mode
     def execute_global_setup
+      Tryouts.debug 'TestBatch#execute_global_setup: Checking for global setup.'
       case [@testrun.setup, @options[:shared_context]]
       in [{ code: String => code, path: String => path, line_range: Range => range }, true]
+        Tryouts.debug "TestBatch#execute_global_setup: Executing global setup code (length: #{code.length})." unless code.empty?
         @container.instance_eval(code, path, range.first + 1) unless code.empty?
+      else
+        Tryouts.debug 'TestBatch#execute_global_setup: No global setup code to execute or not in shared context.'
       end
     rescue StandardError => ex
+      Tryouts.debug "TestBatch#execute_global_setup: Global setup failed with error: #{ex.message}"
       raise "Global setup failed: #{ex.message}"
     end
 
     # Global teardown execution
     def execute_global_teardown
+      Tryouts.debug 'TestBatch#execute_global_teardown: Checking for global teardown.'
       case @testrun.teardown
       in { code: String => code, path: String => path, line_range: Range => range }
-        puts "DEBUG: Teardown detected, code length: #{code.length}" if ENV['DEBUG']
-        puts "DEBUG: Teardown code:\n#{code}" if ENV['DEBUG']
+        Tryouts.debug "TestBatch#execute_global_teardown: Teardown detected, code length: #{code.length}" unless code.empty?
         @container.instance_eval(code, path, range.first + 1) unless code.empty?
       else
-        puts 'DEBUG: No teardown code detected' if ENV['DEBUG']
+        Tryouts.debug 'TestBatch#execute_global_teardown: No teardown code detected.'
       end
     rescue StandardError => ex
+      Tryouts.debug "TestBatch#execute_global_teardown: Teardown failed with error: #{ex.message}"
       warn Console.color(:red, "Teardown failed: #{ex.message}")
-      puts "DEBUG: Teardown code was: #{@testrun.teardown&.code || 'nil'}" if ENV['DEBUG']
     end
 
     # Result finalization and summary display
@@ -246,11 +269,13 @@ class Tryouts
 
     # Display methods using formatter system
     def show_file_header
+      Tryouts.debug "TestBatch#show_file_header: Formatting and displaying file header for #{@testrun.source_file}."
       header = @formatter.format_file_header(@testrun)
       puts header unless header.empty?
     end
 
     def show_test_result(result)
+      Tryouts.debug "TestBatch#show_test_result: Formatting and displaying result for #{result[:test_case].description}, status: #{result[:status]}."
       case result
       in { test_case: test_case, status: status, actual_results: actuals }
         output = @formatter.format_test_result(test_case, status, actuals)
@@ -259,6 +284,7 @@ class Tryouts
     end
 
     def show_summary(elapsed_time)
+      Tryouts.debug "TestBatch#show_summary: Formatting and displaying summary. Total: #{size}, Failed: #{@failed_count}, Elapsed: #{elapsed_time}s."
       summary = @formatter.format_summary(size, @failed_count, elapsed_time)
       puts summary unless summary.empty?
     end
@@ -284,7 +310,6 @@ class Tryouts
       else
         false
       end
-      # rubocop:enable Lint/DuplicateBranch
     end
 
     def shared_context?
