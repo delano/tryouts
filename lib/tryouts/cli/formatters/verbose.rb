@@ -2,165 +2,258 @@
 
 class Tryouts
   class CLI
-    # Detailed formatter with line numbers and full context
+    # Detailed formatter with comprehensive output and clear visual hierarchy
     class VerboseFormatter
       include FormatterInterface
 
       def initialize(options = {})
-        @line_width  = options.fetch(:line_width, 60)
+        @line_width = options.fetch(:line_width, 70)
         @show_passed = options.fetch(:show_passed, true)
+        @show_debug = options.fetch(:debug, false)
+        @show_trace = options.fetch(:trace, true)
+        @current_indent = 0
       end
 
-      def format_file_header(testrun)
-        case testrun
-        in { source_file: String => path }
-          file_name      = Console.pretty_path(path)
-          header_content = ">>>>>  #{file_name}  "
-          rpadding_len   = @line_width - header_content.length
-          padding        = '<' * rpadding_len
+      # Phase-level output
+      def phase_header(message, file_count = nil)
+        separator_line = '=' * @line_width
+        header_line = message.center(@line_width)
 
-          [
-            '-' * @line_width,
-            header_content + padding,
-            '-' * @line_width,
-            '',
-          ].join("\n")
+        output = [
+          "",
+          separator_line,
+          header_line,
+          separator_line
+        ]
 
+        puts output.join("\n")
+      end
+
+      # File-level operations
+      def file_start(file_path, context_info = {})
+        framework = context_info[:framework] || :direct
+        context = context_info[:context] || :fresh
+
+        with_indent(1) do
+          puts "Framework: #{framework}"
+          puts "Context: #{context}"
+        end
+
+        puts file_header_visual(file_path)
+      end
+
+      def file_parsed(file_path, test_count, setup_present: false, teardown_present: false)
+        pretty_path = Console.pretty_path(file_path)
+        message = "Parsed #{test_count} test cases from #{pretty_path}"
+
+        extras = []
+        extras << "setup" if setup_present
+        extras << "teardown" if teardown_present
+        message += " (#{extras.join(', ')})" unless extras.empty?
+
+        puts indent_text(message, 2)
+      end
+
+      def file_execution_start(file_path, test_count, context_mode)
+        message = "Running #{test_count} tests with #{context_mode} context"
+        puts indent_text(message, 1)
+      end
+
+      def file_result(file_path, total_tests, failed_count, elapsed_time)
+        if failed_count > 0
+          status = Console.color(:red, "✗ #{failed_count}/#{total_tests} tests failed")
         else
-          ''
+          status = Console.color(:green, "✓ #{total_tests} tests passed")
+        end
+
+        puts indent_text(status, 2)
+
+        if elapsed_time
+          time_msg = "Completed in #{elapsed_time.round(3)}s"
+          puts indent_text(Console.color(:dim, time_msg), 2)
         end
       end
 
-      def format_test_result(test_case, result_status, actual_results = [])
-        case [test_case, result_status]
-        in [Tryouts::PrismTestCase, :passed | :failed]
-          output = build_test_output(test_case, result_status, actual_results)
-          output.join("\n")
+      # Test-level operations
+      def test_start(test_case, index, total)
+        desc = test_case.description.to_s
+        desc = "Unnamed test" if desc.empty?
+        message = "Test #{index}/#{total}: #{desc}"
+        puts indent_text(Console.color(:dim, message), 2)
+      end
+
+      def test_result(test_case, result_status, actual_results = [], elapsed_time = nil)
+        return unless @show_passed || result_status == :failed
+
+        case result_status
+        when :passed
+          status_line = Console.color(:green, "PASSED")
+        when :failed
+          status_line = Console.color(:red, "FAILED")
+          show_failure_details(test_case, actual_results)
+        when :skipped
+          status_line = Console.color(:yellow, "SKIPPED")
         else
-          '# Invalid test case format'
+          status_line = "UNKNOWN"
+        end
+
+        location = "#{Console.pretty_path(test_case.path)}:#{test_case.line_range.last + 1}"
+        puts indent_text("#{status_line} @ #{location}", 3)
+      end
+
+      # Setup/teardown operations
+      def setup_start(line_range)
+        message = "Executing global setup (lines #{line_range.first}..#{line_range.last})"
+        puts indent_text(Console.color(:cyan, message), 2)
+      end
+
+      def setup_output(output_text)
+        return if output_text.strip.empty?
+
+        output_text.lines.each do |line|
+          puts indent_text(line.chomp, 0)
         end
       end
 
-      def format_summary(total_tests, failed_count, elapsed_time = nil)
-        case [total_tests, failed_count]
-        in [Integer => total, 0]
-          success_summary(total, elapsed_time)
-        in [Integer => total, Integer => failed] if failed > 0
-          failure_summary(total, failed, elapsed_time)
+      def teardown_start(line_range)
+        message = "Executing teardown (lines #{line_range.first}..#{line_range.last})"
+        puts indent_text(Console.color(:cyan, message), 2)
+      end
+
+      def teardown_output(output_text)
+        return if output_text.strip.empty?
+
+        output_text.lines.each do |line|
+          puts indent_text(line.chomp, 0)
+        end
+      end
+
+      # Summary operations
+      def batch_summary(total_tests, failed_count, elapsed_time)
+        if failed_count > 0
+          passed = total_tests - failed_count
+          message = "#{failed_count} failed, #{passed} passed"
+          color = :red
         else
-          'Summary unavailable'
+          message = "#{total_tests} tests passed"
+          color = :green
+        end
+
+        time_str = elapsed_time ? " (#{elapsed_time.round(2)}s)" : ""
+        summary = Console.color(color, "#{message}#{time_str}")
+        puts summary
+      end
+
+      def grand_total(total_tests, failed_count, successful_files, total_files, elapsed_time)
+        puts
+        puts '=' * @line_width
+        puts "Grand Total:"
+
+        if failed_count > 0
+          passed = total_tests - failed_count
+          puts "#{failed_count} failed, #{passed} passed (#{elapsed_time.round(2)}s)"
+        else
+          puts "#{total_tests} tests passed (#{elapsed_time.round(2)}s)"
+        end
+
+        puts "Files processed: #{successful_files}/#{total_files} successful"
+        puts '=' * @line_width
+      end
+
+      # Debug and diagnostic output
+      def debug_info(message, level = 0)
+        return unless @show_debug
+
+        prefix = Console.color(:cyan, 'INFO ')
+        puts indent_text("#{prefix} #{message}", level + 1)
+      end
+
+      def trace_info(message, level = 0)
+        return unless @show_trace
+
+        prefix = Console.color(:dim, 'TRACE')
+        puts indent_text("#{prefix} #{message}", level + 1)
+      end
+
+      def error_message(message, details = nil)
+        error_msg = Console.color(:red, "ERROR: #{message}")
+        puts indent_text(error_msg, 1)
+
+        if details && @show_debug
+          puts indent_text("Details: #{details}", 2)
+        end
+      end
+
+      # Utility methods
+      def raw_output(text)
+        puts text
+      end
+
+      def separator(style = :light)
+        case style
+        when :heavy
+          puts '=' * @line_width
+        when :light
+          puts '-' * @line_width
+        when :dotted
+          puts '.' * @line_width
+        else
+          puts '-' * @line_width
         end
       end
 
       private
 
-      def build_test_output(test_case, result_status, actual_results)
-        description = test_case.description || ''
-        output      = ['', "# #{description}"]
+      def show_failure_details(test_case, actual_results)
+        return if actual_results.empty?
 
-        source_lines = read_source_lines(test_case.path)
-        test_lines   = parse_test_lines(test_case, source_lines)
-
-        # Add code lines with line numbers
-        code_output = format_code_lines(test_lines[:code])
-        output.concat(code_output)
-
-        # Add expectation lines with results
-        expectation_output = format_expectation_lines(test_lines[:expectations], actual_results)
-        output.concat(expectation_output)
-
-        # Add status line
-        status_line = format_status_line(test_case, result_status)
-        output << status_line
-
-        output
-      end
-
-      def parse_test_lines(test_case, source_lines)
-        range             = test_case.line_range
-        code_lines        = []
-        expectation_lines = []
-
-        range.each do |line_idx|
-          next if line_idx >= source_lines.length
-
-          line        = source_lines[line_idx]
-          line_number = line_idx + 1
-
-          case line
-          in /^#\s*=>\s*(.*)/
-            expectation_lines << { line_number: line_number, content: line, expectation: $1.strip }
-          in /^##?\s*(.*)/ | /^#[^#=>]/ | /^\s*$/
-            next # Skip descriptions, comments, blanks
-          else
-            unless line.strip.empty?
-              code_lines << { line_number: line_number, content: line }
-            end
+        puts indent_text("Expected vs Actual:", 4)
+        actual_results.each_with_index do |result, idx|
+          expected_line = test_case.expectations[idx] if test_case.expectations
+          if expected_line
+            puts indent_text("Expected: #{expected_line}", 5)
           end
-        end
-
-        { code: code_lines, expectations: expectation_lines }
-      end
-
-      def format_code_lines(code_lines)
-        code_lines.map { |line| format('%2d   %s', line[:line_number], line[:content]) }
-      end
-
-      def format_expectation_lines(expectation_lines, actual_results)
-        expectation_lines.flat_map.with_index do |line_info, idx|
-          expectation_line = format('%2d   %s', line_info[:line_number], line_info[:content])
-
-          case actual_results[idx]
-          in nil
-            [expectation_line]
-          in result
-            result_str = result.inspect
-            padding    = [@line_width - result_str.length, 10].max
-            [expectation_line, (' ' * padding) + result_str]
-          end
+          puts indent_text("Actual:   #{result.inspect}", 5)
         end
       end
 
-      def format_status_line(test_case, result_status)
-        case [test_case.line_range.last, result_status]
-        in [Integer => last_line, :passed]
-          Console.color(:green, "PASSED @ #{test_case.path}:#{last_line + 1}")
-        in [Integer => last_line, :failed]
-          Console.color(:red, "FAILED @ #{test_case.path}:#{last_line + 1}")
-        else
-          'STATUS UNKNOWN'
-        end
+      def file_header_visual(file_path)
+        pretty_path = Console.pretty_path(file_path)
+        header_content = ">>>>>  #{pretty_path}  "
+        padding_length = [@line_width - header_content.length, 0].max
+        padding = '<' * padding_length
+
+        [
+          '-' * @line_width,
+          header_content + padding,
+          '-' * @line_width
+        ].join("\n")
       end
 
-      def read_source_lines(path)
-        File.readlines(path).map(&:chomp)
+      def indent_text(text, level)
+        indent = '  ' * level
+        "#{indent}#{text}"
       end
 
-      def success_summary(total, elapsed_time)
-        time_str = elapsed_time ? " (#{elapsed_time.round(2)}s)" : ''
-        Console.color(:green, "All #{total} tests passed#{time_str}")
-      end
-
-      def failure_summary(total, failed, elapsed_time)
-        passed   = total - failed
-        time_str = elapsed_time ? " (#{elapsed_time.round(2)}s)" : ''
-        Console.color(:red, "#{failed} of #{total} tests failed, #{passed} passed#{time_str}")
+      def with_indent(level)
+        old_indent = @current_indent
+        @current_indent = level
+        yield
+      ensure
+        @current_indent = old_indent
       end
     end
 
-    # Verbose formatter that only shows failures
+    # Verbose formatter that only shows failures and errors
     class VerboseFailsFormatter < VerboseFormatter
       def initialize(options = {})
         super(options.merge(show_passed: false))
       end
 
-      def format_test_result(test_case, result_status, actual_results = [])
-        case result_status
-        in :passed
-          '' # Don't show passed tests
-        in :failed | _
-          super
-        end
+      def test_result(test_case, result_status, actual_results = [], elapsed_time = nil)
+        return if result_status == :passed
+
+        super
       end
     end
   end

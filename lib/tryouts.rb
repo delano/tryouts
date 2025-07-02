@@ -249,20 +249,31 @@ class Tryouts
       testcase_io.puts(*msgs) unless Tryouts.quiet
     end
 
-    def info *msgs
-      msgs.each do |line|
-        $stdout.puts line
-      end
-    end
-
     def err *msgs
       msgs.each do |line|
         warn Console.color :red, line
       end
     end
 
-    def debug *msgs
-      warn(*msgs) if debug?
+    def trace(msg, indent: 0)
+      return unless debug?
+
+      prefix = ('  ' * indent) + Console.color(:dim, 'TRACE')
+      warn "#{prefix} #{msg}"
+    end
+
+    def info(msg, indent: 0)
+      return unless debug?
+
+      prefix = ('  ' * indent) + Console.color(:cyan, 'INFO ')
+      warn "#{prefix} #{msg}"
+    end
+
+    def phase(msg)
+      return unless debug?
+
+      divider = Console.color(:yellow, '=' * 50)
+      warn "\n#{divider}\n#{Console.bright(msg)}\n#{divider}"
     end
 
     def eval(str, path, line)

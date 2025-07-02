@@ -39,13 +39,24 @@ class Tryouts
         verbose: false,
         inspect: false,
       }
+      @output_manager = nil
     end
 
     def run(files, **options)
-      Tryouts.debug "CLI: Processing #{files.size} files with framework: #{options[:framework] || :direct}"
       @options.merge!(options)
 
-      handle_version_flag(options)
+      # Initialize output manager with appropriate formatter
+      @output_manager = FormatterFactory.create_output_manager(@options)
+
+      @output_manager.processing_phase(files.size)
+      @output_manager.info "Framework: #{@options[:framework] || :direct}", 1
+      @output_manager.info "Context: #{@options[:shared_context] ? 'shared' : 'fresh'}", 1
+
+      files.each_with_index do |file, idx|
+        @output_manager.info "#{idx + 1}/#{files.size}: #{Console.pretty_path(file)}", 1
+      end
+
+      handle_version_flag(@options)
 
       # Validate all files exist before processing
       validate_files_exist(files)
@@ -69,7 +80,7 @@ class Tryouts
       missing_files = files.reject { |file| File.exist?(file) }
 
       unless missing_files.empty?
-        missing_files.each { |file| warn "Error: File not found: #{file}" }
+        missing_files.each { |file| @output_manager.error("File not found: #{file}") }
         exit 1
       end
     end
@@ -80,7 +91,8 @@ class Tryouts
       files.each do |file|
         result = process_file(file, final_options, global_tally, translator)
         count += result unless result.zero?
-        Tryouts.debug "CLI: process_file result for #{file}: #{result} (running total: #{count})"
+        status = result.zero? ? Console.color(:green, "PASS") : Console.color(:red, "FAIL")
+        @output_manager.info "#{status} #{Console.pretty_path(file)} (#{result} failures)", 1
       end
 
       count
@@ -89,14 +101,14 @@ class Tryouts
     def handle_version_flag(options)
       return unless options[:version]
 
-      puts "Tryouts version #{Tryouts::VERSION}"
+      @output_manager.raw("Tryouts version #{Tryouts::VERSION}")
       exit 0
     end
 
     def apply_framework_defaults(options)
       framework_defaults = FRAMEWORK_DEFAULTS[options[:framework]] || {}
       final_options      = framework_defaults.merge(options)
-      Tryouts.debug "CLI: Framework #{final_options[:framework]}, context: #{final_options[:shared_context] ? 'shared' : 'fresh'}"
+        # Framework info already logged in run method
       final_options
     end
 
@@ -125,7 +137,7 @@ class Tryouts
       begin
         testrun                    = PrismParser.new(file).parse
         global_tally[:file_count] += 1
-        Tryouts.debug "CLI: Parsed #{testrun.total_tests} test cases from #{File.basename(file)}"
+        @output_manager.file_parsed(file, testrun.total_tests)
 
         if final_options[:inspect]
           handle_inspect_mode(file, testrun, final_options, translator)
@@ -150,40 +162,41 @@ class Tryouts
     end
 
     def handle_inspect_mode(file, testrun, final_options, _translator)
-      puts "Inspecting: #{file}"
-      puts '=' * 50
-      puts "Found #{testrun.total_tests} test cases"
-      puts "Setup code: #{testrun.setup.empty? ? 'None' : 'Present'}"
-      puts "Teardown code: #{testrun.teardown.empty? ? 'None' : 'Present'}"
-      puts
+      @output_manager.raw("Inspecting: #{file}")
+      @output_manager.separator(:heavy)
+      @output_manager.raw("Found #{testrun.total_tests} test cases")
+      @output_manager.raw("Setup code: #{testrun.setup.empty? ? 'None' : 'Present'}")
+      @output_manager.raw("Teardown code: #{testrun.teardown.empty? ? 'None' : 'Present'}")
+      @output_manager.raw("")
 
       testrun.test_cases.each_with_index do |tc, i|
-        puts "Test #{i + 1}: #{tc.description}"
-        puts "  Code lines: #{tc.code.lines.count}"
-        puts "  Expectations: #{tc.expectations.size}"
-        puts "  Range: #{tc.line_range}"
-        puts
+        @output_manager.raw("Test #{i + 1}: #{tc.description}")
+        @output_manager.raw("  Code lines: #{tc.code.lines.count}")
+        @output_manager.raw("  Expectations: #{tc.expectations.size}")
+        @output_manager.raw("  Range: #{tc.line_range}")
+        @output_manager.raw("")
       end
 
       return unless final_options[:framework] != :direct
 
-      puts "Testing #{final_options[:framework]} translation..."
+      @output_manager.raw("Testing #{final_options[:framework]} translation...")
       framework_klass    = FRAMEWORKS[final_options[:framework]]
       inspect_translator = framework_klass.new
 
       translated_code = inspect_translator.generate_code(testrun)
-      puts "#{final_options[:framework].to_s.capitalize} code generated (#{translated_code.lines.count} lines)"
-      puts
+      @output_manager.raw("#{final_options[:framework].to_s.capitalize} code generated (#{translated_code.lines.count} lines)")
+      @output_manager.raw("")
     end
 
     def handle_generate_only_mode(file, testrun, final_options, translator)
-      puts "# Generated #{final_options[:framework]} code for #{file}"
-      puts "# Updated: #{Time.now}"
-      puts translator.generate_code(testrun)
-      puts
+      @output_manager.raw("# Generated #{final_options[:framework]} code for #{file}")
+      @output_manager.raw("# Updated: #{Time.now}")
+      @output_manager.raw(translator.generate_code(testrun))
+      @output_manager.raw("")
     end
 
     def execute_tests(file, testrun, final_options, global_tally, translator)
+      file_start = Time.now
       case final_options[:framework]
       when :direct
         batch = TestBatch.new(
@@ -191,15 +204,16 @@ class Tryouts
           shared_context: final_options[:shared_context],
           verbose: final_options[:verbose],
           fails_only: final_options[:fails_only],
+          output_manager: @output_manager,
         )
 
         unless final_options[:verbose]
           context_mode = final_options[:shared_context] ? 'shared' : 'fresh'
-          puts "Running #{file} with #{context_mode} context..."
+          @output_manager.file_execution_start(file, testrun.total_tests, context_mode)
         end
 
         test_results = []
-        success      = batch.run do |test_case|
+        success      = batch.run do
           last_result = batch.results.last
           test_results << last_result if last_result
         end
@@ -209,22 +223,23 @@ class Tryouts
         global_tally[:total_failed]     += file_failed_count
         global_tally[:successful_files] += 1 if success
 
-        Tryouts.debug "CLI: #{File.basename(file)} - #{batch.size} tests, #{file_failed_count} failed"
+        duration = Time.now - file_start if defined?(file_start)
+        @output_manager.file_success(file, batch.size, file_failed_count, duration)
 
         unless final_options[:verbose]
-          puts "Results: #{batch.size} tests, #{file_failed_count} failed"
-          puts
+          @output_manager.batch_summary(batch.size, file_failed_count, duration)
+          @output_manager.raw("")
         end
 
         return 1 unless success
 
       when :rspec
-        Tryouts.debug 'CLI: Executing with RSpec'
+        @output_manager.info 'Executing with RSpec framework', 2
         translator.translate(testrun)
         require 'rspec/core'
         RSpec::Core::Runner.run([])
       when :minitest
-        Tryouts.debug 'CLI: Executing with Minitest'
+        @output_manager.info 'Executing with Minitest framework', 2
         translator.translate(testrun)
         ARGV.clear
         require 'minitest/autorun'
@@ -234,39 +249,40 @@ class Tryouts
     end
 
     def handle_timeout_error(file, ex)
-      Tryouts.debug "CLI: Timeout in #{File.basename(file)}: #{ex.message}"
-      warn "Timeout error in #{file}: #{ex.message}"
+      @output_manager.file_failure(file, "Timeout: #{ex.message}")
       1
     end
 
     def handle_syntax_error(file, ex)
-      Tryouts.debug "CLI: Syntax error in #{File.basename(file)}: #{ex.message}"
-      warn "Syntax error in #{file}: #{ex.message}"
+      @output_manager.file_failure(file, "Syntax error: #{ex.message}")
       1
     end
 
     def handle_general_error(file, ex, final_options)
-      Tryouts.debug "CLI: Error in #{File.basename(file)}: #{ex.class.name}"
-      warn "Error processing #{file}: #{ex.message}"
-      warn ex.backtrace.join("\n") if final_options[:verbose]
+      @output_manager.error_phase
+      @output_manager.info "File: #{Console.pretty_path(file)}", 1
+      @output_manager.info "Error: #{Console.color(:red, ex.class.name)}", 1
+      @output_manager.info "Message: #{ex.message}", 1
+
+      if final_options[:verbose]
+        @output_manager.trace "Backtrace:", 1
+        ex.backtrace.first(5).each { |line| @output_manager.trace line, 2 }
+      end
+
+      backtrace_details = final_options[:verbose] ? ex.backtrace.first(3).join("\n") : nil
+      @output_manager.file_failure(file, ex.message, backtrace_details)
       1
     end
 
     def show_grand_total(tally, _options)
       elapsed_time = Time.now - tally[:start_time]
-      passed_count = tally[:total_tests] - tally[:total_failed]
-
-      puts '=' * 60
-      puts 'Grand Total:'
-
-      if tally[:total_failed] > 0
-        puts "#{tally[:total_failed]} failed, #{passed_count} passed (#{format('%.2f', elapsed_time)}s)"
-      else
-        puts "#{tally[:total_tests]} tests passed (#{format('%.2f', elapsed_time)}s)"
-      end
-
-      puts "Results: #{tally[:total_tests]} tests, #{tally[:total_failed]} failed"
-      puts "Files processed: #{tally[:successful_files]}/#{tally[:file_count]} successful"
+      @output_manager.grand_total(
+        tally[:total_tests],
+        tally[:total_failed],
+        tally[:successful_files],
+        tally[:file_count],
+        elapsed_time
+      )
     end
   end
 end

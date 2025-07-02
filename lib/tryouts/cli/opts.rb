@@ -26,7 +26,7 @@ class Tryouts
 
     class << self
       def parse_args(args)
-        Tryouts.debug "CLI::parse_args: Parsing arguments: #{args.inspect}"
+        Tryouts.trace "Parsing arguments: #{args.inspect}"
         options = {}
 
         parser = OptionParser.new do |opts|
@@ -56,6 +56,8 @@ class Tryouts
           opts.on('--no-shared-context', 'Override default context mode') { options[:shared_context]    = false }
           opts.on('-v', '--verbose', 'Show detailed test output with line numbers') { options[:verbose] = true }
           opts.on('-f', '--fails', 'Show only failing tests (with --verbose)') { options[:fails_only]   = true }
+          opts.on('-q', '--quiet', 'Minimal output (dots and summary only)') { options[:quiet] = true }
+          opts.on('-c', '--compact', 'Compact single-line output') { options[:compact] = true }
 
           opts.separator "\nInspection Options:"
           opts.on('-i', '--inspect', 'Inspect file structure without running tests') { options[:inspect] = true }
@@ -67,7 +69,7 @@ class Tryouts
             Tryouts.debug   = true
           end
           opts.on('-h', '--help', 'Show this help') do
-            Tryouts.debug 'CLI::parse_args: Help flag detected. Showing help and exiting.'
+            Tryouts.trace 'Help flag detected. Showing help and exiting.'
             puts opts
             exit 0
           end
@@ -76,10 +78,10 @@ class Tryouts
         end
 
         files = parser.parse(args)
-        Tryouts.debug "CLI::parse_args: Parsed files: #{files.inspect}, options: #{options.inspect}"
+        Tryouts.trace "Parsed files: #{files.inspect}, options: #{options.inspect}"
         [files, options]
       rescue OptionParser::InvalidOption => ex
-        Tryouts.debug "CLI::parse_args: Invalid option error: #{ex.message}"
+        Tryouts.info Console.color(:red, "Invalid option error: #{ex.message}")
         warn "Error: #{ex.message}"
         warn "Try 'try --help' for more information."
         exit 1

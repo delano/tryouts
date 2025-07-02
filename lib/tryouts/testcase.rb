@@ -19,8 +19,7 @@ class Tryouts
     end
 
     def run
-      Tryouts.debug format('%s:%d', @test.path, @test.first)
-      Tryouts.debug inspect, $/
+      Tryouts.trace format('%s:%d', @test.path, @test.first), indent: 4
 
       $stdout      = @console_output
       expectations = exps.collect do |exp, _idx|
@@ -28,8 +27,7 @@ class Tryouts
         ::Regexp.last_match(1) # this will be nil if the expectation is commented out
       end
 
-      Tryouts.info 'Capturing STDOUT for tryout'
-      Tryouts.info 'vvvvvvvvvvvvvvvvvvv'
+      Tryouts.trace 'Capturing STDOUT for test execution', indent: 4
       # Evaluate test block only if there are valid expectations
       unless expectations.compact.empty?  # TODO: fast-fail if no expectations
         test_value = Tryouts.eval @test.to_s, @test.path, @test.first
@@ -56,12 +54,13 @@ class Tryouts
       Tryouts.info '^^^^^^^^^^^^^^^^^^^'
       $stdout = STDOUT # restore stdout
 
-      Tryouts.debug # extra newline
+
       failed?
 
       @test_result
     rescue StandardError => ex
-      Tryouts.debug "[testcaste.run] #{ex.message}", ex.backtrace.join($/), $/
+      Tryouts.trace "[testcase.run] #{ex.message}", indent: 4
+      Tryouts.trace ex.backtrace.first(3).join("\n"), indent: 5 if ex.backtrace
       # Continue raising the exception
       raise ex
     ensure

@@ -3,48 +3,54 @@
 class Tryouts
   # Modern TestBatch using Ruby 3.4+ patterns and formatter system
   class TestBatch
-    attr_reader :testrun, :failed_count, :container, :status, :results, :formatter
+    attr_reader :testrun, :failed_count, :container, :status, :results, :formatter, :output_manager
 
     def initialize(testrun, **options)
-      @testrun      = testrun
-      @container    = Object.new
-      @options      = options
-      @formatter    = Tryouts::CLI::FormatterFactory.create(options)
-      @failed_count = 0
-      @status       = :pending
-      @results      = []
-      @start_time   = nil
+      @testrun        = testrun
+      @container      = Object.new
+      @options        = options
+      @formatter      = Tryouts::CLI::FormatterFactory.create_formatter(options)
+      @output_manager = options[:output_manager]
+      @failed_count   = 0
+      @status         = :pending
+      @results        = []
+      @start_time     = nil
     end
 
     # Main execution pipeline using functional composition
     def run(before_test_hook = nil, &)
-      if empty?
-        return false
-      end
+      return false if empty?
 
       @start_time = Time.now
-      Tryouts.debug "TestBatch: Starting #{test_cases.size} tests (#{@options[:shared_context] ? 'shared' : 'fresh'} context)"
+      @output_manager&.execution_phase(test_cases.size)
+      @output_manager&.info("Context: #{@options[:shared_context] ? 'shared' : 'fresh'}", 1)
+      @output_manager&.file_start(path, context: @options[:shared_context] ? :shared : :fresh)
 
-      begin
-        show_file_header
-        if shared_context?
-          execute_global_setup
-        end
+      # begin
+      show_file_header
 
-        execution_results = test_cases.map do |test_case|
-          execute_single_test(test_case, before_test_hook, &)
-        end
-
-        execute_global_teardown
-        finalize_results(execution_results)
-
-        @status = :completed
-        !failed?
-      rescue StandardError => ex
-        Tryouts.debug "TestBatch#run: An error occurred during batch execution: #{ex.message}"
-        handle_batch_error(ex)
-        false
+      if shared_context?
+        @output_manager&.info("Running global setup...", 2)
+        execute_global_setup
       end
+
+      idx = 0
+      execution_results = test_cases.map do |test_case|
+        @output_manager&.trace("Test #{idx + 1}/#{test_cases.size}: #{test_case.description}", 2)
+        idx += 1
+        execute_single_test(test_case, before_test_hook, &)
+      end
+
+      execute_global_teardown
+      finalize_results(execution_results)
+
+      @status = :completed
+      !failed?
+      # rescue StandardError => ex
+      #   Tryouts.debug "TestBatch#run: An error occurred during batch execution: #{ex.message}"
+      #   handle_batch_error(ex)
+      #   false
+      # end
     end
 
     def empty?
@@ -213,7 +219,7 @@ class Tryouts
       setup = @testrun.setup
 
       if setup && !setup.code.empty? && @options[:shared_context]
-        Tryouts.debug "TestBatch: Executing global setup (lines #{setup.line_range})"
+        @output_manager&.setup_start(setup.line_range)
         @container.instance_eval(setup.code, setup.path, setup.line_range.first + 1)
       end
     rescue StandardError => ex
@@ -225,11 +231,11 @@ class Tryouts
       teardown = @testrun.teardown
 
       if teardown && !teardown.code.empty?
-        Tryouts.debug "TestBatch: Executing teardown (lines #{teardown.line_range})"
+        @output_manager&.teardown_start(teardown.line_range)
         @container.instance_eval(teardown.code, teardown.path, teardown.line_range.first + 1)
       end
     rescue StandardError => ex
-      warn Console.color(:red, "Teardown failed: #{ex.message}")
+      @output_manager&.error("Teardown failed: #{ex.message}")
     end
 
     # Result finalization and summary display
@@ -241,8 +247,7 @@ class Tryouts
 
     # Display methods using formatter system
     def show_file_header
-      header = @formatter.format_file_header(@testrun)
-      puts header unless header.empty?
+      # File header is now handled by output_manager in the run method
     end
 
     def show_test_result(result)
@@ -250,13 +255,11 @@ class Tryouts
       status    = result[:status]
       actuals   = result[:actual_results]
 
-      output = @formatter.format_test_result(test_case, status, actuals)
-      puts output unless output.empty?
+      @output_manager&.test_result(test_case, status, actuals)
     end
 
     def show_summary(elapsed_time)
-      summary = @formatter.format_summary(size, @failed_count, elapsed_time)
-      puts summary unless summary.empty?
+      @output_manager&.batch_summary(size, @failed_count, elapsed_time)
     end
 
     # Helper methods using pattern matching
@@ -294,9 +297,9 @@ class Tryouts
       @failed_count = 1
 
       error_message = "Batch execution failed: #{exception.message}"
+      backtrace = exception.respond_to?(:backtrace) ? exception.backtrace.join($/) : nil
 
-      warn Console.color(:red, error_message)
-      warn exception.backtrace.join($/), $/ if exception.respond_to?(:backtrace)
+      @output_manager&.error(error_message, backtrace)
     end
   end
 end

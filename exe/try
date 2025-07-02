@@ -23,5 +23,6 @@ begin
 
 rescue StandardError => ex
   warn "Error: #{ex.message}"
+  warn ex.backtrace.join("\n") if options[:debug]
   exit 1
 end
