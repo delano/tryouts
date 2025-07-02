@@ -7,23 +7,23 @@ class Tryouts
       include FormatterInterface
 
       def initialize(options = {})
-        @line_width = options.fetch(:line_width, 70)
-        @show_passed = options.fetch(:show_passed, true)
-        @show_debug = options.fetch(:debug, false)
-        @show_trace = options.fetch(:trace, true)
+        @line_width     = options.fetch(:line_width, 70)
+        @show_passed    = options.fetch(:show_passed, true)
+        @show_debug     = options.fetch(:debug, false)
+        @show_trace     = options.fetch(:trace, true)
         @current_indent = 0
       end
 
       # Phase-level output
       def phase_header(message, file_count = nil)
         separator_line = '=' * @line_width
-        header_line = message.center(@line_width)
+        header_line    = message.center(@line_width)
 
         output = [
-          "",
+          '',
           separator_line,
           header_line,
-          separator_line
+          separator_line,
         ]
 
         puts output.join("\n")
@@ -32,7 +32,7 @@ class Tryouts
       # File-level operations
       def file_start(file_path, context_info = {})
         framework = context_info[:framework] || :direct
-        context = context_info[:context] || :fresh
+        context   = context_info[:context] || :fresh
 
         with_indent(1) do
           puts "Framework: #{framework}"
@@ -44,11 +44,11 @@ class Tryouts
 
       def file_parsed(file_path, test_count, setup_present: false, teardown_present: false)
         pretty_path = Console.pretty_path(file_path)
-        message = "Parsed #{test_count} test cases from #{pretty_path}"
+        message     = "Parsed #{test_count} test cases from #{pretty_path}"
 
-        extras = []
-        extras << "setup" if setup_present
-        extras << "teardown" if teardown_present
+        extras   = []
+        extras << 'setup' if setup_present
+        extras << 'teardown' if teardown_present
         message += " (#{extras.join(', ')})" unless extras.empty?
 
         puts indent_text(message, 2)
@@ -60,11 +60,11 @@ class Tryouts
       end
 
       def file_result(file_path, total_tests, failed_count, elapsed_time)
-        if failed_count > 0
-          status = Console.color(:red, "✗ #{failed_count}/#{total_tests} tests failed")
+        status = if failed_count > 0
+          Console.color(:red, "✗ #{failed_count}/#{total_tests} tests failed")
         else
-          status = Console.color(:green, "✓ #{total_tests} tests passed")
-        end
+          Console.color(:green, "✓ #{total_tests} tests passed")
+                 end
 
         puts indent_text(status, 2)
 
@@ -76,8 +76,8 @@ class Tryouts
 
       # Test-level operations
       def test_start(test_case, index, total)
-        desc = test_case.description.to_s
-        desc = "Unnamed test" if desc.empty?
+        desc    = test_case.description.to_s
+        desc    = 'Unnamed test' if desc.empty?
         message = "Test #{index}/#{total}: #{desc}"
         puts indent_text(Console.color(:dim, message), 2)
       end
@@ -87,14 +87,14 @@ class Tryouts
 
         case result_status
         when :passed
-          status_line = Console.color(:green, "PASSED")
+          status_line = Console.color(:green, 'PASSED')
         when :failed
-          status_line = Console.color(:red, "FAILED")
+          status_line = Console.color(:red, 'FAILED')
           show_failure_details(test_case, actual_results)
         when :skipped
-          status_line = Console.color(:yellow, "SKIPPED")
+          status_line = Console.color(:yellow, 'SKIPPED')
         else
-          status_line = "UNKNOWN"
+          status_line = 'UNKNOWN'
         end
 
         location = "#{Console.pretty_path(test_case.path)}:#{test_case.line_range.last + 1}"
@@ -131,23 +131,23 @@ class Tryouts
       # Summary operations
       def batch_summary(total_tests, failed_count, elapsed_time)
         if failed_count > 0
-          passed = total_tests - failed_count
+          passed  = total_tests - failed_count
           message = "#{failed_count} failed, #{passed} passed"
-          color = :red
+          color   = :red
         else
           message = "#{total_tests} tests passed"
-          color = :green
+          color   = :green
         end
 
-        time_str = elapsed_time ? " (#{elapsed_time.round(2)}s)" : ""
-        summary = Console.color(color, "#{message}#{time_str}")
+        time_str = elapsed_time ? " (#{elapsed_time.round(2)}s)" : ''
+        summary  = Console.color(color, "#{message}#{time_str}")
         puts summary
       end
 
       def grand_total(total_tests, failed_count, successful_files, total_files, elapsed_time)
         puts
         puts '=' * @line_width
-        puts "Grand Total:"
+        puts 'Grand Total:'
 
         if failed_count > 0
           passed = total_tests - failed_count
@@ -207,7 +207,7 @@ class Tryouts
       def show_failure_details(test_case, actual_results)
         return if actual_results.empty?
 
-        puts indent_text("Expected vs Actual:", 4)
+        puts indent_text('Expected vs Actual:', 4)
         actual_results.each_with_index do |result, idx|
           expected_line = test_case.expectations[idx] if test_case.expectations
           if expected_line
@@ -218,15 +218,15 @@ class Tryouts
       end
 
       def file_header_visual(file_path)
-        pretty_path = Console.pretty_path(file_path)
+        pretty_path    = Console.pretty_path(file_path)
         header_content = ">>>>>  #{pretty_path}  "
         padding_length = [@line_width - header_content.length, 0].max
-        padding = '<' * padding_length
+        padding        = '<' * padding_length
 
         [
           '-' * @line_width,
           header_content + padding,
-          '-' * @line_width
+          '-' * @line_width,
         ].join("\n")
       end
 
@@ -236,7 +236,7 @@ class Tryouts
       end
 
       def with_indent(level)
-        old_indent = @current_indent
+        old_indent      = @current_indent
         @current_indent = level
         yield
       ensure

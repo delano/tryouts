@@ -7,7 +7,7 @@ class Tryouts
       include FormatterInterface
 
       def initialize(options = {})
-        @show_errors = options.fetch(:show_errors, true)
+        @show_errors        = options.fetch(:show_errors, true)
         @show_final_summary = options.fetch(:show_final_summary, true)
       end
 
@@ -76,11 +76,11 @@ class Tryouts
         puts # New line after dots
 
         if failed_count > 0
-          passed = total_tests - failed_count
-          time_str = elapsed_time ? " (#{elapsed_time.round(2)}s)" : ""
+          passed   = total_tests - failed_count
+          time_str = elapsed_time ? " (#{elapsed_time.round(2)}s)" : ''
           puts Console.color(:red, "#{failed_count} failed, #{passed} passed#{time_str}")
         else
-          time_str = elapsed_time ? " (#{elapsed_time.round(2)}s)" : ""
+          time_str = elapsed_time ? " (#{elapsed_time.round(2)}s)" : ''
           puts Console.color(:green, "#{total_tests} passed#{time_str}")
         end
       end

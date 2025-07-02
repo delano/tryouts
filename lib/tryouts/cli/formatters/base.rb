@@ -89,7 +89,7 @@ class Tryouts
       attr_reader :formatter
 
       def initialize(formatter)
-        @formatter = formatter
+        @formatter    = formatter
         @indent_level = 0
       end
 
@@ -103,7 +103,7 @@ class Tryouts
       end
 
       def error_phase
-        @formatter.phase_header("ERROR DETAILS")
+        @formatter.phase_header('ERROR DETAILS')
       end
 
       # File-level methods
@@ -115,8 +115,9 @@ class Tryouts
       def file_parsed(file_path, test_count, setup_present: false, teardown_present: false)
         with_indent(1) do
           @formatter.file_parsed(file_path, test_count,
-                                setup_present: setup_present,
-                                teardown_present: teardown_present)
+            setup_present: setup_present,
+            teardown_present: teardown_present
+          )
         end
       end
 
@@ -206,7 +207,7 @@ class Tryouts
       private
 
       def with_indent(level)
-        old_level = @indent_level
+        old_level     = @indent_level
         @indent_level = level
         yield
       ensure

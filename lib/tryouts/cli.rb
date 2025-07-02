@@ -34,7 +34,7 @@ class Tryouts
     }.freeze
 
     def initialize
-      @options = {
+      @options        = {
         framework: :direct,     # Direct is now the default
         verbose: false,
         inspect: false,
@@ -91,7 +91,7 @@ class Tryouts
       files.each do |file|
         result = process_file(file, final_options, global_tally, translator)
         count += result unless result.zero?
-        status = result.zero? ? Console.color(:green, "PASS") : Console.color(:red, "FAIL")
+        status = result.zero? ? Console.color(:green, 'PASS') : Console.color(:red, 'FAIL')
         @output_manager.info "#{status} #{Console.pretty_path(file)} (#{result} failures)", 1
       end
 
@@ -107,9 +107,8 @@ class Tryouts
 
     def apply_framework_defaults(options)
       framework_defaults = FRAMEWORK_DEFAULTS[options[:framework]] || {}
-      final_options      = framework_defaults.merge(options)
-        # Framework info already logged in run method
-      final_options
+      framework_defaults.merge(options)
+      # Framework info already logged in run method
     end
 
     def validate_framework(final_options)
@@ -153,10 +152,8 @@ class Tryouts
       else
         0
       end
-
     rescue Timeout::Error, SystemExit => ex
       handle_timeout_error(file, ex)
-
     rescue SystemStackError, LoadError => ex
       handle_general_error(file, ex, final_options)
     end
@@ -167,14 +164,14 @@ class Tryouts
       @output_manager.raw("Found #{testrun.total_tests} test cases")
       @output_manager.raw("Setup code: #{testrun.setup.empty? ? 'None' : 'Present'}")
       @output_manager.raw("Teardown code: #{testrun.teardown.empty? ? 'None' : 'Present'}")
-      @output_manager.raw("")
+      @output_manager.raw('')
 
       testrun.test_cases.each_with_index do |tc, i|
         @output_manager.raw("Test #{i + 1}: #{tc.description}")
         @output_manager.raw("  Code lines: #{tc.code.lines.count}")
         @output_manager.raw("  Expectations: #{tc.expectations.size}")
         @output_manager.raw("  Range: #{tc.line_range}")
-        @output_manager.raw("")
+        @output_manager.raw('')
       end
 
       return unless final_options[:framework] != :direct
@@ -185,14 +182,14 @@ class Tryouts
 
       translated_code = inspect_translator.generate_code(testrun)
       @output_manager.raw("#{final_options[:framework].to_s.capitalize} code generated (#{translated_code.lines.count} lines)")
-      @output_manager.raw("")
+      @output_manager.raw('')
     end
 
     def handle_generate_only_mode(file, testrun, final_options, translator)
       @output_manager.raw("# Generated #{final_options[:framework]} code for #{file}")
       @output_manager.raw("# Updated: #{Time.now}")
       @output_manager.raw(translator.generate_code(testrun))
-      @output_manager.raw("")
+      @output_manager.raw('')
     end
 
     def execute_tests(file, testrun, final_options, global_tally, translator)
@@ -228,7 +225,7 @@ class Tryouts
 
         unless final_options[:verbose]
           @output_manager.batch_summary(batch.size, file_failed_count, duration)
-          @output_manager.raw("")
+          @output_manager.raw('')
         end
 
         return 1 unless success
@@ -265,7 +262,7 @@ class Tryouts
       @output_manager.info "Message: #{ex.message}", 1
 
       if final_options[:verbose]
-        @output_manager.trace "Backtrace:", 1
+        @output_manager.trace 'Backtrace:', 1
         ex.backtrace.first(5).each { |line| @output_manager.trace line, 2 }
       end
 
@@ -281,7 +278,7 @@ class Tryouts
         tally[:total_failed],
         tally[:successful_files],
         tally[:file_count],
-        elapsed_time
+        elapsed_time,
       )
     end
   end
