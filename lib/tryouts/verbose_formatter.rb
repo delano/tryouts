@@ -3,21 +3,21 @@
 class Tryouts
   class VerboseFormatter
     def initialize(testrun, source_lines)
-      @testrun = testrun
+      @testrun      = testrun
       @source_lines = source_lines
-      @line_width = 80
+      @line_width   = 80
     end
 
     def format_file_header
-      file_name = File.basename(@testrun.source_file)
+      file_name      = File.basename(@testrun.source_file)
       header_content = ">>>>>  #{file_name}      "
-      padding = "<" * (@line_width - header_content.length)
+      padding        = '<' * (@line_width - header_content.length)
 
       [
-        "-" * @line_width,
+        '-' * @line_width,
         header_content + padding,
-        "-" * @line_width,
-        ""
+        '-' * @line_width,
+        '',
       ].join("\n")
     end
 
@@ -25,7 +25,7 @@ class Tryouts
       output = []
 
       # Test description
-      output << ""
+      output << ''
       output << "# #{test_case.description}"
 
       # Parse the test case content to show line numbers
@@ -34,26 +34,26 @@ class Tryouts
       # Show code lines with line numbers
       test_lines[:code_lines].each do |line_info|
         line_num = line_info[:line_number]
-        content = line_info[:content]
-        output << sprintf("%2d   %s", line_num, content)
+        content  = line_info[:content]
+        output << format('%2d   %s', line_num, content)
       end
 
       # Show expectations with line numbers and actual results
       test_lines[:expectation_lines].each_with_index do |line_info, idx|
-        line_num = line_info[:line_number]
-        content = line_info[:content]
+        line_num      = line_info[:line_number]
+        content       = line_info[:content]
         actual_result = actual_results[idx] if actual_results[idx]
 
-        expectation_line = sprintf("%2d   %s", line_num, content)
+        expectation_line = format('%2d   %s', line_num, content)
 
         if actual_result
           # Right-align the actual result
           result_str = actual_result.inspect
-          padding = @line_width - result_str.length
-          padding = 10 if padding < 10  # Minimum padding
+          padding    = @line_width - result_str.length
+          padding    = 10 if padding < 10  # Minimum padding
 
           output << expectation_line
-          output << " " * padding + result_str
+          output << ((' ' * padding) + result_str)
         else
           output << expectation_line
         end
@@ -63,8 +63,8 @@ class Tryouts
       last_expectation_line = test_lines[:expectation_lines].last
       if last_expectation_line
         status_location = "#{@testrun.source_file}:#{last_expectation_line[:line_number]}"
-        status = result == :passed ? "PASSED" : "FAILED"
-        status_color = result == :passed ? :green : :red
+        status          = result == :passed ? 'PASSED' : 'FAILED'
+        status_color    = result == :passed ? :green : :red
 
         output << Console.color(status_color, "#{status} @ #{status_location}")
       end
@@ -76,16 +76,16 @@ class Tryouts
 
     def parse_test_case_lines(test_case)
       start_line = test_case.line_range.first
-      end_line = test_case.line_range.last
+      end_line   = test_case.line_range.last
 
-      code_lines = []
+      code_lines        = []
       expectation_lines = []
 
       # Scan through the test case range to find code and expectation lines
       (start_line..end_line).each do |line_idx|
         next if line_idx >= @source_lines.length
 
-        line = @source_lines[line_idx]
+        line        = @source_lines[line_idx]
         line_number = line_idx + 1  # 1-based line numbers
 
         case line
@@ -94,7 +94,7 @@ class Tryouts
           expectation_lines << {
             line_number: line_number,
             content: line,
-            expectation: $1.strip
+            expectation: ::Regexp.last_match(1).strip,
           }
         when /^##?\s*(.*)/
           # Skip description lines (already handled)
@@ -110,7 +110,7 @@ class Tryouts
           unless line.strip.empty?
             code_lines << {
               line_number: line_number,
-              content: line
+              content: line,
             }
           end
         end
@@ -118,7 +118,7 @@ class Tryouts
 
       {
         code_lines: code_lines,
-        expectation_lines: expectation_lines
+        expectation_lines: expectation_lines,
       }
     end
   end

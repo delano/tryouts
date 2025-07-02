@@ -8,14 +8,14 @@ class Tryouts
     attr_reader :testrun, :failed, :container, :run_status, :test_results
 
     def initialize(testrun, shared_context: false, verbose: false, fails_only: false)
-      @testrun = testrun
-      @container = Object.new  # Simple object instance for shared context
+      @testrun        = testrun
+      @container      = Object.new  # Simple object instance for shared context
       @shared_context = shared_context
-      @verbose = verbose
-      @fails_only = fails_only
-      @failed = 0
-      @run_status = false
-      @test_results = []  # Store detailed results for verbose output
+      @verbose        = verbose
+      @fails_only     = fails_only
+      @failed         = 0
+      @run_status     = false
+      @test_results   = []  # Store detailed results for verbose output
     end
 
     def empty?
@@ -67,7 +67,6 @@ class Tryouts
 
             # Show verbose output if enabled
             show_verbose_output(result_data) if show_verbose_output?(test_result)
-
           rescue StandardError => ex
             failed_count += 1
             handle_test_error(test_case, ex)
@@ -88,7 +87,7 @@ class Tryouts
             result_data = {
               test_case: test_case,
               status: test_result,
-              actual_results: actual_results
+              actual_results: actual_results,
             }
             @test_results << result_data
 
@@ -96,7 +95,6 @@ class Tryouts
 
             # Show verbose output if enabled
             show_verbose_output(result_data) if show_verbose_output?(test_result)
-
           rescue StandardError => ex
             failed_count += 1
             handle_test_error(test_case, ex)
@@ -108,7 +106,7 @@ class Tryouts
         execute_teardown
       end
 
-      @failed = failed_count
+      @failed     = failed_count
       @run_status = true
       !failed?
     rescue StandardError => ex
@@ -225,7 +223,7 @@ class Tryouts
       return [true, []] if test_case.expectations.empty?
 
       actual_results = []
-      all_passed = true
+      all_passed     = true
 
       test_case.expectations.each do |expectation|
         expected_value = context.instance_eval(expectation, test_case.path, test_case.line_range.first)
