@@ -30,14 +30,14 @@ class Tryouts
     private
 
     # Core parsing logic using a state machine approach.
-    # States: :setup (initial), :test (parsing test cases)
+    # States: :preamble, :setup (initial), :test (parsing test cases), :teardown
     # Processes each line to build setup, test cases, and teardown sections.
     def parse_tryouts_structure
-      state          = :setup    # Start in setup phase
-      current_test   = nil       # Currently building test case
-      setup_lines    = []        # Code before first test
-      test_cases     = []        # Completed test cases
-      teardown_lines = []        # Code after last test
+      state          = :preamble    # Start in setup phase
+      current_test   = nil          # Currently building test case
+      setup_lines    = []           # Code before first test
+      test_cases     = []           # Completed test cases
+      teardown_lines = []           # Code after last test
 
       @lines.each_with_index do |line, index|
         line_type, content = parse_line(line)
@@ -45,7 +45,7 @@ class Tryouts
         # Pattern matching on [state, line_type] tuples (Ruby 3.0+ feature)
         # This replaces nested if/elsif chains with cleaner match expressions
         case [state, line_type]
-        in [:setup, :description]
+        in [:preamble, :description]
           # Transition from setup to test phase on first test description
           state        = :test
           current_test = init_test_case(content, index)
@@ -120,22 +120,17 @@ class Tryouts
     # Line types:
     # - :description     - ## Test description (starts new test)
     # - :expectation     - # => Expected output
-    # - :potential_desc  - # Possible description (context-dependent)
     # - :comment         - # Regular comment
     # - :blank          - Empty line
     # - :code           - Executable Ruby code
     def parse_line(line)
       case line
-      in /^##\s*(.*)/ if ::Regexp.last_match(1)                                    # ## Description
-        [:description, ::Regexp.last_match(1).strip]
-      in /^##?\s*TEST\s+\d+:\s*(.*)/ if ::Regexp.last_match(1)                    # ## TEST 1: Description
-        [:description, ::Regexp.last_match(1).strip]
-      in /^#\s*=>\s*(.*)/ if ::Regexp.last_match(1)                               # # => expectation
-        [:expectation, ::Regexp.last_match(1).strip]
-      in /^#\s+(.*)/ if ::Regexp.last_match(1) && !::Regexp.last_match(1).strip.empty?  # # potential description
-        [:potential_description, ::Regexp.last_match(1).strip]
-      in /^#[^#=>](.*)/ if ::Regexp.last_match(1)                                 # # comment
-        [:comment, ::Regexp.last_match(1).strip]
+      in /^##?\s*(.*)/
+        [:description, $1]
+      in /^#\s*=>\s*(.*)/
+        [:expectation, $1]
+      in /^#[^#=>](.*)/
+        [:comment, $1]
       in /^\s*$/                                                                   # blank line
         [:blank, nil]
       else                                                                         # executable code
