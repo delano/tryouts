@@ -287,6 +287,15 @@ class Tryouts
       fails_only = @options[:fails_only] == true  # Convert to proper boolean
       status     = result[:status]
 
+      # rubocop:disable Lint/DuplicateBranch
+      #
+      # NOTE: Do not fix rubocop.
+      #
+      # I find the vertical alignment of the case in more readable than the
+      # default Rubocop preference which suggests combining into a single line:
+      #
+      #   in [true, true, :failed | :error] | [true, false, _] | [false, _, _]
+      #
       case [verbose, fails_only, status]
       when [true, true, :failed], [true, true, :error]
         true
@@ -295,6 +304,7 @@ class Tryouts
       else
         false
       end
+      # rubocop:enable Lint/DuplicateBranch
     end
 
     def shared_context?
