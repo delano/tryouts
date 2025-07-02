@@ -72,6 +72,9 @@ Lint/DuplicateBranch:
 Metrics/PerceivedComplexity:
   Max: 20
 
+Style/PerlBackrefs:
+  Enabled: false
+
 # Offense count: 186
 # Configuration parameters: AllowedConstants.
 Style/Documentation:
