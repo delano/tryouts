@@ -54,33 +54,21 @@ class Tryouts
 
     # Convert potential_descriptions to descriptions or comments based on context
     def classify_potential_descriptions(tokens)
-      # Find sequences of potential_description + code + expectation
-      # Only the first potential_description in each sequence becomes a description
-
       tokens.map.with_index do |token, index|
         if token[:type] == :potential_description
-          # Look back to see if there are uncompleted descriptions before this
-          preceding_tokens = tokens[0...index].reverse
+          # Look ahead strictly for the pattern: [optional blanks] code expectation
+          following_tokens = tokens[(index + 1)..]
 
-          # Find the most recent description or expectation
-          last_meaningful = preceding_tokens.find { |t| t[:type] == :description || t[:type] == :expectation }
+          # Skip blanks and find next non-blank tokens
+          non_blank_following = following_tokens.reject { |t| t[:type] == :blank }
 
-          # If the last meaningful token was a description (not completed with expectation),
-          # then this potential_description should remain a comment
-          if last_meaningful&.dig(:type) == :description
-            token.merge(type: :comment)
+          # Must have: code immediately followed by expectation (with possible blanks between)
+          if non_blank_following.size >= 2 &&
+             non_blank_following[0][:type] == :code &&
+             non_blank_following[1][:type] == :expectation
+            token.merge(type: :description)
           else
-            # Look ahead for next code and expectation
-            following_tokens = tokens[(index + 1)..]
-            next_code_index = following_tokens.find_index { |t| t[:type] == :code }
-            next_expectation_index = following_tokens.find_index { |t| t[:type] == :expectation }
-
-            # Must have both code and expectation following to be a description
-            if next_code_index && next_expectation_index && next_code_index < next_expectation_index
-              token.merge(type: :description)
-            else
-              token.merge(type: :comment)
-            end
+            token.merge(type: :comment)
           end
         else
           token
