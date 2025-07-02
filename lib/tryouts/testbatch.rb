@@ -88,9 +88,9 @@ class Tryouts
       before_test_hook&.call(test_case)
 
       result = case @options[:shared_context]
-               in true
+               when true
                  execute_with_shared_context(test_case)
-               in false | nil
+               when false, nil
                  execute_with_fresh_context(test_case)
                else
                  raise 'Invalid execution context configuration'
@@ -103,15 +103,14 @@ class Tryouts
 
     # Shared context execution - setup runs once, all tests share state
     def execute_with_shared_context(test_case)
-      case test_case
-      in { code: String => code, path: String => path, line_range: Range => range }
-        result_value        = @container.instance_eval(code, path, range.first + 1)
-        expectations_result = evaluate_expectations(test_case, result_value, @container)
+      code  = test_case.code
+      path  = test_case.path
+      range = test_case.line_range
 
-        build_test_result(test_case, result_value, expectations_result)
-      else
-        build_error_result(test_case, 'Invalid test case structure')
-      end
+      result_value        = @container.instance_eval(code, path, range.first + 1)
+      expectations_result = evaluate_expectations(test_case, result_value, @container)
+
+      build_test_result(test_case, result_value, expectations_result)
     rescue StandardError => ex
       build_error_result(test_case, ex.message, ex)
     end
@@ -120,33 +119,31 @@ class Tryouts
     def execute_with_fresh_context(test_case)
       fresh_container = Object.new
 
-      case [@testrun.setup, test_case]
-      in [{ code: String => setup_code, path: String => setup_path }, test_case]
-        # Execute setup in fresh context
-        fresh_container.instance_eval(setup_code, setup_path, 1) unless setup_code.empty?
-
-        # Execute test in same fresh context
-        case test_case
-        in { code: String => code, path: String => path, line_range: Range => range }
-          result_value        = fresh_container.instance_eval(code, path, range.first + 1)
-          expectations_result = evaluate_expectations(test_case, result_value, fresh_container)
-
-          build_test_result(test_case, result_value, expectations_result)
-        end
-      else
-        build_error_result(test_case, 'Invalid setup or test case structure')
+      # Execute setup in fresh context if present
+      setup = @testrun.setup
+      if setup && !setup.code.empty?
+        fresh_container.instance_eval(setup.code, setup.path, 1)
       end
+
+      # Execute test in same fresh context
+      code  = test_case.code
+      path  = test_case.path
+      range = test_case.line_range
+
+      result_value        = fresh_container.instance_eval(code, path, range.first + 1)
+      expectations_result = evaluate_expectations(test_case, result_value, fresh_container)
+
+      build_test_result(test_case, result_value, expectations_result)
     rescue StandardError => ex
       build_error_result(test_case, ex.message, ex)
     end
 
     # Evaluate expectations using pattern matching for clean result handling
     def evaluate_expectations(test_case, actual_result, context)
-      case test_case.expectations
-      in []
+      if test_case.expectations.empty?
         { passed: true, actual_results: [], expected_results: [] }
-      in Array => expectations
-        evaluation_results = expectations.map do |expectation|
+      else
+        evaluation_results = test_case.expectations.map do |expectation|
           evaluate_single_expectation(expectation, actual_result, context, test_case)
         end
 
@@ -159,17 +156,17 @@ class Tryouts
     end
 
     def evaluate_single_expectation(expectation, actual_result, context, test_case)
-      case test_case
-      in { path: String => path, line_range: Range => range }
-        expected_value = context.instance_eval(expectation, path, range.first + 1)
+      path  = test_case.path
+      range = test_case.line_range
 
-        {
-          passed: actual_result == expected_value,
-          actual: actual_result,
-          expected: expected_value,
-          expectation: expectation,
-        }
-      end
+      expected_value = context.instance_eval(expectation, path, range.first + 1)
+
+      {
+        passed: actual_result == expected_value,
+        actual: actual_result,
+        expected: expected_value,
+        expectation: expectation,
+      }
     rescue StandardError => ex
       {
         passed: false,
@@ -181,25 +178,22 @@ class Tryouts
 
     # Build structured test results using pattern matching
     def build_test_result(test_case, result_value, expectations_result)
-      case expectations_result
-      in { passed: true, actual_results: Array => actuals }
+      if expectations_result[:passed]
         {
           test_case: test_case,
           status: :passed,
           result_value: result_value,
-          actual_results: actuals,
+          actual_results: expectations_result[:actual_results],
           error: nil,
         }
-      in { passed: false, actual_results: Array => actuals }
+      else
         {
           test_case: test_case,
           status: :failed,
           result_value: result_value,
-          actual_results: actuals,
+          actual_results: expectations_result[:actual_results],
           error: nil,
         }
-      else
-        build_error_result(test_case, 'Invalid expectations result structure')
       end
     end
 
@@ -218,11 +212,8 @@ class Tryouts
       Tryouts.debug "TestBatch#process_test_result: Processing result for #{result[:test_case].description}, status: #{result[:status]}"
       @results << result
 
-      case result
-      in { status: :failed | :error }
+      if [:failed, :error].include?(result[:status])
         @failed_count += 1
-      else
-        # Handle :passed and other statuses - no failed count increment needed
       end
 
       show_test_result(result) if should_show_result?(result)
@@ -231,10 +222,11 @@ class Tryouts
     # Global setup execution for shared context mode
     def execute_global_setup
       Tryouts.debug 'TestBatch#execute_global_setup: Checking for global setup.'
-      case [@testrun.setup, @options[:shared_context]]
-      in [{ code: String => code, path: String => path, line_range: Range => range }, true]
-        Tryouts.debug "TestBatch#execute_global_setup: Executing global setup code (length: #{code.length})." unless code.empty?
-        @container.instance_eval(code, path, range.first + 1) unless code.empty?
+      setup = @testrun.setup
+
+      if setup && !setup.code.empty? && @options[:shared_context]
+        Tryouts.debug "TestBatch#execute_global_setup: Executing global setup code (length: #{setup.code.length})."
+        @container.instance_eval(setup.code, setup.path, setup.line_range.first + 1)
       else
         Tryouts.debug 'TestBatch#execute_global_setup: No global setup code to execute or not in shared context.'
       end
@@ -246,10 +238,11 @@ class Tryouts
     # Global teardown execution
     def execute_global_teardown
       Tryouts.debug 'TestBatch#execute_global_teardown: Checking for global teardown.'
-      case @testrun.teardown
-      in { code: String => code, path: String => path, line_range: Range => range }
-        Tryouts.debug "TestBatch#execute_global_teardown: Teardown detected, code length: #{code.length}" unless code.empty?
-        @container.instance_eval(code, path, range.first + 1) unless code.empty?
+      teardown = @testrun.teardown
+
+      if teardown && !teardown.code.empty?
+        Tryouts.debug "TestBatch#execute_global_teardown: Teardown detected, code length: #{teardown.code.length}"
+        @container.instance_eval(teardown.code, teardown.path, teardown.line_range.first + 1)
       else
         Tryouts.debug 'TestBatch#execute_global_teardown: No teardown code detected.'
       end
@@ -274,11 +267,12 @@ class Tryouts
 
     def show_test_result(result)
       Tryouts.debug "TestBatch#show_test_result: Formatting and displaying result for #{result[:test_case].description}, status: #{result[:status]}."
-      case result
-      in { test_case: test_case, status: status, actual_results: actuals }
-        output = @formatter.format_test_result(test_case, status, actuals)
-        puts output unless output.empty?
-      end
+      test_case = result[:test_case]
+      status    = result[:status]
+      actuals   = result[:actual_results]
+
+      output = @formatter.format_test_result(test_case, status, actuals)
+      puts output unless output.empty?
     end
 
     def show_summary(elapsed_time)
@@ -293,17 +287,10 @@ class Tryouts
       fails_only = @options[:fails_only] == true  # Convert to proper boolean
       status     = result[:status]
 
-      # rubocop:disable Lint/DuplicateBranch
-      #
-      # I find the vertical alignment of the case in more readable than the
-      # default Rubocop preference which suggests combining into a single line:
-      #
-      #   in [true, true, :failed | :error] | [true, false, _] | [false, _, _]
-      #
       case [verbose, fails_only, status]
-      in [true, true, :failed | :error]
+      when [true, true, :failed], [true, true, :error]
         true
-      in [true, false, _] | [false, _, _]
+      when [true, false], [false]
         true
       else
         false
@@ -318,12 +305,7 @@ class Tryouts
       @status       = :error
       @failed_count = 1
 
-      error_message = case exception
-                      in StandardError => ex
-                        "Batch execution failed: #{ex.message}"
-                      else
-                        'Unknown batch execution error'
-                      end
+      error_message = "Batch execution failed: #{exception.message}"
 
       warn Console.color(:red, error_message)
       warn exception.backtrace.join($/), $/ if exception.respond_to?(:backtrace)

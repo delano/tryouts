@@ -76,12 +76,14 @@ class Tryouts
     end
 
     def process_files(files, final_options, global_tally, translator)
+      overall_result = 0
+
       files.each do |file|
-        result = process_file(file, final_options, global_tally, translator)
-        return result if result != 0
+        result         = process_file(file, final_options, global_tally, translator)
+        overall_result = result if result != 0 && overall_result == 0  # Track first failure
       end
 
-      0 # success
+      overall_result
     end
 
     def handle_version_flag(options)
