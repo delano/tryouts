@@ -1,113 +1,223 @@
-# Tryouts v3.0-rc1 (2025-07-01)
+# Tryouts v3.0.0-pre
 
 **Ruby tests that read like documentation.**
 
-A simple test framework for Ruby code that uses introspection to allow defining checks in comments.
+A modern test framework for Ruby that uses comments to define expectations. Tryouts are meant to double as documentation, so the Ruby code should be plain and reminiscent of real code.
 
 > [!WARNING]
-> Version 3 uses Ruby's Prism parser and pattern matching which are built-in to Ruby 3.4 and later.
+> Version 3.0 uses Ruby's Prism parser and pattern matching, requiring Ruby 3.4+
 
+## Key Features
+
+- **Documentation-style tests** using comment-based expectations (`#=>`)
+- **Framework integration** with RSpec and Minitest translators
+- **Modern Ruby architecture** using Prism parser and pattern matching
+- **Immutable data structures** with `Data.define` classes
+- **Enhanced error reporting** with line numbers and context
 
 ## Installation
 
-One of:
-* In your Gemfile: `gem 'tryouts'`
-* As a gem: `gem install tryouts`
-* From source:
-
-```bash
-  $ git clone git://github.com/tryouts/tryouts.git
+Add to your Gemfile:
+```ruby
+gem 'tryouts', '~> 3.0.0-pre'
 ```
+
+Or install directly:
+```bash
+gem install tryouts --pre
+```
+
+From source:
+```bash
+git clone https://github.com/delano/tryouts.git
+cd tryouts
+bundle install
+```
+
+## Requirements
+
+- **Ruby >= 3.4.4** (for Prism parser and pattern matching)
+- **RSpec** or **Minitest** (optional, for framework integration)
 
 ## Usage
 
+### Basic Commands
+
 ```bash
-  # Run all tests accessible from the current directory (e.g. ./try, ./tryouts))
-  $ try
+# Auto-discover and run all tests
+try
 
-  # Run a single test file
-  $ try try/10_utils_try.rb
+# Run specific test file
+try try/step1_try.rb
 
-  # Command arguments
-  $ try -h
-  Usage: try [options]
-      -V, --version                    Display the version
-      -q, --quiet                      Run in quiet mode
-      -v, --verbose                    Run in verbose mode
-      -f, --fails                      Show only failing tryouts
-      -D, --debug                      Run in debug mode
-      -h, --help                       Display this help
+# Framework integration
+try --rspec try/step1_try.rb      # Run with RSpec
+try --minitest try/step1_try.rb   # Run with Minitest
+
+# Code generation only
+try --generate-rspec try/step1_try.rb
+try --generate-minitest try/step1_try.rb
+
+# Output options
+try -v    # verbose (includes source code and return values)
+try -q    # quiet mode
+try -f    # show failures only
+try -D    # debug mode
 ```
 
-### Exit codes
+### Exit Codes
 
-When all tests pass, try exits with a 0. An exit code of 1 or more indicates the number of failing tests.
+- `0`: All tests pass
+- `1+`: Number of failing tests
 
+## Writing Tests
 
-## Writing tests
+Tryouts use a unique comment-based expectation syntax:
 
 ```ruby
-  ## A very simple test
-  1 + 1
-  #=> 2
+# Setup code runs before all tests
+puts 'Setup running'
 
-  ## The test description can spread
-  ## across multiple lines. The same
-  ## is true for test definitions.
-  a = 'foo'
-  b = 'bar'
-  a + b
-  #=> 'foobar'
+## Simple test with expectation
+a = 1 + 1
+#=> 2
 
-  ## A test will pass when its return
-  ## value equals the expectation.
-  'foo'.class
-  #=> String
+## Multi-line test with description
+## TEST: Addition works correctly
+a = 1
+b = 2
+a + b
+#=> 3
 
-  ## The expectations are evaluated as well.
-  81
-  #=> 9 * 9
+## Testing object methods
+'hello'.upcase
+#=> 'HELLO'
 
-  ## Here's an example of testing errors
-  begin
-    raise RuntimeError
-  rescue RuntimeError
-    :success
-  end
-  #=> :success
+## Expressions are evaluated
+81
+#=> 9 * 9
+
+## Testing errors with rescue
+begin
+  raise RuntimeError, "test error"
+rescue RuntimeError
+  :caught
+end
+#=> :caught
+
+# Teardown runs after all tests
+puts 'Cleanup complete'
 ```
 
-For real world examples, see [Onetimesecret](https://github.com/onetimesecret/onetimesecret/) tryouts.
+### Test Structure
 
+- **Setup Section**: Code before first test case (accessible via instance variables)
+- **Test Cases**: Description lines (`##`), Ruby code, and expectations (`#=>`)
+- **Teardown Section**: Code after last test case
 
-### Test setup / cleanup
+## Framework Integration
 
-Put the setup code at the top of the file, and cleanup code at the bottom. Like this:
+Version 3.0 introduces framework translators that convert tryouts into established test frameworks:
 
-```ruby
-  # This is called before all tests
-  require 'gibbler'
-  Gibbler.digest_type = Digest::SHA256
+### RSpec Integration
 
-
-  ## This is a single testcase
-    :anything.gibbler
-  #=> '8574309'
-
-
-  # This will be called after all tests
-  Gibbler.digest_type = Digest::SHA1
+```bash
+try --rspec file_try.rb
 ```
 
-__
+Generates RSpec `describe/it` blocks with full RSpec ecosystem support including:
+- Mocking and stubbing
+- Custom matchers
+- Parallel execution
+- IDE integration
 
+### Minitest Integration
 
-## Thanks
+```bash
+try --minitest file_try.rb
+```
 
-* [cloudhead](https://github.com/cloudhead)
-* [mynyml](https://github.com/mynyml)
-* [Syntenic](https://syntenic.com/) for the hackfest venue.
-* [AlexPeuchert](https://www.rubypulse.com/) for the screencast.
-* Christian Michon for suggesting a better default output format.
+Creates Minitest classes with `test_*` methods for:
+- Standard assertions
+- Custom test cases
+- CI/CD integration
+- Debugging support
 
-*This collision was brought to you by Montreal.rb.*
+### Direct Mode
+
+```bash
+try file_try.rb  # Original tryouts execution
+```
+
+Uses shared execution context with all tests running in the same environment.
+
+## File Discovery
+
+Auto-discovers test files matching these patterns:
+- `./try/*_try.rb`
+- `./tryouts/*_try.rb`
+- `./*_try.rb`
+
+Files are processed in lexical order.
+
+## Modern Architecture (v3.0)
+
+### Core Components
+
+- **Prism Parser**: Native Ruby parsing with pattern matching for line classification
+- **Data Structures**: Immutable `Data.define` classes for test representation
+- **Framework Translators**: Convert tryouts to RSpec/Minitest format
+- **CLI**: Modern command-line interface with framework selection
+
+### Ruby 3.4+ Features
+
+- **Pattern matching** throughout parsing and classification logic
+- **Prism native parser** (no external grammar compilation)
+- **Data.define classes** for immutable data structures
+- **Enhanced error context** with line numbers and suggestions
+
+## Development
+
+### Running Tests
+
+```bash
+# Test framework using itself
+try try/*_try.rb
+
+# With coverage
+COVERAGE=1 try try/*_try.rb
+```
+
+### Code Quality
+
+```bash
+bundle exec rubocop        # Check style
+bundle exec rubocop -A     # Auto-fix issues
+```
+
+## Migration from v2.x
+
+Version 3.0 represents a complete modernization:
+
+- **Parser**: Tree-sitter → Prism (native Ruby)
+- **Execution**: Custom runner → Framework delegation
+- **Data**: Traditional classes → `Data.define` immutable structures
+- **Syntax**: Standard Ruby → Pattern matching throughout
+- **Ruby**: 2.7+ → 3.4+ requirement
+
+## Examples
+
+For real-world usage examples, see:
+- [Onetimesecret tryouts](https://github.com/onetimesecret/onetimesecret/)
+- Test files in this repository: `try/*_try.rb` and `doc/`
+
+## AI Development Assistance
+
+This version of Tryouts was developed with assistance from AI tools. The following tools provided significant help with architecture design, code generation, and documentation:
+
+- **Claude Sonnet 4** - Architecture design, code generation, and documentation
+- **Claude Desktop & Claude Code** - Interactive development sessions and debugging
+- **GitHub Copilot** - Code completion and refactoring assistance
+- **Qodo Merge Pro** - Code review and quality improvements
+
+I remain responsible for all design decisions and the final code. I believe in being transparent about development tools, especially as AI becomes more integrated into our workflows as developers.
