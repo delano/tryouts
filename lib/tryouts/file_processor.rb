@@ -2,8 +2,8 @@
 
 require_relative 'prism_parser'
 require_relative 'test_executor'
-require_relative 'inspect_mode_handler'
-require_relative 'generate_only_mode_handler'
+require_relative 'cli/modes/inspect'
+require_relative 'cli/modes/generate'
 
 class Tryouts
   class FileProcessor
@@ -36,12 +36,12 @@ class Tryouts
     private
 
     def handle_inspect_mode(testrun)
-      InspectModeHandler.new(@file, testrun, @options, @output_manager, @translator).handle
+      Tryouts::CLI::InspectMode.new(@file, testrun, @options, @output_manager, @translator).handle
       0
     end
 
     def handle_generate_only_mode(testrun)
-      GenerateOnlyModeHandler.new(@file, testrun, @options, @output_manager, @translator).handle
+      Tryouts::CLI::GenerateMode.new(@file, testrun, @options, @output_manager, @translator).handle
       0
     end
 

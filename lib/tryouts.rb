@@ -11,10 +11,8 @@ require 'stringio'
 TRYOUTS_LIB_HOME = __dir__ unless defined?(TRYOUTS_LIB_HOME)
 
 require_relative 'tryouts/console'
-require_relative 'tryouts/section'
 require_relative 'tryouts/testbatch'
 require_relative 'tryouts/version'
-require_relative 'tryouts/data_structures'
 require_relative 'tryouts/prism_parser'
 require_relative 'tryouts/cli'
 

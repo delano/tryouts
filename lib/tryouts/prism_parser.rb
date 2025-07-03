@@ -1,7 +1,7 @@
 # Modern Ruby 3.4+ solution for the teardown bug
 
 require 'prism'
-require_relative 'data_structures'
+require_relative 'testcase'
 
 class Tryouts
   # Fixed PrismParser with pattern matching for robust token filtering
@@ -276,7 +276,7 @@ class Tryouts
         start_line: Integer => start_line,
         end_line: Integer => end_line
       }
-        PrismTestCase.new(
+        TestCase.new(
           description: desc,
           code: extract_code_content(code_tokens),
           expectations: exp_tokens.map { |token| token[:content] },
