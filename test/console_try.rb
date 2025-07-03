@@ -1,4 +1,5 @@
 # Console module tests
+require_relative 'test_helper'
 require_relative '../lib/tryouts/console'
 
 ## TEST: ANSI color constants are defined

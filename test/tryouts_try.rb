@@ -1,5 +1,5 @@
 # Main Tryouts class tests
-require_relative '../lib/tryouts'
+require_relative 'test_helper'
 
 ## TEST: TRYOUTS_LIB_HOME constant is defined
 defined?(TRYOUTS_LIB_HOME)
@@ -163,17 +163,12 @@ end
 #=> "SysInfo"
 
 ## TEST: Coverage is initialized if ENV variable is set
-# This test checks if simplecov would be loaded
-ENV['COVERAGE'] = 'true'
+# This test checks if simplecov is available without reloading it
 load_result = begin
-  require 'simplecov'
-  "loaded"
-rescue LoadError
+  defined?(SimpleCov) ? "loaded" : "not_loaded"
+rescue
   "not_available"
 end
 load_result
 #=> "loaded"
-
-# Clean up
-ENV.delete('COVERAGE')
 Tryouts.debug = false

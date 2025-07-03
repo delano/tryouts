@@ -62,8 +62,8 @@ jobs:
       - name: Install dependencies
         run: bundle install
 
-      - name: Run framework unit tests
-        run: ruby exe/try test/*_try.rb
+      - name: Run framework unit tests with coverage
+        run: COVERAGE=1 ruby exe/try test/*_try.rb
 
   examples:
     timeout-minutes: 10
