@@ -239,13 +239,11 @@ class Tryouts
       def show_test_source_code(test_case)
         puts indent_text('Source code:', 3)
 
-        # Read the source file and extract the relevant lines
-        source_lines = File.readlines(test_case.path)
-        start_line   = test_case.line_range.first
-        end_line     = test_case.line_range.last
+        # Use pre-captured source lines from parsing
+        start_line = test_case.line_range.first
 
-        (start_line..end_line).each do |line_num|
-          line_content = source_lines[line_num]&.chomp || ''
+        test_case.source_lines.each_with_index do |line_content, index|
+          line_num = start_line + index
           line_display = format('%3d: %s', line_num + 1, line_content)
 
           # Highlight expectation lines

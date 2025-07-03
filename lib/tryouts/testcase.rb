@@ -3,7 +3,7 @@
 # Modern data structures using Ruby 3.2+ Data classes
 class Tryouts
   # Core data structures
-  TestCase = Data.define(:description, :code, :expectations, :line_range, :path) do
+  TestCase = Data.define(:description, :code, :expectations, :line_range, :path, :source_lines) do
     def empty?
       code.empty?
     end
