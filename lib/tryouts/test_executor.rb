@@ -35,6 +35,7 @@ class Tryouts
         verbose: @options[:verbose],
         fails_only: @options[:fails_only],
         output_manager: @output_manager,
+        global_tally: @global_tally,
       )
 
       unless @options[:verbose]

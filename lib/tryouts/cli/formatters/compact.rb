@@ -188,7 +188,6 @@ class Tryouts
 
         indent = '  ' * level
         puts "#{indent}DEBUG: #{message}"
-        puts caller(0..3)
       end
 
       def trace_info(message, level = 0)
@@ -204,7 +203,7 @@ class Tryouts
         return unless backtrace && @show_debug
 
         backtrace.first(3).each do |line|
-          puts "  #{line.chomp}"
+          puts indent_text(line.chomp, 1)
         end
       end
 

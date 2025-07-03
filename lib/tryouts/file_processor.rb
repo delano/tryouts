@@ -59,6 +59,7 @@ class Tryouts
     end
 
     def handle_general_error(ex)
+      @global_tally[:total_errors] += 1 if @global_tally
       @output_manager.file_failure(@file, ex.message, ex.backtrace)
       1
     end

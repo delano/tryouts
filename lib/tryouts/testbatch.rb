@@ -13,6 +13,7 @@ class Tryouts
       @options        = options
       @formatter      = Tryouts::CLI::FormatterFactory.create_formatter(options)
       @output_manager = options[:output_manager]
+      @global_tally   = options[:global_tally]
       @failed_count   = 0
       @status         = :pending
       @results        = []
@@ -244,6 +245,7 @@ class Tryouts
         @output_manager&.setup_output(captured_output) if captured_output && !captured_output.empty?
       end
     rescue StandardError => ex
+      @global_tally[:total_errors] += 1 if @global_tally
       raise "Global setup failed: #{ex.message}"
     end
 
@@ -262,6 +264,7 @@ class Tryouts
         @output_manager&.teardown_output(captured_output) if captured_output && !captured_output.empty?
       end
     rescue StandardError => ex
+      @global_tally[:total_errors] += 1 if @global_tally
       @output_manager&.error("Teardown failed: #{ex.message}")
     end
 

@@ -175,7 +175,11 @@ class Tryouts
     def calculate_block_range(blocks)
       return 0..0 if blocks.empty?
 
-      line_ranges = blocks.map { |block| block[:start_line]..block[:end_line] }
+      # Filter out blocks with nil line numbers and build valid ranges
+      valid_blocks = blocks.filter { |block| block[:start_line] && block[:end_line] }
+      return 0..0 if valid_blocks.empty?
+
+      line_ranges = valid_blocks.map { |block| block[:start_line]..block[:end_line] }
       line_ranges.first.first..line_ranges.last.last
     end
 

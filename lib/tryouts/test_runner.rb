@@ -100,6 +100,7 @@ class Tryouts
       file.process
     rescue StandardError => ex
       handle_file_error(ex)
+      @global_tally[:total_errors] += 1
       1
     end
 

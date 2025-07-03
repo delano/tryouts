@@ -114,8 +114,8 @@ class Tryouts
         end
       end
 
-      def error(message, details = nil)
-        @formatter.error_message(message, details)
+      def error(message, backtrace = nil)
+        @formatter.error_message(message, backtrace)
       end
 
       # Utility methods

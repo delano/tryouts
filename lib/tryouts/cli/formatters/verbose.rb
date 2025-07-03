@@ -212,7 +212,6 @@ class Tryouts
 
         prefix = Console.color(:cyan, 'INFO ')
         puts indent_text("#{prefix} #{message}", level + 1)
-        puts caller(0..10)
       end
 
       def trace_info(message, level = 0)
@@ -222,12 +221,17 @@ class Tryouts
         puts indent_text("#{prefix} #{message}", level + 1)
       end
 
-      def error_message(message, details = nil)
+      def error_message(message, backtrace = nil)
         error_msg = Console.color(:red, "ERROR: #{message}")
         puts indent_text(error_msg, 1)
 
-        if details && @show_debug
-          puts indent_text("Details: #{details}", 2)
+        if backtrace && @show_debug
+          puts indent_text('Details:', 2)
+          # Show first 10 lines of backtrace to avoid overwhelming output
+          backtrace.first(10).each do |line|
+            puts indent_text(line, 3)
+          end
+          puts indent_text("... (#{backtrace.length - 10} more lines)", 3) if backtrace.length > 10
         end
       end
 
@@ -258,7 +262,7 @@ class Tryouts
         start_line = test_case.line_range.first
 
         test_case.source_lines.each_with_index do |line_content, index|
-          line_num = start_line + index
+          line_num     = start_line + index
           line_display = format('%3d: %s', line_num + 1, line_content)
 
           # Highlight expectation lines
@@ -315,7 +319,6 @@ class Tryouts
           '-' * @line_width,
         ].join("\n")
       end
-
     end
 
     # Verbose formatter that only shows failures and errors
