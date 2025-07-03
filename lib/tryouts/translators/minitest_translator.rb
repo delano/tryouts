@@ -25,7 +25,7 @@ class Tryouts
           testrun.test_cases.each_with_index do |test_case, index|
             next if test_case.empty? || !test_case.expectations?
 
-            method_name = "test_#{index.to_s.rjust(3, '0')}_#{test_case.description.parameterize}"
+            method_name = "test_#{index.to_s.rjust(3, '0')}_#{parameterize(test_case.description)}"
             define_method(method_name) do
               result = instance_eval(test_case.code) unless test_case.code.strip.empty?
 
@@ -70,7 +70,7 @@ class Tryouts
         testrun.test_cases.each_with_index do |test_case, index|
           next if test_case.empty? || !test_case.expectations?
 
-          method_name = "test_#{index.to_s.rjust(3, '0')}_#{test_case.description.parameterize}"
+          method_name = "test_#{index.to_s.rjust(3, '0')}_#{parameterize(test_case.description)}"
           lines << "  def #{method_name}"
           unless test_case.code.strip.empty?
             lines << '    result = begin'
@@ -101,15 +101,6 @@ class Tryouts
       def parameterize(string)
         string.downcase.gsub(/[^a-z0-9]+/, '_').gsub(/^_|_$/, '')
       end
-    end
-  end
-end
-
-# Add parameterize method to String for convenience
-class String
-  unless method_defined?(:parameterize)
-    def parameterize
-      downcase.gsub(/[^a-z0-9]+/, '_').gsub(/^_|_$/, '')
     end
   end
 end
