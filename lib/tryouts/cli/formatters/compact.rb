@@ -65,7 +65,15 @@ class Tryouts
           detail << "#{error_count} errors"
         end
 
-        time_str = elapsed_time ? " (#{elapsed_time.round(2)}s)" : ''
+        time_str = if elapsed_time
+                     if elapsed_time < 2
+                       " (#{(elapsed_time * 1000).to_i}ms)"
+                     else
+                       " (#{elapsed_time.round(2)}s)"
+                     end
+                   else
+                     ''
+                   end
         puts "  #{status} #{detail.join(', ')}#{time_str}"
       end
 
@@ -169,7 +177,13 @@ class Tryouts
           result = Console.color(:green, "#{total_tests} tests passed")
         end
 
-        puts "Total: #{result} (#{elapsed_time.round(2)}s)"
+        time_str = if elapsed_time < 2
+                     "#{(elapsed_time * 1000).to_i}ms"
+                   else
+                     "#{elapsed_time.round(2)}s"
+                   end
+
+        puts "Total: #{result} (#{time_str})"
         puts "Files: #{successful_files} of #{total_files} successful"
       end
 

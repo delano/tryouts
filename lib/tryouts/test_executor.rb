@@ -56,7 +56,7 @@ class Tryouts
       @global_tally[:total_errors]     += file_error_count
       @global_tally[:successful_files] += 1 if success
 
-      duration = Time.now - @file_start
+      duration = Time.now.to_f - @file_start.to_f
       @output_manager.file_success(@file, batch.size, file_failed_count, file_error_count, duration)
 
       # Combine failures and errors to determine the exit code.
