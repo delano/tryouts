@@ -212,6 +212,7 @@ class Tryouts
 
         prefix = Console.color(:cyan, 'INFO ')
         puts indent_text("#{prefix} #{message}", level + 1)
+        puts caller(0..10)
       end
 
       def trace_info(message, level = 0)

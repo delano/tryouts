@@ -188,6 +188,7 @@ class Tryouts
 
         indent = '  ' * level
         puts "#{indent}DEBUG: #{message}"
+        puts caller(0..3)
       end
 
       def trace_info(message, level = 0)
