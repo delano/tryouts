@@ -38,8 +38,15 @@ class Tryouts
       idx               = 0
       execution_results = test_cases.map do |test_case|
         @output_manager&.trace("Test #{idx + 1}/#{test_cases.size}: #{test_case.description}", 2)
-        idx += 1
-        execute_single_test(test_case, before_test_hook, &)
+        idx                     += 1
+        result                   = nil
+
+        captured_output          = capture_output do
+          result = execute_single_test(test_case, before_test_hook, &) # runs the test code
+        end
+
+        result[:captured_output] = captured_output unless captured_output.to_s.empty?
+        result
       end
 
       execute_global_teardown
@@ -79,14 +86,21 @@ class Tryouts
     def execute_single_test(test_case, before_test_hook = nil)
       before_test_hook&.call(test_case)
 
-      result = case @options[:shared_context]
-               when true
-                 execute_with_shared_context(test_case)
-               when false, nil
-                 execute_with_fresh_context(test_case)
-               else
-                 raise 'Invalid execution context configuration'
-               end
+      # Capture output during test execution
+      result          = nil
+      captured_output = capture_output do
+        result = case @options[:shared_context]
+                 when true
+                   execute_with_shared_context(test_case)
+                 when false, nil
+                   execute_with_fresh_context(test_case)
+                 else
+                   raise 'Invalid execution context configuration'
+                 end
+      end
+
+      # Add captured output to the result
+      result[:captured_output] = captured_output if captured_output && !captured_output.empty?
 
       process_test_result(result)
       yield(test_case) if block_given?
@@ -208,6 +222,11 @@ class Tryouts
       end
 
       show_test_result(result)
+
+      # Show captured output if any exists
+      if result[:captured_output] && !result[:captured_output].empty?
+        @output_manager&.test_output(result[:test_case], result[:captured_output])
+      end
     end
 
     # Global setup execution for shared context mode
@@ -234,7 +253,13 @@ class Tryouts
 
       if teardown && !teardown.code.empty?
         @output_manager&.teardown_start(teardown.line_range)
-        @container.instance_eval(teardown.code, teardown.path, teardown.line_range.first + 1)
+
+        # Capture teardown output instead of letting it print directly
+        captured_output = capture_output do
+          @container.instance_eval(teardown.code, teardown.path, teardown.line_range.first + 1)
+        end
+
+        @output_manager&.teardown_output(captured_output) if captured_output && !captured_output.empty?
       end
     rescue StandardError => ex
       @output_manager&.error("Teardown failed: #{ex.message}")

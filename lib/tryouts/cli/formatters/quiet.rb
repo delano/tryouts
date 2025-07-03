@@ -52,6 +52,11 @@ class Tryouts
         $stdout.flush
       end
 
+      def test_output(test_case, output_text)
+        # Silent in quiet mode - could optionally show output for failed tests only
+        # For now, keeping it completely silent
+      end
+
       # Setup/teardown operations - silent
       def setup_start(line_range)
         # Silent in quiet mode

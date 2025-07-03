@@ -102,6 +102,23 @@ class Tryouts
         puts "    #{status} #{desc}"
       end
 
+      def test_output(test_case, output_text)
+        # In compact mode, only show output for failed tests and only if debug mode is enabled
+        return if output_text.nil? || output_text.strip.empty?
+        return unless @show_debug
+
+        puts "    Output: #{output_text.lines.count} lines"
+        if output_text.lines.count <= 3
+          output_text.lines.each do |line|
+            puts "      #{line.chomp}"
+          end
+        else
+          puts "      #{output_text.lines.first.chomp}"
+          puts "      ... (#{output_text.lines.count - 2} more lines)"
+          puts "      #{output_text.lines.last.chomp}"
+        end
+      end
+
       # Setup/teardown operations - minimal output
       def setup_start(_line_range)
         return unless @show_debug

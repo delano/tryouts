@@ -38,6 +38,10 @@ class Tryouts
         raise NotImplementedError, "#{self.class} must implement #test_result"
       end
 
+      def test_output(test_case, output_text)
+        raise NotImplementedError, "#{self.class} must implement #test_output"
+      end
+
       # Setup/teardown operations
       def setup_start(line_range)
         raise NotImplementedError, "#{self.class} must implement #setup_start"

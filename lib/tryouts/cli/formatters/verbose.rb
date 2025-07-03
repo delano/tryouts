@@ -129,6 +129,20 @@ class Tryouts
         end
       end
 
+      def test_output(test_case, output_text)
+        return if output_text.nil? || output_text.strip.empty?
+
+        puts indent_text('Test Output:', 3)
+        puts indent_text(Console.color(:dim, '--- BEGIN OUTPUT ---'), 3)
+
+        output_text.lines.each do |line|
+          puts indent_text(line.chomp, 4)
+        end
+
+        puts indent_text(Console.color(:dim, '--- END OUTPUT ---'), 3)
+        puts
+      end
+
       # Setup/teardown operations
       def setup_start(line_range)
         message = "Executing global setup (lines #{line_range.first}..#{line_range.last})"

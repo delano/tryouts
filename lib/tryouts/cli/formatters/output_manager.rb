@@ -67,6 +67,10 @@ class Tryouts
         @formatter.test_result(test_case, result_status, actual_results, elapsed_time)
       end
 
+      def test_output(test_case, output_text)
+        @formatter.test_output(test_case, output_text)
+      end
+
       # Setup/teardown methods
       def setup_start(line_range)
         with_indent(2) do

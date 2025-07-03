@@ -158,6 +158,7 @@ Naming/PredicateMethod:
   AllowedMethods:
     - validate!
     - migrate
+    - run
 
 # We use class instance variables quite a bit, mostly for readonly values set
 # at boot time. Except for our models with have redis-rb Redis instances
