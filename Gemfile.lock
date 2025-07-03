@@ -43,10 +43,10 @@ GIT
 PATH
   remote: .
   specs:
-    tryouts (3.0.0.pre)
-      minitest
-      rspec
-      sysinfo
+    tryouts (3.0.0.pre2)
+      minitest (~> 5.0)
+      rspec (~> 3.0)
+      sysinfo (>= 0.8, < 1.0)
 
 GEM
   remote: https://rubygems.org/
