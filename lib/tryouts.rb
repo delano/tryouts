@@ -1,10 +1,6 @@
 # lib/tryouts.rb
 
-# Coverage tracking
-if ENV['COVERAGE'] || ENV['SIMPLECOV']
-  require 'simplecov'
-  SimpleCov.start
-end
+
 
 require 'stringio'
 

@@ -48,15 +48,15 @@ bundle install
 try
 
 # Run specific test file
-try try/step1_try.rb
+try try/proof1_try.rb
 
 # Framework integration
-try --rspec try/step1_try.rb      # Run with RSpec
-try --minitest try/step1_try.rb   # Run with Minitest
+try --rspec try/proof1_try.rb      # Run with RSpec
+try --minitest try/proof1_try.rb   # Run with Minitest
 
 # Code generation only
-try --generate-rspec try/step1_try.rb
-try --generate-minitest try/step1_try.rb
+try --generate-rspec try/proof1_try.rb
+try --generate-minitest try/proof1_try.rb
 
 # Output options
 try -v    # verbose (includes source code and return values)

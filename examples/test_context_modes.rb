@@ -1,9 +1,9 @@
 #!/usr/bin/env ruby
 # test_context_modes.rb
 
-require_relative 'lib/tryouts'
+require_relative '../lib/tryouts'
 
-test_file = '/Users/d/Projects/opensource/d/tryouts/try/step1_try.rb'
+test_file = 'try/proof1_try.rb'
 
 puts "Testing both context modes with: #{test_file}"
 puts '=' * 60

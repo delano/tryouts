@@ -10,12 +10,14 @@ class Tryouts
         @line_width     = options.fetch(:line_width, 70)
         @show_passed    = options.fetch(:show_passed, true)
         @show_debug     = options.fetch(:debug, false)
-        @show_trace     = options.fetch(:trace, true)
+        @show_trace     = options.fetch(:trace, false)
         @current_indent = 0
       end
 
       # Phase-level output
       def phase_header(message, _file_count = nil, level = 0)
+        return if level.equal?(1)
+
         separators = [
           { char: '=', width: @line_width },      # Major phases
           { char: '-', width: @line_width - 10 }, # Sub-phases
@@ -43,20 +45,11 @@ class Tryouts
 
       # File-level operations
       def file_start(file_path, _context_info = {})
-        # framework = context_info[:framework] || :direct
-        # context   = context_info[:context] || :fresh
-
-        # with_indent(1) do
-        #   puts "Framework: #{framework}"
-        #   puts "Context: #{context}"
-        # end
-
         puts file_header_visual(file_path)
       end
 
-      def file_parsed(file_path, test_count, setup_present: false, teardown_present: false)
-        pretty_path = Console.pretty_path(file_path)
-        message     = "Parsed #{test_count} test cases from #{pretty_path}"
+      def file_parsed(_file_path, _test_count, setup_present: false, teardown_present: false)
+        message = ''
 
         extras   = []
         extras << 'setup' if setup_present
@@ -85,11 +78,15 @@ class Tryouts
         end
 
         puts indent_text(status, 2)
+        return unless elapsed_time
 
-        if elapsed_time
-          time_msg = "Completed in #{elapsed_time.round(3)}s"
-          puts indent_text(Console.color(:dim, time_msg), 2)
-        end
+        time_msg =
+          if elapsed_time < 2.0
+            "Completed in #{(elapsed_time * 1000).round}ms"
+          else
+            "Completed in #{elapsed_time.round(3)}s"
+          end
+        puts indent_text(Console.color(:dim, time_msg), 2)
       end
 
       # Test-level operations
@@ -130,7 +127,7 @@ class Tryouts
         end
       end
 
-      def test_output(test_case, output_text)
+      def test_output(_test_case, output_text)
         return if output_text.nil? || output_text.strip.empty?
 
         puts indent_text('Test Output:', 3)
@@ -193,14 +190,21 @@ class Tryouts
         puts 'Grand Total:'
 
         issues_count = failed_count + error_count
+        time_str =
+          if elapsed_time < 2.0
+            " (#{(elapsed_time * 1000).round}ms)"
+          else
+            " (#{elapsed_time.round(2)}s)"
+          end
+
         if issues_count > 0
           passed  = total_tests - issues_count
           details = []
           details << "#{failed_count} failed" if failed_count > 0
           details << "#{error_count} errors" if error_count > 0
-          puts "#{details.join(', ')}, #{passed} passed (#{elapsed_time.round(2)}s)"
+          puts "#{details.join(', ')}, #{passed} passed#{time_str}"
         else
-          puts "#{total_tests} tests passed (#{elapsed_time.round(2)}s)"
+          puts "#{total_tests} tests passed#{time_str}"
         end
 
         puts "Files processed: #{successful_files} of #{total_files} successful"

@@ -21,9 +21,17 @@ class Tryouts
             VerboseFormatter.new(options)
           end
         when :compact
-          CompactFormatter.new(options)
+          if options[:fails_only]
+            CompactFailsFormatter.new(options)
+          else
+            CompactFormatter.new(options)
+          end
         when :quiet
-          QuietFormatter.new(options)
+          if options[:fails_only]
+            QuietFailsFormatter.new(options)
+          else
+            QuietFormatter.new(options)
+          end
         else
           VerboseFormatter.new(options) # Default to verbose
         end

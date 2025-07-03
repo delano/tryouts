@@ -1,4 +1,4 @@
-# try/step1_try.rb
+# try/proof1_try.rb
 
 puts 'If you see this the setup ran correctly.'
 

@@ -26,7 +26,7 @@ class Tryouts
         # Silent in quiet mode
       end
 
-      def file_execution_start(file_path, test_count, context_mode)
+      def file_execution_start(file_path, _test_count, _context_mode)
         @current_file = file_path
       end
 
@@ -98,15 +98,21 @@ class Tryouts
 
         puts
 
+        time_str = if elapsed_time < 2
+                     "#{(elapsed_time * 1000).to_i}ms"
+                   else
+                     "#{elapsed_time.round(2)}s"
+                   end
+
         issues_count = failed_count + error_count
         if issues_count > 0
           passed = total_tests - issues_count
           details = []
           details << "#{failed_count} failed" if failed_count > 0
           details << "#{error_count} errors" if error_count > 0
-          puts Console.color(:red, "Total: #{details.join(', ')}, #{passed} passed (#{elapsed_time.round(2)}s)")
+          puts Console.color(:red, "Total: #{details.join(', ')}, #{passed} passed (#{time_str})")
         else
-          puts Console.color(:green, "Total: #{total_tests} passed (#{elapsed_time.round(2)}s)")
+          puts Console.color(:green, "Total: #{total_tests} passed (#{time_str})")
         end
 
         if total_files > 1
@@ -137,6 +143,16 @@ class Tryouts
 
       def separator(style = :light)
         # Silent in quiet mode
+      end
+    end
+
+    # Quiet formatter that only shows dots for failures and errors
+    class QuietFailsFormatter < QuietFormatter
+      def test_result(test_case, result_status, actual_results = [], elapsed_time = nil)
+        # Only show non-pass dots in fails mode
+        return if result_status == :passed
+
+        super
       end
     end
   end
