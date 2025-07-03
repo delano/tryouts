@@ -139,5 +139,15 @@ class Tryouts
         # Silent in quiet mode
       end
     end
+
+    # Quiet formatter that only shows dots for failures and errors
+    class QuietFailsFormatter < QuietFormatter
+      def test_result(test_case, result_status, actual_results = [], elapsed_time = nil)
+        # Only show non-pass dots in fails mode
+        return if result_status == :passed
+
+        super
+      end
+    end
   end
 end

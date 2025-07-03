@@ -214,5 +214,19 @@ class Tryouts
         end
       end
     end
+
+    # Compact formatter that only shows failures and errors
+    class CompactFailsFormatter < CompactFormatter
+      def initialize(options = {})
+        super(options.merge(show_passed: false))
+      end
+
+      def test_result(test_case, result_status, actual_results = [], elapsed_time = nil)
+        # Only show failed/error tests
+        return if result_status == :passed
+
+        super
+      end
+    end
   end
 end
