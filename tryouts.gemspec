@@ -15,8 +15,8 @@ Gem::Specification.new do |spec|
   spec.bindir      = 'exe' # Specify that executables are in the exe folder
   spec.executables = Dir['exe/*'].select { |f| File.file?(f) }.map { |f| File.basename(f) }
 
-  spec.add_dependency 'minitest'
-  spec.add_dependency 'rspec'
-  spec.add_dependency 'sysinfo'
+  spec.add_dependency 'minitest', '~> 5.0'
+  spec.add_dependency 'rspec', '~> 3.0'
+  spec.add_dependency 'sysinfo', ['>= 0.8', '< 1.0']
   spec.metadata['rubygems_mfa_required'] = 'true'
 end
