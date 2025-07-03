@@ -21,7 +21,7 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
-        ruby: ["3.4", "3.5", "3.3"]
+        ruby: ["3.4", "3.5"]
         continue-on-error: [false]
 
     steps:
