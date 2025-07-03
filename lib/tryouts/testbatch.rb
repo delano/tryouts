@@ -28,7 +28,6 @@ class Tryouts
       @output_manager&.info("Context: #{@options[:shared_context] ? 'shared' : 'fresh'}", 1)
       @output_manager&.file_start(path, context: @options[:shared_context] ? :shared : :fresh)
 
-      # begin
       show_file_header
 
       if shared_context?
@@ -48,11 +47,6 @@ class Tryouts
 
       @status = :completed
       !failed?
-      # rescue StandardError => ex
-      #   Tryouts.debug "TestBatch#run: An error occurred during batch execution: #{ex.message}"
-      #   handle_batch_error(ex)
-      #   false
-      # end
     end
 
     def empty?

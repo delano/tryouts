@@ -57,6 +57,10 @@ Style/RedundantParentheses:
 
 Lint/UnusedMethodArgument:
   Enabled: true
+Lint/UnusedBlockArgument:
+  Enabled: true
+Style/UnusedModuleDefinition:
+  Enabled: true
 
 Lint/UselessAssignment:
   Enabled: true

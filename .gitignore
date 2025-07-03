@@ -1,6 +1,7 @@
 .DS_Store
 .bundle
 .byebug*
+.coverage
 .history
 .devcontainer
 .vscode
@@ -12,6 +13,7 @@
 !README.md
 .ruby-version
 appendonlydir
+coverage
 etc/config
 log
 tmp

@@ -1,5 +1,11 @@
 # lib/tryouts.rb
 
+# Coverage tracking
+if ENV['COVERAGE'] || ENV['SIMPLECOV']
+  require 'simplecov'
+  SimpleCov.start
+end
+
 require 'stringio'
 
 TRYOUTS_LIB_HOME = __dir__ unless defined?(TRYOUTS_LIB_HOME)
