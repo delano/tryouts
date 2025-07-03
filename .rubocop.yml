@@ -59,8 +59,9 @@ Lint/UnusedMethodArgument:
   Enabled: true
 Lint/UnusedBlockArgument:
   Enabled: true
-Style/UnusedModuleDefinition:
-  Enabled: true
+
+# Style/UnusedModuleDefinition:
+#   Enabled: true
 
 Lint/UselessAssignment:
   Enabled: true
@@ -69,7 +70,7 @@ Lint/DuplicateBranch:
   Enabled: true
   IgnoreLiteralBranches: false
   IgnoreConstantBranches: false
-  IgnoreDuplicateElseBranch: false
+  IgnoreDuplicateElseBranch: true
 
 # Offense count: 3
 # Configuration parameters: AllowedMethods, AllowedPatterns.

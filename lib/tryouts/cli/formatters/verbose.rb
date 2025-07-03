@@ -15,7 +15,7 @@ class Tryouts
       end
 
       # Phase-level output
-      def phase_header(message, _file_count = nil)
+      def phase_header(message, _file_count = nil, level = 0)
         separator_line = '=' * @line_width
         header_line    = message.center(@line_width)
 
@@ -26,7 +26,9 @@ class Tryouts
           separator_line,
         ]
 
-        puts output.join("\n")
+        with_indent(level) do
+          puts output.join("\n")
+        end
       end
 
       # File-level operations

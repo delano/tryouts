@@ -12,7 +12,7 @@ require 'fakeredis'
 
 require_relative '../test_models'
 
-#Familia.debug = true
+# Familia.debug = true
 
 # Familia.redis = Redis.new
 
@@ -33,74 +33,74 @@ V2::MutableConfig.stack.clear
         enabled: true,
       },
       api: {
-        enabled: true
-      }
+        enabled: true,
+      },
     },
     authentication: {
       signup: {
-        enabled: true
+        enabled: true,
       },
       signin: {
-        enabled: true
-      }
+        enabled: true,
+      },
     },
     secret_options: {
       max_size: 1024,
-      default_ttl: 3600
-    }
+      default_ttl: 3600,
+    },
   },
   mail: {
     from: 'noreply@example.com',
     truemail: {
-      validation: true
+      validation: true,
     },
     smtp: {
       host: 'smtp.example.com',
-      port: 587
-    }
+      port: 587,
+    },
   },
   limits: {
     create_secret: 250,
-    send_feedback: 10
-  }
+    send_feedback: 10,
+  },
 }
 
 @mutable_config_hash = {
   ui: {
     enabled: true,
     signup: {
-      enabled: false
+      enabled: false,
     },
     signin: {
-      enabled: true
-    }
+      enabled: true,
+    },
   },
   api: {
-    enabled: true
+    enabled: true,
   },
   secret_options: {
     anonymous: {
-      max_size: 1024
+      max_size: 1024,
     },
     standard: {
-      max_size: 2048
+      max_size: 2048,
     },
     enhanced: {
-      max_size: 4096
-    }
+      max_size: 4096,
+    },
   },
   mail: {
     validation: {
       recipients: true,
-      accounts: true
-    }
+      accounts: true,
+    },
   },
   limits: {
-    create_secret: 500
-  }
+    create_secret: 500,
+  },
 }
 
-@email = "tryouts+colonel+#{Time.now.to_i}@onetimesecret.com"
+@email    = "tryouts+colonel+#{Time.now.to_i}@onetimesecret.com"
 @customer = V1::Customer.create @email
 
 @obj_config_data = {
@@ -108,7 +108,7 @@ V2::MutableConfig.stack.clear
   api: { enabled: true },
   mail: { validation: { recipients: true } },
   custid: @customer.custid,
-  comment: 'Test config creation'
+  comment: 'Test config creation',
 }
 
 ## Can extract settings sections from full config using FIELD_MAPPINGS
@@ -130,7 +130,7 @@ V2::MutableConfig.construct_onetime_config({})
 
 ## Can handle nil values in mutable config
 nil_config = { ui: { enabled: nil }, mail: nil }
-result = V2::MutableConfig.construct_onetime_config(nil_config)
+result     = V2::MutableConfig.construct_onetime_config(nil_config)
 result.has_key?(:mail)
 #=> false
 
@@ -152,8 +152,8 @@ begin
   duplicate = V2::MutableConfig.new
   duplicate.instance_variable_set(:@configid, @obj.identifier)
   duplicate.save
-rescue OT::Problem => e
-  e.message.include?("Cannot clobber V2::MutableConfig")
+rescue OT::Problem => ex
+  ex.message.include?('Cannot clobber V2::MutableConfig')
 end
 #=> true
 
@@ -167,7 +167,7 @@ p [:owner, @obj.owner, @customer.custid]
 #=> true
 
 ## Different customer does not own the config
-other_email = "tryouts+other+#{Time.now.to_i}@onetimesecret.com"
+other_email     = "tryouts+other+#{Time.now.to_i}@onetimesecret.com"
 @other_customer = V1::Customer.create(other_email)
 @obj.owner?(@other_customer)
 #=> false
@@ -192,9 +192,9 @@ V2::MutableConfig.current.identifier
   api: { enabled: false },
   mail: { validation: { accounts: false } },
   custid: @customer.custid,
-  comment: 'Second test config'
+  comment: 'Second test config',
 }
-@obj2 = V2::MutableConfig.create(**@obj_config_data2)
+@obj2             = V2::MutableConfig.create(**@obj_config_data2)
 p [@obj2.identifier, V2::MutableConfig.current.identifier]
 V2::MutableConfig.current.identifier
 #=> @obj2.identifier
@@ -227,19 +227,19 @@ V2::MutableConfig.stack.member?(@obj2.identifier)
 
 ## Extract settings sections handles missing nested keys gracefully
 incomplete_config = { site: { interface: { ui: { enabled: true } } } }
-result = V2::MutableConfig.extract_mutable_config(incomplete_config)
+result            = V2::MutableConfig.extract_mutable_config(incomplete_config)
 result[:secret_options]
 #=> nil
 
 ## Extract settings sections handles completely missing sections
 minimal_config = { other_section: { value: 'test' } }
-result = V2::MutableConfig.extract_mutable_config(minimal_config)
+result         = V2::MutableConfig.extract_mutable_config(minimal_config)
 [result[:ui], result[:mail], result[:limits]]
 #=> [nil, nil, nil]
 
 ## Construct onetime config skips nil values appropriately
 config_with_nils = { ui: nil, mail: { validation: { recipients: true } } }
-result = V2::MutableConfig.construct_onetime_config(config_with_nils)
+result           = V2::MutableConfig.construct_onetime_config(config_with_nils)
 p [:plop, result]
 [result.has_key?(:site), result.dig(:site, :interface).nil?]
 #=> [false, true]
@@ -251,14 +251,14 @@ V2::MutableConfig::FIELD_MAPPINGS.keys.sort
 ## FIELD_MAPPINGS has correct paths for nested site sections
 [
   V2::MutableConfig::FIELD_MAPPINGS[:ui],
-  V2::MutableConfig::FIELD_MAPPINGS[:secret_options]
+  V2::MutableConfig::FIELD_MAPPINGS[:secret_options],
 ]
 #=> [[:site, :interface, :ui], [:site, :secret_options]]
 
 ## FIELD_MAPPINGS has correct paths for top-level sections
 [
   V2::MutableConfig::FIELD_MAPPINGS[:mail],
-  V2::MutableConfig::FIELD_MAPPINGS[:limits]
+  V2::MutableConfig::FIELD_MAPPINGS[:limits],
 ]
 #=> [[:mail], [:limits]]
 

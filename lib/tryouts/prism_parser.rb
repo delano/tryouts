@@ -31,7 +31,7 @@ class Tryouts
         token = case line
                 in /^##\s*(.*)$/ # Test description format: ## description
                   { type: :description, content: $1.strip, line: index }
-                in /^#\s*TEST\s*\d*:\s*(.*)$/ # Test description format: # TEST N: description
+                in /^#\s*TEST\s*\d*:\s*(.*)$/  # rubocop:disable Lint/DuplicateBranch
                   { type: :description, content: $1.strip, line: index }
                 in /^#\s*=>\s*(.*)$/ # Expectation
                   { type: :expectation, content: $1.strip, line: index, ast: parse_expectation($1.strip) }

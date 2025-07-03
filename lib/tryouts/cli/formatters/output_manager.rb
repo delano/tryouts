@@ -13,16 +13,16 @@ class Tryouts
       end
 
       # Phase-level methods
-      def processing_phase(file_count)
-        @formatter.phase_header("PROCESSING #{file_count} FILES", file_count)
+      def processing_phase(file_count, level = 0)
+        @formatter.phase_header("PROCESSING #{file_count} FILES", file_count, level)
       end
 
-      def execution_phase(test_count)
-        @formatter.phase_header("EXECUTING #{test_count} TESTS", test_count)
+      def execution_phase(test_count, level = 1)
+        @formatter.phase_header("EXECUTING #{test_count} TESTS", test_count, level)
       end
 
-      def error_phase
-        @formatter.phase_header('ERROR DETAILS')
+      def error_phase(level = 1)
+        @formatter.phase_header('ERROR DETAILS', level)
       end
 
       # File-level methods

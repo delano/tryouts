@@ -10,8 +10,8 @@ puts '=' * 60
 
 # Test 1: Fresh context mode (default)
 puts "\n🔄 Testing FRESH context mode..."
-parser = Tryouts::PrismParser.new(test_file)
-testrun = parser.parse
+parser      = Tryouts::PrismParser.new(test_file)
+testrun     = parser.parse
 batch_fresh = Tryouts::TestBatch.new(testrun, shared_context: false)
 
 Tryouts.instance_variable_set(:@debug, false)  # reduce noise

@@ -22,7 +22,7 @@ class Tryouts
   @noisy       = false
   @fails       = false
   @container   = Class.new
-  @cases       = []
+  @cases       = [] # rubocop:disable ThreadSafety/MutableClassInstanceVariable
   @sysinfo     = nil
   @testcase_io = StringIO.new
 

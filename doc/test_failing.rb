@@ -3,5 +3,5 @@
 #=> 3
 
 ## Another failing test
-"hello".upcase
+'hello'.upcase
 #=> "GOODBYE"

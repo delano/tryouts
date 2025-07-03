@@ -1,8 +1,6 @@
 #!/usr/bin/env ruby
 # test_setup_execution2.rb
 
-
-
 require_relative '../lib/tryouts'
 
 test_file = 'try/step1_try.rb'
@@ -11,7 +9,7 @@ puts "Testing TestBatch setup execution with: #{test_file}"
 puts '=' * 50
 
 begin
-  parser = Tryouts::PrismParser.new(test_file)
+  parser  = Tryouts::PrismParser.new(test_file)
   testrun = parser.parse
 
   puts "✅ Parsed #{testrun.total_tests} test cases"
@@ -21,7 +19,7 @@ begin
 
   batch = Tryouts::TestBatch.new(testrun)
 
-  puts "🧪 Running TestBatch with fresh context per test..."
+  puts '🧪 Running TestBatch with fresh context per test...'
 
   Tryouts.instance_variable_set(:@debug, true)
 
@@ -30,11 +28,10 @@ begin
   end
 
   puts
-  puts "📊 Results:"
+  puts '📊 Results:'
   puts "  Total tests: #{batch.size}"
   puts "  Failed tests: #{batch.failed}"
   puts "  Success: #{success ? '✅' : '❌'}"
-
 rescue StandardError => ex
   puts "❌ Error: #{ex.message}"
   puts ex.backtrace.first(10)
