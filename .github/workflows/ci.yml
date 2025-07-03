@@ -32,7 +32,10 @@ jobs:
           ruby-version: ${{ matrix.ruby }}
           rubygems: ${{ matrix.rubygems }}
           bundler: ${{ matrix.bundler }}
-          bundler-cache: false
+          bundler-cache: true
+
+      - name: Install dependencies
+        run: bundle install --with test development
 
       - name: Run tryouts (-V)
         run: ruby exe/try -V
