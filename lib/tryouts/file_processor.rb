@@ -37,17 +37,20 @@ class Tryouts
     private
 
     def handle_inspect_mode(testrun)
-      Tryouts::CLI::InspectMode.new(@file, testrun, @options, @output_manager, @translator).handle
+      mode = Tryouts::CLI::InspectMode.new(@file, testrun, @options, @output_manager, @translator)
+      mode.handle
       0
     end
 
     def handle_generate_only_mode(testrun)
-      Tryouts::CLI::GenerateMode.new(@file, testrun, @options, @output_manager, @translator).handle
+      mode = Tryouts::CLI::GenerateMode.new(@file, testrun, @options, @output_manager, @translator)
+      mode.handle
       0
     end
 
     def execute_tests(testrun)
-      TestExecutor.new(@file, testrun, @options, @output_manager, @translator, @global_tally).execute
+      tex = TestExecutor.new(@file, testrun, @options, @output_manager, @translator, @global_tally)
+      tex.execute
     end
 
     def handle_syntax_error(ex)
