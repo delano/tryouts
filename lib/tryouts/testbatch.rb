@@ -29,8 +29,6 @@ class Tryouts
       @output_manager&.info("Context: #{@options[:shared_context] ? 'shared' : 'fresh'}", 1)
       @output_manager&.file_start(path, context: @options[:shared_context] ? :shared : :fresh)
 
-      show_file_header
-
       if shared_context?
         @output_manager&.info('Running global setup...', 2)
         execute_global_setup
@@ -269,10 +267,6 @@ class Tryouts
       show_summary(elapsed_time)
     end
 
-    # Display methods using formatter system
-    def show_file_header
-      # File header is now handled by output_manager in the run method
-    end
 
     def show_test_result(result)
       test_case = result[:test_case]
