@@ -1,6 +1,6 @@
 # doc/test_failing.rb
 
-# Running: ./exe/try doc/test_failing.rb try/step1_try.rb
+# Running: ./exe/try doc/test_failing.rb try/proof1_try.rb
 
 ## Test failure example
 1 + 1

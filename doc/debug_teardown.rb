@@ -3,7 +3,7 @@
 
 require_relative '../lib/tryouts'
 
-test_file = 'try/step1_try.rb'
+test_file = 'try/proof1_try.rb'
 parser    = Tryouts::PrismParser.new(test_file)
 testrun   = parser.parse
 

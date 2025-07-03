@@ -3,7 +3,7 @@
 
 require_relative '../lib/tryouts'
 
-test_file = 'try/step1_try.rb'
+test_file = 'try/proof1_try.rb'
 
 puts "Testing TestBatch setup execution with: #{test_file}"
 puts '=' * 50
