@@ -14,7 +14,7 @@ class Tryouts
     end
 
     def execute
-      file_start = Time.now
+      @file_start = Time.now
 
       case @options[:framework]
       when :direct
@@ -29,7 +29,6 @@ class Tryouts
     private
 
     def execute_direct_mode
-      file_start = Time.now
       batch = TestBatch.new(
         @testrun,
         shared_context: @options[:shared_context],
@@ -50,14 +49,15 @@ class Tryouts
       end
 
       file_failed_count                 = test_results.count { |r| r[:status] == :failed }
+      file_error_count                 = test_results.count { |r| r[:status] == :error }
       @global_tally[:total_tests]      += batch.size
       @global_tally[:total_failed]     += file_failed_count
       @global_tally[:successful_files] += 1 if success
 
-      duration   = Time.now - file_start
-      @output_manager.file_success(@file, batch.size, file_failed_count, duration)
+      duration   = Time.now - @file_start
+      @output_manager.file_success(@file, batch.size, file_failed_count, file_error_count, duration)
 
-      success ? 0 : 1
+      success ? 0 : (file_failed_count || 1)
     end
 
     def execute_rspec_mode

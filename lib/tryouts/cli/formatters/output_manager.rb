@@ -44,9 +44,9 @@ class Tryouts
         @formatter.file_execution_start(file_path, test_count, context_mode)
       end
 
-      def file_success(file_path, total_tests, failed_count, elapsed_time)
+      def file_success(file_path, total_tests, failed_count, error_count, elapsed_time)
         with_indent(1) do
-          @formatter.file_result(file_path, total_tests, failed_count, elapsed_time)
+          @formatter.file_result(file_path, total_tests, failed_count, error_count, elapsed_time)
         end
       end
 

@@ -45,17 +45,23 @@ class Tryouts
         puts "#{pretty_path}: #{test_count} tests"
       end
 
-      def file_result(_file_path, total_tests, failed_count, elapsed_time)
+      def file_result(_file_path, total_tests, failed_count, error_count, elapsed_time)
+        detail = []
         if failed_count > 0
           status = Console.color(:red, '✗')
-          detail = "#{failed_count}/#{total_tests} failed"
+          detail << "#{failed_count}/#{total_tests} failed"
         else
           status = Console.color(:green, '✓')
-          detail = "#{total_tests} passed"
+          detail << "#{total_tests} passed"
+        end
+
+        if error_count > 0
+          status = Console.color(:yellow, '⚠') if failed_count == 0
+          detail << "#{error_count} errors"
         end
 
         time_str = elapsed_time ? " (#{elapsed_time.round(2)}s)" : ''
-        puts "  #{status} #{detail}#{time_str}"
+        puts "  #{status} #{detail.join(', ')}#{time_str}"
       end
 
       # Test-level operations - only show in debug mode for compact

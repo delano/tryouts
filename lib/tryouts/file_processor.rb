@@ -27,9 +27,10 @@ class Tryouts
       else
         execute_tests(testrun)
       end
+
     rescue TryoutSyntaxError => ex
       handle_syntax_error(ex)
-    rescue StandardError => ex
+    rescue StandardError, SystemStackError, LoadError, SecurityError, NoMemoryError => ex
       handle_general_error(ex)
     end
 

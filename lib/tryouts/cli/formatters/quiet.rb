@@ -29,7 +29,7 @@ class Tryouts
         # Silent in quiet mode
       end
 
-      def file_result(file_path, total_tests, failed_count, elapsed_time)
+      def file_result(file_path, total_tests, failed_count, error_count, elapsed_time)
         # Silent in quiet mode - results shown in batch_summary
       end
 

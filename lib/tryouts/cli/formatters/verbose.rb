@@ -59,12 +59,18 @@ class Tryouts
         puts indent_text(message, 1)
       end
 
-      def file_result(_file_path, total_tests, failed_count, elapsed_time)
-        status = if failed_count > 0
-          Console.color(:red, "✗ #{failed_count}/#{total_tests} tests failed")
+      def file_result(_file_path, total_tests, failed_count, error_count, elapsed_time)
+        issues_count = failed_count + error_count
+        details      = []
+
+        status = if issues_count > 0
+          details << "#{failed_count} failed" if failed_count > 0
+          details << "#{error_count} errors" if error_count > 0
+          details_str = details.join(', ')
+          Console.color(:red, "✗ #{issues_count}/#{total_tests} tests had issues (#{details_str})")
         else
           Console.color(:green, "✓ #{total_tests} tests passed")
-                 end
+        end
 
         puts indent_text(status, 2)
 

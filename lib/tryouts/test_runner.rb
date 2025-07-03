@@ -89,13 +89,17 @@ class Tryouts
     end
 
     def process_file(file)
-      FileProcessor.new(
+      file = FileProcessor.new(
         file: file,
         options: @options,
         output_manager: @output_manager,
         translator: @translator,
         global_tally: @global_tally,
-      ).process
+      )
+      file.process
+    rescue StandardError => ex
+      handle_file_error(ex)
+      1
     end
 
     def show_grand_total
@@ -107,6 +111,15 @@ class Tryouts
         @global_tally[:file_count],
         elapsed_time,
       )
+    end
+
+    def handle_file_error(exception)
+      @status       = :error
+      Tryouts.debug "TestRunner#process_file: An error occurred processing #{file}: #{ex.message}"
+      error_message = "Batch execution failed: #{exception.message}"
+      backtrace     = exception.respond_to?(:backtrace) ? exception.backtrace : nil
+
+      @output_manager&.error(error_message, backtrace)
     end
   end
 end

@@ -25,7 +25,7 @@ class Tryouts
         raise NotImplementedError, "#{self.class} must implement #file_execution_start"
       end
 
-      def file_result(file_path, total_tests, failed_count, elapsed_time)
+      def file_result(file_path, total_tests, failed_count, error_count, elapsed_time)
         raise NotImplementedError, "#{self.class} must implement #file_result"
       end
 
