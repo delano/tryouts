@@ -34,8 +34,11 @@ jobs:
           bundler: ${{ matrix.bundler }}
           bundler-cache: true
 
+      - name: Configure bundle groups
+        run: bundle config set --local with 'test development'
+
       - name: Install dependencies
-        run: bundle install --with test development
+        run: bundle install
 
       - name: Run tryouts (-V)
         run: ruby exe/try -V
