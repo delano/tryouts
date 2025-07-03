@@ -1,7 +1,7 @@
 #!/usr/bin/env ruby
 # test_context_modes.rb
 
-require_relative 'lib/tryouts'
+require_relative '../lib/tryouts'
 
 test_file = 'try/proof1_try.rb'
 
