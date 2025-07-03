@@ -12,7 +12,7 @@ class Tryouts
       end
 
       # Phase-level output - silent
-      def phase_header(message, file_count = nil)
+      def phase_header(message, file_count = nil, level = nil)
         # Silent in quiet mode
       end
 
@@ -85,14 +85,18 @@ class Tryouts
         end
       end
 
-      def grand_total(total_tests, failed_count, successful_files, total_files, elapsed_time)
+      def grand_total(total_tests, failed_count, error_count, successful_files, total_files, elapsed_time)
         return unless @show_final_summary
 
         puts
 
-        if failed_count > 0
-          passed = total_tests - failed_count
-          puts Console.color(:red, "Total: #{failed_count} failed, #{passed} passed (#{elapsed_time.round(2)}s)")
+        issues_count = failed_count + error_count
+        if issues_count > 0
+          passed = total_tests - issues_count
+          details = []
+          details << "#{failed_count} failed" if failed_count > 0
+          details << "#{error_count} errors" if error_count > 0
+          puts Console.color(:red, "Total: #{details.join(', ')}, #{passed} passed (#{elapsed_time.round(2)}s)")
         else
           puts Console.color(:green, "Total: #{total_tests} passed (#{elapsed_time.round(2)}s)")
         end

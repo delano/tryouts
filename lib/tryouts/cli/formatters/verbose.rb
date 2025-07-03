@@ -16,15 +16,24 @@ class Tryouts
 
       # Phase-level output
       def phase_header(message, _file_count = nil, level = 0)
-        separator_line = '=' * @line_width
-        header_line    = message.center(@line_width)
-
-        output = [
-          '',
-          separator_line,
-          header_line,
-          separator_line,
+        separators = [
+          { char: '=', width: 60 },      # Major phases
+          { char: '-', width: 50 },      # Sub-phases
+          { char: '.', width: 40 },      # Details
+          { char: '~', width: 30 },      # Minor items
         ]
+
+        config = separators[level] || separators.last
+
+        separator_line = config[:char] * config[:width]
+        header_line    = message.center(config[:width])
+
+        output = case level
+        when 0
+          ['', separator_line, header_line, separator_line]
+        else
+          ['', header_line, separator_line]
+        end
 
         with_indent(level) do
           puts output.join("\n")
@@ -163,14 +172,18 @@ class Tryouts
         puts summary
       end
 
-      def grand_total(total_tests, failed_count, successful_files, total_files, elapsed_time)
+      def grand_total(total_tests, failed_count, error_count, successful_files, total_files, elapsed_time)
         puts
         puts '=' * @line_width
         puts 'Grand Total:'
 
-        if failed_count > 0
-          passed = total_tests - failed_count
-          puts "#{failed_count} failed, #{passed} passed (#{elapsed_time.round(2)}s)"
+        issues_count = failed_count + error_count
+        if issues_count > 0
+          passed  = total_tests - issues_count
+          details = []
+          details << "#{failed_count} failed" if failed_count > 0
+          details << "#{error_count} errors" if error_count > 0
+          puts "#{details.join(', ')}, #{passed} passed (#{elapsed_time.round(2)}s)"
         else
           puts "#{total_tests} tests passed (#{elapsed_time.round(2)}s)"
         end
@@ -290,18 +303,6 @@ class Tryouts
         ].join("\n")
       end
 
-      def indent_text(text, level)
-        indent = '  ' * level
-        "#{indent}#{text}"
-      end
-
-      def with_indent(level)
-        old_indent      = @current_indent
-        @current_indent = level
-        yield
-      ensure
-        @current_indent = old_indent
-      end
     end
 
     # Verbose formatter that only shows failures and errors

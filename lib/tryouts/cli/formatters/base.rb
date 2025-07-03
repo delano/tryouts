@@ -8,7 +8,7 @@ class Tryouts
     # Enhanced interface for all test output formatting
     module FormatterInterface
       # Phase-level output (major sections)
-      def phase_header(message, file_count = nil)
+      def phase_header(message, file_count = nil, level = 0)
         raise NotImplementedError, "#{self.class} must implement #phase_header"
       end
 
@@ -60,7 +60,7 @@ class Tryouts
         raise NotImplementedError, "#{self.class} must implement #batch_summary"
       end
 
-      def grand_total(total_tests, failed_count, successful_files, total_files, elapsed_time)
+      def grand_total(total_tests, failed_count, error_count, successful_files, total_files, elapsed_time)
         raise NotImplementedError, "#{self.class} must implement #grand_total"
       end
 
@@ -84,6 +84,19 @@ class Tryouts
 
       def separator(style = :light)
         raise NotImplementedError, "#{self.class} must implement #separator"
+      end
+
+      def indent_text(text, level)
+        indent = '  ' * level
+        "#{indent}#{text}"
+      end
+
+      def with_indent(level)
+        old_indent      = @current_indent
+        @current_indent = level
+        yield
+      ensure
+        @current_indent = old_indent
       end
     end
 

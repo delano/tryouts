@@ -49,9 +49,10 @@ class Tryouts
       end
 
       file_failed_count                 = test_results.count { |r| r[:status] == :failed }
-      file_error_count                 = test_results.count { |r| r[:status] == :error }
+      file_error_count                  = test_results.count { |r| r[:status] == :error }
       @global_tally[:total_tests]      += batch.size
       @global_tally[:total_failed]     += file_failed_count
+      @global_tally[:total_errors]     += file_error_count
       @global_tally[:successful_files] += 1 if success
 
       duration   = Time.now - @file_start

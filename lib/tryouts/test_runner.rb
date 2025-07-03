@@ -69,6 +69,7 @@ class Tryouts
       {
         total_tests: 0,
         total_failed: 0,
+        total_errors: 0,
         file_count: 0,
         start_time: Time.now,
         successful_files: 0,
@@ -107,6 +108,7 @@ class Tryouts
       @output_manager.grand_total(
         @global_tally[:total_tests],
         @global_tally[:total_failed],
+        @global_tally[:total_errors],
         @global_tally[:successful_files],
         @global_tally[:file_count],
         elapsed_time,

@@ -14,8 +14,12 @@ class Tryouts
       end
 
       # Phase-level output - minimal for compact mode
-      def phase_header(message, file_count = nil)
-        puts "#{message} (#{file_count})..."
+      def phase_header(message, file_count = nil, level = 0)
+        count_info = file_count ? " (#{file_count})" : ''
+        text       = "#{message}#{count_info}..."
+
+        puts
+        puts indent_text(text, level)
       end
 
       # File-level operations - compact single lines
@@ -142,13 +146,17 @@ class Tryouts
         puts "#{message}#{time_str}"
       end
 
-      def grand_total(total_tests, failed_count, successful_files, total_files, elapsed_time)
+      def grand_total(total_tests, failed_count, error_count, successful_files, total_files, elapsed_time)
         puts
         puts '=' * 50
 
-        if failed_count > 0
-          passed = total_tests - failed_count
-          result = Console.color(:red, "#{failed_count} failed, #{passed} passed")
+        issues_count = failed_count + error_count
+        if issues_count > 0
+          passed  = total_tests - issues_count
+          details = []
+          details << "#{failed_count} failed" if failed_count > 0
+          details << "#{error_count} errors" if error_count > 0
+          result  = Console.color(:red, "#{details.join(', ')}, #{passed} passed")
         else
           result = Console.color(:green, "#{total_tests} tests passed")
         end
