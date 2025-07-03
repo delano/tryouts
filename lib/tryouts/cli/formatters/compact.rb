@@ -7,29 +7,29 @@ class Tryouts
       include FormatterInterface
 
       def initialize(options = {})
-        @show_file_headers = options.fetch(:show_file_headers, false)
         @show_debug        = options.fetch(:debug, false)
         @show_trace        = options.fetch(:trace, false)
         @show_passed       = options.fetch(:show_passed, true)
       end
 
       # Phase-level output - minimal for compact mode
-      def phase_header(message, file_count = nil, level = 0)
-        count_info = file_count ? " (#{file_count})" : ''
-        text       = "#{message}#{count_info}..."
+      def phase_header(message, _file_count = nil, level = 0)
+        # Skip execution phase headers in compact mode - they create unwanted empty lines
+        return if level >= 1
 
-        puts
+        text       = "#{message}..."
         puts indent_text(text, level)
       end
 
       # File-level operations - compact single lines
       def file_start(file_path, context_info = {})
-        return unless @show_file_headers
+        return unless @show_debug
 
         framework   = context_info[:framework] || :direct
         context     = context_info[:context] || :fresh
         pretty_path = Console.pretty_path(file_path)
-        puts "Running: #{pretty_path} (#{framework}/#{context})"
+
+        puts indent_text("Running: #{pretty_path} (#{framework}/#{context})", 1)
       end
 
       def file_parsed(_file_path, test_count, setup_present: false, teardown_present: false)
@@ -41,11 +41,12 @@ class Tryouts
         extras << 'teardown' if teardown_present
         suffix = extras.empty? ? '' : " +#{extras.join(',')}"
 
-        puts "  Parsed #{test_count} tests#{suffix}"
+        puts indent_text("Parsed #{test_count} tests#{suffix}", 1)
       end
 
       def file_execution_start(file_path, test_count, _context_mode)
         pretty_path = Console.pretty_path(file_path)
+        puts
         puts "#{pretty_path}: #{test_count} tests"
       end
 
@@ -99,7 +100,7 @@ class Tryouts
           status = '?'
         end
 
-        puts "    #{status} #{desc}"
+        puts indent_text("#{status} #{desc}", 1)
       end
 
       def test_output(test_case, output_text)
@@ -121,9 +122,7 @@ class Tryouts
 
       # Setup/teardown operations - minimal output
       def setup_start(_line_range)
-        return unless @show_debug
-
-        puts '    Setup...'
+        # No file setup start output for compact
       end
 
       def setup_output(output_text)
@@ -152,15 +151,7 @@ class Tryouts
 
       # Summary operations
       def batch_summary(total_tests, failed_count, elapsed_time)
-        if failed_count > 0
-          passed  = total_tests - failed_count
-          message = Console.color(:red, "#{failed_count} failed, #{passed} passed")
-        else
-          message = Console.color(:green, "#{total_tests} tests passed")
-        end
-
-        time_str = elapsed_time ? " (#{elapsed_time.round(2)}s)" : ''
-        puts "#{message}#{time_str}"
+        # Skip - file_result already shows this information with better alignment
       end
 
       def grand_total(total_tests, failed_count, error_count, successful_files, total_files, elapsed_time)
@@ -179,22 +170,20 @@ class Tryouts
         end
 
         puts "Total: #{result} (#{elapsed_time.round(2)}s)"
-        puts "Files: #{successful_files}/#{total_files} successful"
+        puts "Files: #{successful_files} of #{total_files} successful"
       end
 
       # Debug and diagnostic output - minimal in compact mode
       def debug_info(message, level = 0)
         return unless @show_debug
 
-        indent = '  ' * level
-        puts "#{indent}DEBUG: #{message}"
+        puts indent_text("DEBUG: #{message}", level)
       end
 
       def trace_info(message, level = 0)
         return unless @show_trace
 
-        indent = '  ' * level
-        puts "#{indent}TRACE: #{message}"
+        puts indent_text("TRACE: #{message}", level)
       end
 
       def error_message(message, backtrace = nil)

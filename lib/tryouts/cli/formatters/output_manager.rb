@@ -2,7 +2,6 @@
 
 class Tryouts
   class CLI
-
     # Output manager that coordinates all output through formatters
     class OutputManager
       attr_reader :formatter
@@ -137,6 +136,5 @@ class Tryouts
         @indent_level = old_level
       end
     end
-
   end
 end

@@ -56,7 +56,7 @@ class Tryouts
       @global_tally[:total_errors]     += file_error_count
       @global_tally[:successful_files] += 1 if success
 
-      duration   = Time.now - @file_start
+      duration = Time.now - @file_start
       @output_manager.file_success(@file, batch.size, file_failed_count, file_error_count, duration)
 
       success ? 0 : (file_failed_count || 1)

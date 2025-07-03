@@ -67,7 +67,6 @@ class Tryouts
             Tryouts.debug   = true
           end
           opts.on('-h', '--help', 'Show this help') do
-            Tryouts.trace 'Help flag detected. Showing help and exiting.'
             puts opts
             exit 0
           end

@@ -9,6 +9,7 @@ class Tryouts
       def initialize(options = {})
         @show_errors        = options.fetch(:show_errors, true)
         @show_final_summary = options.fetch(:show_final_summary, true)
+        @current_file       = nil
       end
 
       # Phase-level output - silent
@@ -26,7 +27,7 @@ class Tryouts
       end
 
       def file_execution_start(file_path, test_count, context_mode)
-        # Silent in quiet mode
+        @current_file = file_path
       end
 
       def file_result(file_path, total_tests, failed_count, error_count, elapsed_time)
@@ -44,6 +45,8 @@ class Tryouts
           print Console.color(:green, '.')
         when :failed
           print Console.color(:red, 'F')
+        when :error
+          print Console.color(:red, 'E')
         when :skipped
           print Console.color(:yellow, 'S')
         else
@@ -83,10 +86,10 @@ class Tryouts
         if failed_count > 0
           passed   = total_tests - failed_count
           time_str = elapsed_time ? " (#{elapsed_time.round(2)}s)" : ''
-          puts Console.color(:red, "#{failed_count} failed, #{passed} passed#{time_str}")
+          puts "#{failed_count} failed, #{passed} passed#{time_str}"
         else
           time_str = elapsed_time ? " (#{elapsed_time.round(2)}s)" : ''
-          puts Console.color(:green, "#{total_tests} passed#{time_str}")
+          puts "#{total_tests} passed#{time_str}"
         end
       end
 
@@ -107,7 +110,7 @@ class Tryouts
         end
 
         if total_files > 1
-          puts "Files: #{successful_files}/#{total_files} successful"
+          puts "Files: #{successful_files} of #{total_files} successful"
         end
       end
 

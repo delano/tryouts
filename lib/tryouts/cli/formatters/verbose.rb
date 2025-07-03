@@ -17,10 +17,10 @@ class Tryouts
       # Phase-level output
       def phase_header(message, _file_count = nil, level = 0)
         separators = [
-          { char: '=', width: 60 },      # Major phases
-          { char: '-', width: 50 },      # Sub-phases
-          { char: '.', width: 40 },      # Details
-          { char: '~', width: 30 },      # Minor items
+          { char: '=', width: @line_width },      # Major phases
+          { char: '-', width: @line_width - 10 }, # Sub-phases
+          { char: '.', width: @line_width - 20 }, # Details
+          { char: '~', width: @line_width - 30 }, # Minor items
         ]
 
         config = separators[level] || separators.last
@@ -29,7 +29,7 @@ class Tryouts
         header_line    = message.center(config[:width])
 
         output = case level
-        when 0
+        when 0, 1
           ['', separator_line, header_line, separator_line]
         else
           ['', header_line, separator_line]
@@ -38,17 +38,18 @@ class Tryouts
         with_indent(level) do
           puts output.join("\n")
         end
+        puts
       end
 
       # File-level operations
-      def file_start(file_path, context_info = {})
-        framework = context_info[:framework] || :direct
-        context   = context_info[:context] || :fresh
+      def file_start(file_path, _context_info = {})
+        # framework = context_info[:framework] || :direct
+        # context   = context_info[:context] || :fresh
 
-        with_indent(1) do
-          puts "Framework: #{framework}"
-          puts "Context: #{context}"
-        end
+        # with_indent(1) do
+        #   puts "Framework: #{framework}"
+        #   puts "Context: #{context}"
+        # end
 
         puts file_header_visual(file_path)
       end
@@ -202,7 +203,7 @@ class Tryouts
           puts "#{total_tests} tests passed (#{elapsed_time.round(2)}s)"
         end
 
-        puts "Files processed: #{successful_files}/#{total_files} successful"
+        puts "Files processed: #{successful_files} of #{total_files} successful"
         puts '=' * @line_width
       end
 
@@ -225,14 +226,14 @@ class Tryouts
         error_msg = Console.color(:red, "ERROR: #{message}")
         puts indent_text(error_msg, 1)
 
-        if backtrace && @show_debug
-          puts indent_text('Details:', 2)
-          # Show first 10 lines of backtrace to avoid overwhelming output
-          backtrace.first(10).each do |line|
-            puts indent_text(line, 3)
-          end
-          puts indent_text("... (#{backtrace.length - 10} more lines)", 3) if backtrace.length > 10
+        return unless backtrace && @show_debug
+
+        puts indent_text('Details:', 2)
+        # Show first 10 lines of backtrace to avoid overwhelming output
+        backtrace.first(10).each do |line|
+          puts indent_text(line, 3)
         end
+        puts indent_text("... (#{backtrace.length - 10} more lines)", 3) if backtrace.length > 10
       end
 
       # Utility methods

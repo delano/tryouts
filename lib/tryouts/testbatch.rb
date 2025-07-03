@@ -40,13 +40,7 @@ class Tryouts
       execution_results = test_cases.map do |test_case|
         @output_manager&.trace("Test #{idx + 1}/#{test_cases.size}: #{test_case.description}", 2)
         idx                     += 1
-        result                   = nil
-
-        captured_output          = capture_output do
-          result = execute_single_test(test_case, before_test_hook, &) # runs the test code
-        end
-
-        result[:captured_output] = captured_output unless captured_output.to_s.empty?
+        result                   = execute_single_test(test_case, before_test_hook, &) # runs the test code
         result
       end
 
