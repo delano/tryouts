@@ -37,17 +37,17 @@ jobs:
       - name: Run tryouts (-V)
         run: ruby exe/try -V
 
-      - name: Run tryouts (default)
-        run: ruby exe/try
-
       - name: Run tryouts (-v)
         run: ruby exe/try -v
+
+      - name: Run tryouts (-D)
+        run: ruby exe/try -D
 
       - name: Run tryouts (-vf)
         run: ruby exe/try -vf
 
+      - name: Run tryouts (default)
+        run: ruby exe/try
+
       - name: Run tryouts (-q)
         run: ruby exe/try -q
-
-      - name: Run tryouts (-D)
-        run: ruby exe/try -D
