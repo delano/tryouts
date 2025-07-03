@@ -43,7 +43,7 @@ GIT
 PATH
   remote: .
   specs:
-    tryouts (3.0.0)
+    tryouts (3.0.0.pre)
       minitest
       rspec
       sysinfo
