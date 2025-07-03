@@ -266,8 +266,9 @@ class Tryouts
           line_num     = start_line + index
           line_display = format('%3d: %s', line_num + 1, line_content)
 
-          # Highlight expectation lines
-          if test_case.expectations.any? { |exp| line_content.include?(exp) }
+          # Highlight expectation lines by checking if this line
+          # contains the expectation syntax
+          if line_content.match?(/^\s*#\s*=>\s*/)
             line_display = Console.color(:yellow, line_display)
           end
 
