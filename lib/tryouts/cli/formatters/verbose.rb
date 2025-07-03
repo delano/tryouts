@@ -10,12 +10,14 @@ class Tryouts
         @line_width     = options.fetch(:line_width, 70)
         @show_passed    = options.fetch(:show_passed, true)
         @show_debug     = options.fetch(:debug, false)
-        @show_trace     = options.fetch(:trace, true)
+        @show_trace     = options.fetch(:trace, false)
         @current_indent = 0
       end
 
       # Phase-level output
       def phase_header(message, _file_count = nil, level = 0)
+        return if level.equal?(1)
+
         separators = [
           { char: '=', width: @line_width },      # Major phases
           { char: '-', width: @line_width - 10 }, # Sub-phases
@@ -55,8 +57,7 @@ class Tryouts
       end
 
       def file_parsed(file_path, test_count, setup_present: false, teardown_present: false)
-        pretty_path = Console.pretty_path(file_path)
-        message     = "Parsed #{test_count} test cases from #{pretty_path}"
+        message = ''
 
         extras   = []
         extras << 'setup' if setup_present
