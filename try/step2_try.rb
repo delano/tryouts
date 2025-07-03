@@ -1,4 +1,4 @@
-# frozen_string_literal: true
+# try/step2_try.rb
 
 puts 'if you can see this, step2 setup succeeded'
 
@@ -44,5 +44,4 @@ phrase_template = '%s %d %s'
 phrase = format(phrase_template, 'foo', 1, 'bar')
 
 # another comment
-
 #=> 'foo 1 bar'

@@ -1,4 +1,6 @@
-# frozen_string_literal: true
+# lib/tryouts/console.rb
+
+require 'pathname'
 
 class Tryouts
   module Console
@@ -12,7 +14,7 @@ class Tryouts
         blink: 5,
         reverse: 7,
         hidden: 8,
-        default: 0
+        default: 0,
       }.freeze
     end
 
@@ -28,7 +30,7 @@ class Tryouts
         cyan: 36,
         white: 37,
         default: 39,
-        random: 30 + rand(10).to_i
+        random: 30 + rand(10).to_i,
       }.freeze
     end
 
@@ -44,7 +46,7 @@ class Tryouts
         cyan: 46,
         white: 47,
         default: 49,
-        random: 40 + rand(10).to_i
+        random: 40 + rand(10).to_i,
       }.freeze
     end
 
@@ -73,50 +75,63 @@ class Tryouts
         Console.bgcolor(col, self)
       end
     end
+    class << self
+      def bright(str)
+        str = [style(ATTRIBUTES[:bright]), str, default_style].join
+        str.extend Console::InstanceMethods
+        str
+      end
 
-    def self.bright(str)
-      str = [style(ATTRIBUTES[:bright]), str, default_style].join
-      str.extend Console::InstanceMethods
-      str
-    end
+      def underline(str)
+        str = [style(ATTRIBUTES[:underline]), str, default_style].join
+        str.extend Console::InstanceMethods
+        str
+      end
 
-    def self.underline(str)
-      str = [style(ATTRIBUTES[:underline]), str, default_style].join
-      str.extend Console::InstanceMethods
-      str
-    end
+      def reverse(str)
+        str = [style(ATTRIBUTES[:reverse]), str, default_style].join
+        str.extend Console::InstanceMethods
+        str
+      end
 
-    def self.reverse(str)
-      str = [style(ATTRIBUTES[:reverse]), str, default_style].join
-      str.extend Console::InstanceMethods
-      str
-    end
+      def color(col, str)
+        str = [style(COLOURS[col]), str, default_style].join
+        str.extend Console::InstanceMethods
+        str
+      end
 
-    def self.color(col, str)
-      str = [style(COLOURS[col]), str, default_style].join
-      str.extend Console::InstanceMethods
-      str
-    end
+      def att(name, str)
+        str = [style(ATTRIBUTES[name]), str, default_style].join
+        str.extend Console::InstanceMethods
+        str
+      end
 
-    def self.att(name, str)
-      str = [style(ATTRIBUTES[name]), str, default_style].join
-      str.extend Console::InstanceMethods
-      str
-    end
+      def bgcolor(col, str)
+        str = [style(ATTRIBUTES[col]), str, default_style].join
+        str.extend Console::InstanceMethods
+        str
+      end
 
-    def self.bgcolor(col, str)
-      str = [style(ATTRIBUTES[col]), str, default_style].join
-      str.extend Console::InstanceMethods
-      str
-    end
+      def style(*att)
+        # => \e[8;34;42m
+        "\e[%sm" % att.join(';')
+      end
 
-    def self.style(*att)
-      # => \e[8;34;42m
-      "\e[%sm" % att.join(';')
-    end
+      def default_style
+        style(ATTRIBUTES[:default], COLOURS[:default], BGCOLOURS[:default])
+      end
 
-    def self.default_style
-      style(ATTRIBUTES[:default], ATTRIBUTES[:COLOURS], ATTRIBUTES[:BGCOLOURS])
+      # Converts an absolute file path to a path relative to the application's
+      # base directory. This simplifies logging and error reporting by showing
+      # only the relevant parts of file paths instead of lengthy absolute paths.
+      #
+      def pretty_path(file)
+        return nil if file.nil?
+
+        file     = File.expand_path(file) # be absolutely sure
+        basepath = File.expand_path('..', TRYOUTS_LIB_HOME)
+        Pathname.new(file).relative_path_from(basepath).to_s
+      end
     end
   end
 end

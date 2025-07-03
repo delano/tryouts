@@ -1,0 +1,53 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+
+  pull_request:
+
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    timeout-minutes: 10 # prevent hung jobs
+
+    runs-on: ubuntu-latest
+    name: Ruby ${{ matrix.ruby }}
+    strategy:
+      fail-fast: true
+      matrix:
+        ruby: ["3.4", "3.5"]
+        continue-on-error: [false]
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ matrix.ruby }}
+          rubygems: ${{ matrix.rubygems }}
+          bundler: ${{ matrix.bundler }}
+          bundler-cache: true
+
+      - name: Run tryouts (-V)
+        run: ruby exe/try -V
+
+      - name: Run tryouts (default)
+        run: ruby exe/try
+
+      - name: Run tryouts (-v)
+        run: ruby exe/try -v
+
+      - name: Run tryouts (-vf)
+        run: ruby exe/try -vf
+
+      - name: Run tryouts (-q)
+        run: ruby exe/try -q
+
+      - name: Run tryouts (-D)
+        run: ruby exe/try -D

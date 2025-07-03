@@ -1,4 +1,6 @@
-# frozen_string_literal: true
+# try/step1_try.rb
+
+puts 'If you see this the setup ran correctly.'
 
 # TEST 1: test matches result with expectation
 a = 1 + 1

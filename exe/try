@@ -1,51 +1,27 @@
-#!/usr/bin/env ruby
+#!/usr/bin/env /Users/d/.rbenv/shims/ruby
 
-require 'optparse'
 require_relative '../lib/tryouts'
 
-# Adding local lib directories allows the test files
-# to require the ruby code they are testing without
-# needing even if the files use regular requires. It
-# skips the test files from having to muck with the
-# load path or use `require_relative` which is easy
-# to forget. This is a convenience feature.
-#
-# Here we're looking for directories relative to the
-# current working directory (i.e. where this script
-# is being run from.
+# Add development library paths
 lib_glob = File.join(Dir.pwd, '{lib,../lib,.}')
-Tryouts.update_load_path(lib_glob)
+Tryouts.update_load_path(lib_glob) if Tryouts.respond_to?(:update_load_path)
 
-# Parse command-line arguments
-OptionParser.new do |opts|
-  opts.on('-V', '--version', 'Display the version') do
-    puts "Tryouts: #{Tryouts::VERSION}"
-    exit
+# Parse args and run CLI
+begin
+  files, options = Tryouts::CLI.parse_args(ARGV)
+
+  # Default file discovery if no files specified
+  if files.empty?
+    files = Dir.glob(
+      ['./{try,tryouts,.}/*_try.rb'],
+      base: Dir.pwd,
+    ).sort
   end
-  opts.on('-q', '--quiet', 'Run in quiet mode') { Tryouts.quiet = true }
-  opts.on('-v', '--verbose', 'Run in verbose mode') { Tryouts.noisy = true }
-  opts.on('-f', '--fails', 'Show only failing tryouts') { Tryouts.fails = true }
-  opts.on('-D', '--debug', 'Run in debug mode') { Tryouts.debug = true }
-  opts.on('-h', '--help', 'Display this help') do
-    puts opts
-    exit
-  end
-end.parse!
 
-# Find tryouts path with a path glob unless thin
-# script was called with arguments in which case
-# we consume those as a list of paths.
-paths = if ARGV.empty?
-          Dir.glob(
-            ['./{try,tryouts/,.}/*_{try,tryouts}.rb'],
-            base: Dir.pwd
-          ).sort # deterministic order
-
-        else
-          ARGV
-        end
-
-# Running the tryouts returns the number of
-# test failures so here we pass that value
-# through as the exit code for the script.
-exit Tryouts.run_all(*paths)
+  cli = Tryouts::CLI.new
+  exit cli.run(files, **options)
+rescue StandardError => ex
+  warn "Error: #{ex.message}"
+  warn ex.backtrace.join("\n") if options[:debug]
+  exit 1
+end
