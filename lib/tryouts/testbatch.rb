@@ -169,7 +169,7 @@ class Tryouts
       {
         passed: false,
         actual: actual_result,
-        expected: "ERROR: #{ex.message}",
+        expected: "EXPECTED: #{ex.message}",
         expectation: expectation,
       }
     end
@@ -200,7 +200,7 @@ class Tryouts
         test_case: test_case,
         status: :error,
         result_value: nil,
-        actual_results: ["ERROR: #{message}"],
+        actual_results: ["ACTUAL: #{message}"],
         error: exception,
       }
     end
@@ -296,7 +296,7 @@ class Tryouts
       @failed_count = 1
 
       error_message = "Batch execution failed: #{exception.message}"
-      backtrace     = exception.respond_to?(:backtrace) ? exception.backtrace.join($/) : nil
+      backtrace     = exception.respond_to?(:backtrace) ? exception.backtrace : nil
 
       @output_manager&.error(error_message, backtrace)
     end

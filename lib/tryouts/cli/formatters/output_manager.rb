@@ -50,9 +50,9 @@ class Tryouts
         end
       end
 
-      def file_failure(file_path, error_message, error_details = nil)
+      def file_failure(file_path, error_message, backtrace = nil)
         with_indent(1) do
-          @formatter.error_message("#{Console.pretty_path(file_path)}: #{error_message}", error_details)
+          @formatter.error_message("#{Console.pretty_path(file_path)}: #{error_message}", backtrace)
         end
       end
 

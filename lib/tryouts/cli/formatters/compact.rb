@@ -166,12 +166,12 @@ class Tryouts
         puts "#{indent}TRACE: #{message}"
       end
 
-      def error_message(message, details = nil)
+      def error_message(message, backtrace = nil)
         puts Console.color(:red, "ERROR: #{message}")
 
-        return unless details && @show_debug
+        return unless backtrace && @show_debug
 
-        details.lines.first(3).each do |line|
+        backtrace.first(3).each do |line|
           puts "  #{line.chomp}"
         end
       end
