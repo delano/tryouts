@@ -3,6 +3,8 @@
 # Coverage tracking (must be first)
 if ENV['COVERAGE'] || ENV['SIMPLECOV']
   require 'simplecov'
+  # Reset any existing coverage data to prevent line count mismatches
+  Coverage.result(stop: false, clear: true) if defined?(Coverage)
   SimpleCov.start do
     track_files 'lib/**/*.rb'
     add_filter '/try/'
