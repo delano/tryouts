@@ -59,7 +59,8 @@ class Tryouts
       duration = Time.now - @file_start
       @output_manager.file_success(@file, batch.size, file_failed_count, file_error_count, duration)
 
-      success ? 0 : (file_failed_count || 1)
+      # Combine failures and errors to determine the exit code.
+      success ? 0 : (file_failed_count + file_error_count)
     end
 
     def execute_rspec_mode
