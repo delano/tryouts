@@ -39,10 +39,10 @@ class Tryouts
       )
 
       # TestBatch handles file output, so don't duplicate it here
-      # unless @options[:verbose]
-      #   context_mode = @options[:shared_context] ? 'shared' : 'fresh'
-      #   @output_manager.file_execution_start(@file, @testrun.total_tests, context_mode)
-      # end
+      unless @options[:verbose]
+        context_mode = @options[:shared_context] ? 'shared' : 'fresh'
+        @output_manager.file_execution_start(@file, @testrun.total_tests, context_mode)
+      end
 
       test_results = []
       success      = batch.run do

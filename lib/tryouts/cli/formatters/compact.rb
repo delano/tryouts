@@ -23,10 +23,7 @@ class Tryouts
 
       # File-level operations - compact single lines
       def file_start(file_path, _context_info = {}, io = $stderr)
-        pretty_path = Console.pretty_path(file_path)
-
-        io.puts
-        io.puts indent_text("#{pretty_path}", 0)
+        # See file_execution_start
       end
 
       def file_end(file_path, context_info = {}, io = $stderr)
