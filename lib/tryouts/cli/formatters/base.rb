@@ -7,6 +7,9 @@ class Tryouts
   class CLI
     # Enhanced interface for all test output formatting
     module FormatterInterface
+
+      attr_reader :current_indent
+
       # Phase-level output (major sections)
       def phase_header(message, file_count = nil, level = 0, io = $stdout)
         raise NotImplementedError, "#{self.class} must implement #phase_header"
@@ -98,8 +101,9 @@ class Tryouts
         raise NotImplementedError, "#{self.class} must implement #separator"
       end
 
-      def indent_text(text, level)
-        indent = '  ' * level
+      def indent_text(text, level = nil)
+        level ||= current_indent || 0
+        indent  = '  ' * level
         "#{indent}#{text}"
       end
 

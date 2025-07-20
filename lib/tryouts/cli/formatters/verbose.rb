@@ -49,7 +49,7 @@ class Tryouts
       end
 
       def file_end(_file_path, _context_info = {})
-        puts # separator
+        # No output in verbose mode
       end
 
       def file_parsed(_file_path, _test_count, setup_present: false, teardown_present: false)
@@ -68,20 +68,35 @@ class Tryouts
         puts indent_text(message, 1)
       end
 
+      # Summary operations
+      #
+      # Called right before file_result
+      def batch_summary(total_tests, failed_count, elapsed_time)
+        # No output in verbose mode
+      end
+
       def file_result(_file_path, total_tests, failed_count, error_count, elapsed_time)
         issues_count = failed_count + error_count
-        details      = []
+        passed_count  = total_tests - issues_count
+        details      = [
+          "#{passed_count} passed",
+        ]
 
-        status = if issues_count > 0
+        if issues_count > 0
           details << "#{failed_count} failed" if failed_count > 0
           details << "#{error_count} errors" if error_count > 0
           details_str = details.join(', ')
-          Console.color(:red, "✗ #{issues_count}/#{total_tests} tests had issues (#{details_str})")
+          color       = :red
+
+          time_str = elapsed_time ? " (#{elapsed_time.round(2)}s)" : ''
+          message = "✗ Out of #{total_tests} tests: #{details_str}#{time_str}"
+          puts indent_text(Console.color(color, message), 2)
         else
-          Console.color(:green, "✓ #{total_tests} tests passed")
+          message = "#{total_tests} tests passed"
+          color   = :green
+          puts indent_text(Console.color(color, "✓ #{message}"), 2)
         end
 
-        puts indent_text(status, 2)
         return unless elapsed_time
 
         time_msg =
@@ -90,6 +105,7 @@ class Tryouts
           else
             "Completed in #{elapsed_time.round(3)}s"
           end
+
         puts indent_text(Console.color(:dim, time_msg), 2)
       end
 
@@ -102,7 +118,7 @@ class Tryouts
       end
 
       def test_end(_test_case, _index, _total)
-        puts
+        # No output in verbose mode
       end
 
       def test_result(test_case, result_status, actual_results = [], _elapsed_time = nil)
@@ -176,22 +192,6 @@ class Tryouts
         end
       end
 
-      # Summary operations
-      def batch_summary(total_tests, failed_count, elapsed_time)
-        if failed_count > 0
-          passed  = total_tests - failed_count
-          message = "#{failed_count} failed, #{passed} passed"
-          color   = :red
-        else
-          message = "#{total_tests} tests passed"
-          color   = :green
-        end
-
-        time_str = elapsed_time ? " (#{elapsed_time.round(2)}s)" : ''
-        summary  = Console.color(color, "#{message}#{time_str}")
-        puts summary
-      end
-
       def grand_total(total_tests, failed_count, error_count, successful_files, total_files, elapsed_time)
         puts
         puts '=' * @line_width
@@ -224,6 +224,7 @@ class Tryouts
         return unless @show_debug
 
         prefix = Console.color(:cyan, 'INFO ')
+        puts
         puts indent_text("#{prefix} #{message}", level + 1)
       end
 
@@ -291,8 +292,6 @@ class Tryouts
 
       def show_failure_details(test_case, actual_results)
         return if actual_results.empty?
-
-        puts indent_text('Expected vs Actual:', 3)
 
         actual_results.each_with_index do |actual, idx|
           expected_line = test_case.expectations[idx] if test_case.expectations
