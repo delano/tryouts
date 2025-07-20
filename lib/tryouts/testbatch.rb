@@ -131,7 +131,7 @@ class Tryouts
         build_test_result(test_case, result_value, expectations_result)
       end
     rescue StandardError => ex
-      build_error_result(test_case, ex.message, ex)
+      build_error_result(test_case, ex)
     end
 
     # Fresh context execution - setup runs per test, isolated state
@@ -160,7 +160,7 @@ class Tryouts
         build_test_result(test_case, result_value, expectations_result)
       end
     rescue StandardError => ex
-      build_error_result(test_case, ex.message, ex)
+      build_error_result(test_case, ex)
     end
 
     # Evaluate expectations using pattern matching for clean result handling
@@ -285,12 +285,13 @@ class Tryouts
       end
     end
 
-    def build_error_result(test_case, message, exception = nil)
+    def build_error_result(test_case, exception)
+      message = exception ? exception.message : '<exception is nil>'
       {
         test_case: test_case,
         status: :error,
         result_value: nil,
-        actual_results: ["ACTUAL: #{message}"],
+        actual_results: ["(#{exception.class}) #{message}"],
         error: exception,
       }
     end

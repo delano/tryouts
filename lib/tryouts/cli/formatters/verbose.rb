@@ -126,6 +126,8 @@ class Tryouts
 
         return unless should_show
 
+        puts
+
         status_line = case result_status
                       when :passed
           Console.color(:green, 'PASSED')
@@ -141,6 +143,7 @@ class Tryouts
 
         location = "#{Console.pretty_path(test_case.path)}:#{test_case.line_range.first + 1}"
         puts indent_text("#{status_line} #{test_case.description} @ #{location}", 2)
+        puts
 
         # Show source code for verbose mode
         show_test_source_code(test_case)
@@ -297,7 +300,7 @@ class Tryouts
           expected_line = test_case.expectations[idx] if test_case.expectations
 
           if expected_line
-            puts indent_text("Expected: #{Console.color(:green, expected_line)}", 4)
+            puts indent_text("Expected: #{Console.color(:green, expected_line.content)}", 4)
             puts indent_text("Actual:   #{Console.color(:red, actual.inspect)}", 4)
           else
             puts indent_text("Actual:   #{Console.color(:red, actual.inspect)}", 4)
