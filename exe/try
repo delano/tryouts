@@ -44,10 +44,14 @@ begin
 
   # Default file discovery if no files specified
   if files.empty?
-    files = Dir.glob(
-      './{app,apps,lib,try,tryouts,.}/**/*_try.rb',
+    raw_files = Dir.glob(
+      ['{app,apps,lib,try,tryouts}/**/*_try.rb', './*_try.rb'],
       base: Dir.pwd,
-    ).uniq.sort
+    )
+
+    # Normalize paths so that slight variations are ignored
+    # e.g. ./test_try.rb and ././test_try.rb
+    files     = raw_files.map { |f| File.expand_path(f, Dir.pwd) }.uniq.sort
   end
 
   cli = Tryouts::CLI.new
