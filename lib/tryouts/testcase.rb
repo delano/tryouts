@@ -31,6 +31,9 @@ class Tryouts
     def boolean? = type == :boolean
     def true? = type == :true
     def false? = type == :false
+    def result_type? = type == :result_type
+    def regex_match? = type == :regex_match
+    def performance_time? = type == :performance_time
   end
 
   Setup = Data.define(:code, :line_range, :path) do

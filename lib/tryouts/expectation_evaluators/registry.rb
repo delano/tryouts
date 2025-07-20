@@ -6,6 +6,9 @@ require_relative 'exception'
 require_relative 'boolean'
 require_relative 'true'
 require_relative 'false'
+require_relative 'result_type'
+require_relative 'regex_match'
+require_relative 'performance_time'
 
 class Tryouts
   module ExpectationEvaluators
@@ -50,6 +53,9 @@ class Tryouts
       register(Boolean)
       register(True)
       register(False)
+      register(ResultType)
+      register(RegexMatch)
+      register(PerformanceTime)
     end
   end
 end

@@ -166,13 +166,18 @@ class Tryouts
         expectations_result = evaluate_expectations(test_case, nil, container)
         build_test_result(test_case, nil, expectations_result)
       else
-        # Regular execution for non-exception tests
+        # Regular execution for non-exception tests with timing capture
         code  = test_case.code
         path  = test_case.path
         range = test_case.line_range
 
-        result_value        = container.instance_eval(code, path, range.first + 1)
-        expectations_result = evaluate_expectations(test_case, result_value, container)
+        # Capture execution timing in nanoseconds
+        execution_start_ns = Process.clock_gettime(Process::CLOCK_MONOTONIC, :nanosecond)
+        result_value = container.instance_eval(code, path, range.first + 1)
+        execution_end_ns = Process.clock_gettime(Process::CLOCK_MONOTONIC, :nanosecond)
+        execution_time_ns = execution_end_ns - execution_start_ns
+
+        expectations_result = evaluate_expectations(test_case, result_value, container, execution_time_ns)
 
         build_test_result(test_case, result_value, expectations_result)
       end
@@ -181,12 +186,18 @@ class Tryouts
     end
 
     # Evaluate expectations using new object-oriented evaluation system
-    def evaluate_expectations(test_case, actual_result, context)
+    def evaluate_expectations(test_case, actual_result, context, execution_time_ns = nil)
       return { passed: true, actual_results: [], expected_results: [] } if test_case.expectations.empty?
 
       evaluation_results = test_case.expectations.map do |expectation|
         evaluator = ExpectationEvaluators::Registry.evaluator_for(expectation, test_case, context)
-        evaluator.evaluate(actual_result)
+
+        # Pass execution time to performance evaluators
+        if expectation.performance_time? && execution_time_ns
+          evaluator.evaluate(actual_result, execution_time_ns)
+        else
+          evaluator.evaluate(actual_result)
+        end
       end
 
       aggregate_evaluation_results(evaluation_results)

@@ -41,6 +41,12 @@ class Tryouts
                   { type: :false_expectation, content: $1.strip, line: index, ast: parse_expectation($1.strip) }
                 in /^#\s*=\|>\s*(.*)$/ # Boolean (true or false) expectation
                   { type: :boolean_expectation, content: $1.strip, line: index, ast: parse_expectation($1.strip) }
+                in /^#\s*=:>\s*(.*)$/ # Result type expectation
+                  { type: :result_type_expectation, content: $1.strip, line: index, ast: parse_expectation($1.strip) }
+                in /^#\s*=~>\s*(.*)$/ # Regex match expectation
+                  { type: :regex_match_expectation, content: $1.strip, line: index, ast: parse_expectation($1.strip) }
+                in /^#\s*=%>\s*(.*)$/ # Performance time expectation
+                  { type: :performance_time_expectation, content: $1.strip, line: index, ast: parse_expectation($1.strip) }
                 in /^#\s*=>\s*(.*)$/ # Regular expectation
                   { type: :expectation, content: $1.strip, line: index, ast: parse_expectation($1.strip) }
                 in /^##\s*=>\s*(.*)$/ # Commented out expectation (should be ignored)
@@ -130,6 +136,15 @@ class Tryouts
           current_block[:expectations] << token
 
         in [_, { type: :boolean_expectation }]
+          current_block[:expectations] << token
+
+        in [_, { type: :result_type_expectation }]
+          current_block[:expectations] << token
+
+        in [_, { type: :regex_match_expectation }]
+          current_block[:expectations] << token
+
+        in [_, { type: :performance_time_expectation }]
           current_block[:expectations] << token
 
         in [_, { type: :comment | :blank }]
@@ -313,6 +328,9 @@ class Tryouts
                    when :true_expectation then :true
                    when :false_expectation then :false
                    when :boolean_expectation then :boolean
+                   when :result_type_expectation then :result_type
+                   when :regex_match_expectation then :regex_match
+                   when :performance_time_expectation then :performance_time
                    else :regular
                    end
             Expectation.new(content: token[:content], type: type)
