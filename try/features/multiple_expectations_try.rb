@@ -1,23 +1,22 @@
 # try/features/multiple_expectations_try.rb
 
-## TEST: Multiple expectations with smart detection
-a = [1, 2, 3]
+## TEST: Returns an array, has multiple expectations
+[1, 2, 3]
 #=> [1, 2, 3]
 #=> result.class == Array
-#==> a.size.positive?  # must evaluate to true
-#=/=> a.size.negative?  # must evaluate to false
-#=> a.size == 3
+#==> result.size.positive?  # must evaluate to true
+#=/=> result.size.negative?  # must evaluate to false
+#=> result.size == 3
 #=> result.length > 2
-#!=> result.size/0 # we expect an error
+#!=> result.size/0  # must raise an error
 
-## TEST: Traditional single expectation still works
+## TEST: Returns a string, has multiple expectations
 "hello"
-#:=> String
+#:=> String  # compare class
 #==> result.upcase == "HELLO"
-#=/=>
-#=> 'hello'
-#=> result.size >= 5
+#==> "HELLO".downcase
 #*=> /.el+o/
+#=> 'hello'
 
 ## TEST: Mixed boolean and value expectations
 user = { name: "Alice", age: 30 }
