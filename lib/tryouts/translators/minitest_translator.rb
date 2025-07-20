@@ -29,7 +29,7 @@ class Tryouts
             define_method(method_name) do
               if test_case.exception_expectations?
                 # Handle exception expectations
-                error = assert_raises(StandardError) do
+                assert_raises(StandardError) do
                   instance_eval(test_case.code) unless test_case.code.strip.empty?
                 end
 

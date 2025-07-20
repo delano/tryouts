@@ -21,9 +21,15 @@ class Tryouts
 
       protected
 
-      def eval_expectation_content(content)
+      def eval_expectation_content(content, actual_result = nil)
         path  = @test_case.path
         range = @test_case.line_range
+
+        # Make actual result available as 'result' variable if provided
+        if actual_result
+          @context.define_singleton_method(:result) { actual_result }
+        end
+
         @context.instance_eval(content, path, range.first + 1)
       end
 

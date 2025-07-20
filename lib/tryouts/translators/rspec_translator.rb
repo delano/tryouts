@@ -28,9 +28,9 @@ class Tryouts
               if test_case.exception_expectations?
                 # Handle exception expectations
                 error = nil
-                expect {
+                expect do
                   instance_eval(test_case.code, testrun.source_file) unless test_case.code.strip.empty?
-                }.to raise_error do |caught_error|
+                end.to raise_error do |caught_error|
                   error = caught_error
                 end
 
