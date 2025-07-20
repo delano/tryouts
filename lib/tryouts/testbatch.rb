@@ -8,24 +8,27 @@ class Tryouts
     attr_reader :testrun, :failed_count, :container, :status, :results, :formatter, :output_manager
 
     def initialize(testrun, **options)
-      @testrun        = testrun
-      @container      = Object.new
-      @options        = options
-      @formatter      = Tryouts::CLI::FormatterFactory.create_formatter(options)
-      @output_manager = options[:output_manager]
-      @global_tally   = options[:global_tally]
-      @failed_count   = 0
-      @status         = :pending
-      @results        = []
-      @start_time     = nil
+      @testrun         = testrun
+      @container       = Object.new
+      @options         = options
+      @formatter       = Tryouts::CLI::FormatterFactory.create_formatter(options)
+      @output_manager  = options[:output_manager]
+      @global_tally    = options[:global_tally]
+      @failed_count    = 0
+      @status          = :pending
+      @results         = []
+      @start_time      = nil
+      @test_case_count = 0
     end
 
     # Main execution pipeline using functional composition
     def run(before_test_hook = nil, &)
       return false if empty?
 
-      @start_time = Time.now
-      @output_manager&.execution_phase(test_cases.size)
+      @start_time      = Time.now
+      @test_case_count = test_cases.size
+
+      @output_manager&.execution_phase(@test_case_count)
       @output_manager&.info("Context: #{@options[:shared_context] ? 'shared' : 'fresh'}", 1)
       @output_manager&.file_start(path, context: @options[:shared_context] ? :shared : :fresh)
 
@@ -36,11 +39,21 @@ class Tryouts
 
       idx               = 0
       execution_results = test_cases.map do |test_case|
-        @output_manager&.trace("Test #{idx + 1}/#{test_cases.size}: #{test_case.description}", 2)
-        idx                     += 1
-        result                   = execute_single_test(test_case, before_test_hook, &) # runs the test code
+        @output_manager&.trace("Test #{idx + 1}/#{@test_case_count}: #{test_case.description}", 2)
+        idx += 1
+
+        @output_manager&.test_start(test_case, idx, @test_case_count)
+        result = execute_single_test(test_case, before_test_hook, &) # runs the test code
+        @output_manager&.test_end(test_case, idx, @test_case_count)
+
         result
       end
+
+      # Used for a separate purpose then execution_phase.
+      # e.g. the quiet formatter prints a newline after all test dots
+      @output_manager&.file_end(path, context: @options[:shared_context] ? :shared : :fresh)
+
+      @output_manager&.execution_phase(test_cases.size)
 
       execute_global_teardown
       finalize_results(execution_results)
@@ -213,6 +226,8 @@ class Tryouts
       if [:failed, :error].include?(result[:status])
         @failed_count += 1
       end
+
+      @output_manager&.file_start(path, context: @options[:shared_context] ? :shared : :fresh)
 
       show_test_result(result)
 

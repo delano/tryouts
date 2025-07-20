@@ -22,6 +22,10 @@ class Tryouts
         # Silent in quiet mode
       end
 
+      def file_end(_file_path, _context_info = {}, io = $stderr)
+        io.puts # add newline after all dots
+      end
+
       def file_parsed(file_path, test_count, setup_present: false, teardown_present: false)
         # Silent in quiet mode
       end
@@ -36,6 +40,10 @@ class Tryouts
 
       # Test-level operations - dot notation
       def test_start(test_case, index, total)
+        # Silent in quiet mode
+      end
+
+      def test_end(test_case, index, total, io = $stderr)
         # Silent in quiet mode
       end
 
@@ -80,8 +88,6 @@ class Tryouts
       # Summary operations - show results
       def batch_summary(total_tests, failed_count, elapsed_time, io = $stderr)
         return unless @show_final_summary
-
-        io.puts # New line after dots
 
         if failed_count > 0
           passed   = total_tests - failed_count

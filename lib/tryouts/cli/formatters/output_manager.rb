@@ -30,6 +30,11 @@ class Tryouts
         @formatter.file_start(file_path, context_info)
       end
 
+      def file_end(file_path, framework: :direct, context: :fresh)
+        context_info = { framework: framework, context: context }
+        @formatter.file_end(file_path, context_info)
+      end
+
       def file_parsed(file_path, test_count, setup_present: false, teardown_present: false)
         with_indent(1) do
           @formatter.file_parsed(file_path, test_count,
@@ -59,6 +64,12 @@ class Tryouts
       def test_start(test_case, index, total)
         with_indent(2) do
           @formatter.test_start(test_case, index, total)
+        end
+      end
+
+      def test_end(test_case, index, total)
+        with_indent(2) do
+          @formatter.test_end(test_case, index, total)
         end
       end
 

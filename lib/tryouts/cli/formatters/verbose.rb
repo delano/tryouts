@@ -48,6 +48,10 @@ class Tryouts
         puts file_header_visual(file_path)
       end
 
+      def file_end(_file_path, _context_info = {})
+        puts # separator
+      end
+
       def file_parsed(_file_path, _test_count, setup_present: false, teardown_present: false)
         message = ''
 

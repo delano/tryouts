@@ -17,6 +17,10 @@ class Tryouts
         raise NotImplementedError, "#{self.class} must implement #file_start"
       end
 
+      def file_end(file_path, context_info = {}, io = $stdout)
+        raise NotImplementedError, "#{self.class} must implement #file_end"
+      end
+
       def file_parsed(file_path, test_count, io = $stdout, setup_present: false, teardown_present: false)
         raise NotImplementedError, "#{self.class} must implement #file_parsed"
       end
@@ -32,6 +36,10 @@ class Tryouts
       # Test-level operations
       def test_start(test_case, index, total, io = $stdout)
         raise NotImplementedError, "#{self.class} must implement #test_start"
+      end
+
+      def test_end(test_case, index, total, io = $stdout)
+        raise NotImplementedError, "#{self.class} must implement #test_end"
       end
 
       def test_result(test_case, result_status, actual_results = [], elapsed_time = nil, io = $stdout)
