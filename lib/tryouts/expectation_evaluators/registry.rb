@@ -3,6 +3,8 @@
 require_relative 'base'
 require_relative 'regular'
 require_relative 'exception'
+require_relative 'boolean'
+require_relative 'false'
 
 class Tryouts
   module ExpectationEvaluators
@@ -44,6 +46,8 @@ class Tryouts
       # Auto-register built-in evaluators
       register(Regular)
       register(Exception)
+      register(Boolean)
+      register(False)
     end
   end
 end

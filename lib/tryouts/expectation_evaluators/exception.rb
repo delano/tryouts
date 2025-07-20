@@ -32,7 +32,7 @@ class Tryouts
       def evaluate_exception_condition(caught_error)
         @context.define_singleton_method(:error) { caught_error }
 
-        expected_value = eval_expectation_content(@expectation.content)
+        expected_value = eval_expectation_content(@expectation.content, caught_error)
 
         build_result(
           passed: !!expected_value,

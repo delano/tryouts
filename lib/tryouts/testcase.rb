@@ -28,6 +28,8 @@ class Tryouts
   Expectation = Data.define(:content, :type) do
     def regular? = type == :regular
     def exception? = type == :exception
+    def boolean? = type == :boolean
+    def false? = type == :false
   end
 
   Setup = Data.define(:code, :line_range, :path) do

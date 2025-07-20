@@ -33,8 +33,12 @@ class Tryouts
                   { type: :description, content: $1.strip, line: index }
                 in /^#\s*TEST\s*\d*:\s*(.*)$/  # rubocop:disable Lint/DuplicateBranch
                   { type: :description, content: $1.strip, line: index }
-                in /^#\s*!\s*=>\s*(.*)$/ # Exception expectation
+                in /^#\s*=!>\s*(.*)$/ # Exception expectation (updated for consistency)
                   { type: :exception_expectation, content: $1.strip, line: index, ast: parse_expectation($1.strip) }
+                in /^#\s*==>\s*(.*)$/ # Boolean true expectation
+                  { type: :boolean_expectation, content: $1.strip, line: index, ast: parse_expectation($1.strip) }
+                in /^#\s*=\/=>\s*(.*)$/ # Boolean false expectation
+                  { type: :false_expectation, content: $1.strip, line: index, ast: parse_expectation($1.strip) }
                 in /^#\s*=>\s*(.*)$/ # Regular expectation
                   { type: :expectation, content: $1.strip, line: index, ast: parse_expectation($1.strip) }
                 in /^##\s*=>\s*(.*)$/ # Commented out expectation (should be ignored)
@@ -115,6 +119,12 @@ class Tryouts
           current_block[:expectations] << token
 
         in [_, { type: :exception_expectation }]
+          current_block[:expectations] << token
+
+        in [_, { type: :boolean_expectation }]
+          current_block[:expectations] << token
+
+        in [_, { type: :false_expectation }]
           current_block[:expectations] << token
 
         in [_, { type: :comment | :blank }]
@@ -293,7 +303,12 @@ class Tryouts
           description: desc,
           code: extract_code_content(code_tokens),
           expectations: exp_tokens.map { |token|
-            type = token[:type] == :exception_expectation ? :exception : :regular
+            type = case token[:type]
+                   when :exception_expectation then :exception
+                   when :boolean_expectation then :boolean
+                   when :false_expectation then :false
+                   else :regular
+                   end
             Expectation.new(content: token[:content], type: type)
           },
           line_range: start_line..end_line,

@@ -10,7 +10,7 @@ class Tryouts
       end
 
       def evaluate(actual_result = nil)
-        expected_value = eval_expectation_content(@expectation.content)
+        expected_value = eval_expectation_content(@expectation.content, actual_result)
 
         build_result(
           passed: actual_result == expected_value,
