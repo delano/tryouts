@@ -34,6 +34,25 @@ class Tryouts
     def result_type? = type == :result_type
     def regex_match? = type == :regex_match
     def performance_time? = type == :performance_time
+    def intentional_failure? = type == :intentional_failure
+    def output? = type == :output
+  end
+
+  # Special expectation type for output capturing with pipe information
+  OutputExpectation = Data.define(:content, :type, :pipe) do
+    def regular? = type == :regular
+    def exception? = type == :exception
+    def boolean? = type == :boolean
+    def true? = type == :true
+    def false? = type == :false
+    def result_type? = type == :result_type
+    def regex_match? = type == :regex_match
+    def performance_time? = type == :performance_time
+    def intentional_failure? = type == :intentional_failure
+    def output? = type == :output
+
+    def stdout? = pipe == 1
+    def stderr? = pipe == 2
   end
 
   Setup = Data.define(:code, :line_range, :path) do

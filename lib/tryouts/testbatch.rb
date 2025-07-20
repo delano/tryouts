@@ -166,18 +166,31 @@ class Tryouts
         expectations_result = evaluate_expectations(test_case, nil, container)
         build_test_result(test_case, nil, expectations_result)
       else
-        # Regular execution for non-exception tests with timing capture
+        # Regular execution for non-exception tests with timing and output capture
         code  = test_case.code
         path  = test_case.path
         range = test_case.line_range
 
-        # Capture execution timing in nanoseconds
-        execution_start_ns = Process.clock_gettime(Process::CLOCK_MONOTONIC, :nanosecond)
-        result_value = container.instance_eval(code, path, range.first + 1)
-        execution_end_ns = Process.clock_gettime(Process::CLOCK_MONOTONIC, :nanosecond)
-        execution_time_ns = execution_end_ns - execution_start_ns
+        # Check if we need output capture for any expectations
+        needs_output_capture = test_case.expectations.any?(&:output?)
 
-        expectations_result = evaluate_expectations(test_case, result_value, container, execution_time_ns)
+        if needs_output_capture
+          # Execute with output capture using Fiber-local isolation
+          result_value, execution_time_ns, stdout_content, stderr_content =
+            execute_with_output_capture(container, code, path, range)
+
+          expectations_result = evaluate_expectations(
+            test_case, result_value, container, execution_time_ns, stdout_content, stderr_content
+          )
+        else
+          # Regular execution with timing capture only
+          execution_start_ns = Process.clock_gettime(Process::CLOCK_MONOTONIC, :nanosecond)
+          result_value = container.instance_eval(code, path, range.first + 1)
+          execution_end_ns = Process.clock_gettime(Process::CLOCK_MONOTONIC, :nanosecond)
+          execution_time_ns = execution_end_ns - execution_start_ns
+
+          expectations_result = evaluate_expectations(test_case, result_value, container, execution_time_ns)
+        end
 
         build_test_result(test_case, result_value, expectations_result)
       end
@@ -185,16 +198,52 @@ class Tryouts
       build_error_result(test_case, ex)
     end
 
+    # Execute test code with Fiber-based stdout/stderr capture
+    def execute_with_output_capture(container, code, path, range)
+      # Fiber-local storage for output redirection
+      original_stdout = $stdout
+      original_stderr = $stderr
+
+      # Create StringIO objects for capturing output
+      captured_stdout = StringIO.new
+      captured_stderr = StringIO.new
+
+      begin
+        # Redirect output streams using Fiber-local variables
+        Fiber.new do
+          $stdout = captured_stdout
+          $stderr = captured_stderr
+
+          # Execute with timing capture
+          execution_start_ns = Process.clock_gettime(Process::CLOCK_MONOTONIC, :nanosecond)
+          result_value = container.instance_eval(code, path, range.first + 1)
+          execution_end_ns = Process.clock_gettime(Process::CLOCK_MONOTONIC, :nanosecond)
+          execution_time_ns = execution_end_ns - execution_start_ns
+
+          [result_value, execution_time_ns]
+        end.resume.tap do |result_value, execution_time_ns|
+          # Return captured content along with result
+          return [result_value, execution_time_ns, captured_stdout.string, captured_stderr.string]
+        end
+      ensure
+        # Always restore original streams
+        $stdout = original_stdout
+        $stderr = original_stderr
+      end
+    end
+
     # Evaluate expectations using new object-oriented evaluation system
-    def evaluate_expectations(test_case, actual_result, context, execution_time_ns = nil)
+    def evaluate_expectations(test_case, actual_result, context, execution_time_ns = nil, stdout_content = nil, stderr_content = nil)
       return { passed: true, actual_results: [], expected_results: [] } if test_case.expectations.empty?
 
       evaluation_results = test_case.expectations.map do |expectation|
         evaluator = ExpectationEvaluators::Registry.evaluator_for(expectation, test_case, context)
 
-        # Pass execution time to performance evaluators
+        # Pass appropriate data to different evaluator types
         if expectation.performance_time? && execution_time_ns
           evaluator.evaluate(actual_result, execution_time_ns)
+        elsif expectation.output? && (stdout_content || stderr_content)
+          evaluator.evaluate(actual_result, stdout_content, stderr_content)
         else
           evaluator.evaluate(actual_result)
         end

@@ -35,6 +35,8 @@ class Tryouts
                   { type: :description, content: $1.strip, line: index }
                 in /^#\s*=!>\s*(.*)$/ # Exception expectation (updated for consistency)
                   { type: :exception_expectation, content: $1.strip, line: index, ast: parse_expectation($1.strip) }
+                in /^#\s*=<>\s*(.*)$/ # Intentional failure expectation
+                  { type: :intentional_failure_expectation, content: $1.strip, line: index, ast: parse_expectation($1.strip) }
                 in /^#\s*==>\s*(.*)$/ # Boolean true expectation
                   { type: :true_expectation, content: $1.strip, line: index, ast: parse_expectation($1.strip) }
                 in %r{^#\s*=/=>\s*(.*)$} # Boolean false expectation
@@ -47,6 +49,8 @@ class Tryouts
                   { type: :regex_match_expectation, content: $1.strip, line: index, ast: parse_expectation($1.strip) }
                 in /^#\s*=%>\s*(.*)$/ # Performance time expectation
                   { type: :performance_time_expectation, content: $1.strip, line: index, ast: parse_expectation($1.strip) }
+                in /^#\s*=(\d+)>\s*(.*)$/ # Output expectation (stdout/stderr with pipe number)
+                  { type: :output_expectation, content: $2.strip, pipe: $1.to_i, line: index, ast: parse_expectation($2.strip) }
                 in /^#\s*=>\s*(.*)$/ # Regular expectation
                   { type: :expectation, content: $1.strip, line: index, ast: parse_expectation($1.strip) }
                 in /^##\s*=>\s*(.*)$/ # Commented out expectation (should be ignored)
@@ -129,6 +133,9 @@ class Tryouts
         in [_, { type: :exception_expectation }]
           current_block[:expectations] << token
 
+        in [_, { type: :intentional_failure_expectation }]
+          current_block[:expectations] << token
+
         in [_, { type: :true_expectation }]
           current_block[:expectations] << token
 
@@ -145,6 +152,9 @@ class Tryouts
           current_block[:expectations] << token
 
         in [_, { type: :performance_time_expectation }]
+          current_block[:expectations] << token
+
+        in [_, { type: :output_expectation }]
           current_block[:expectations] << token
 
         in [_, { type: :comment | :blank }]
@@ -325,15 +335,23 @@ class Tryouts
           expectations: exp_tokens.map { |token|
             type = case token[:type]
                    when :exception_expectation then :exception
+                   when :intentional_failure_expectation then :intentional_failure
                    when :true_expectation then :true
                    when :false_expectation then :false
                    when :boolean_expectation then :boolean
                    when :result_type_expectation then :result_type
                    when :regex_match_expectation then :regex_match
                    when :performance_time_expectation then :performance_time
+                   when :output_expectation then :output
                    else :regular
                    end
-            Expectation.new(content: token[:content], type: type)
+
+            # For output expectations, we need to preserve the pipe number
+            if token[:type] == :output_expectation
+              OutputExpectation.new(content: token[:content], type: type, pipe: token[:pipe])
+            else
+              Expectation.new(content: token[:content], type: type)
+            end
           },
           line_range: start_line..end_line,
           path: @source_path,
