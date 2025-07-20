@@ -1,4 +1,4 @@
-# try/utilities/test_context_modes_try.rb
+# try/core/context_modes_try.rb
 # Tests for fresh vs shared context execution modes
 
 require_relative '../../lib/tryouts'

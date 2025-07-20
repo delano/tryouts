@@ -1,4 +1,4 @@
-# try/edge_cases/error_handling_try.rb
+# try/core/error_handling_try.rb
 # Tests for error handling and deliberate failures
 
 ## Test failure example (intentional failure)

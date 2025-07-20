@@ -1,4 +1,4 @@
-# try/features/multiple_expectations_try.rb
+# try/expectations/multiple_expectations_try.rb
 
 ## TEST1: Returns an array, has multiple expectations
 [1, 2, 3]

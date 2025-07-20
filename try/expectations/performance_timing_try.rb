@@ -1,4 +1,4 @@
-# try/test_performance_time_try.rb
+# try/expectations/performance_timing_try.rb
 
 ## TEST: Very fast operation should pass loose timing
 1 + 1

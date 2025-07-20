@@ -1,4 +1,4 @@
-# try/test_failure_display_try.rb
+# try/formatters/failure_formatting_try.rb
 
 ## TEST: Regular expectation failure
 [1, 2, 3]

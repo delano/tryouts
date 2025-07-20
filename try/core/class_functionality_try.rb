@@ -1,4 +1,4 @@
-# try/core/class_try.rb
+# try/core/class_functionality_try.rb
 # Tests for core Tryouts class functionality
 require_relative '../test_helper'
 

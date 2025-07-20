@@ -1,4 +1,4 @@
-# try/utilities/debug_teardown_try.rb
+# try/core/teardown_handling_try.rb
 # Tests for teardown detection functionality
 
 require_relative '../../lib/tryouts'

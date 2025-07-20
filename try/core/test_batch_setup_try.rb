@@ -1,4 +1,4 @@
-# try/utilities/test_setup_execution1_try.rb
+# try/core/test_batch_setup_try.rb
 # Tests for TestBatch setup execution logic
 
 require_relative '../../lib/tryouts'

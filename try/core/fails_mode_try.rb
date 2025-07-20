@@ -1,4 +1,4 @@
-# try/features/fails_mode_try.rb
+# try/core/fails_mode_try.rb
 # Tests for fails mode functionality
 
 # This should pass

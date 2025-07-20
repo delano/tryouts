@@ -1,4 +1,4 @@
-# try/test_result_type_try.rb
+# try/expectations/type_expectations_try.rb
 
 ## TEST: Result type expectations work correctly
 "hello world"

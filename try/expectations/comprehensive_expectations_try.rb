@@ -1,4 +1,4 @@
-# try/comprehensive_expectations_try.rb
+# try/expectations/comprehensive_expectations_try.rb
 
 ## TEST: Regular expectation with clean expected display
 [1, 2, 3]

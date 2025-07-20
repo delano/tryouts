@@ -1,4 +1,4 @@
-# try/utilities/test_setup_execution2_try.rb
+# try/core/test_batch_context_try.rb
 # Tests for TestBatch with fresh context per test
 
 require_relative '../../lib/tryouts'

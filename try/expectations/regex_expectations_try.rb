@@ -1,4 +1,4 @@
-# try/test_regex_match_try.rb
+# try/expectations/regex_expectations_try.rb
 
 ## TEST: Simple regex pattern match
 "hello world"

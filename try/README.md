@@ -1,56 +1,42 @@
+# try/README.md
+---
 # Tryouts Test Organization
 
-This directory contains organized test files for the Tryouts library.
-
-## Structure
-
-### core/
-Tests for core framework functionality:
-- `class_try.rb` - Core Tryouts class methods, attributes, debug/trace
-- `console_try.rb` - ANSI colors, formatting, path utilities
-
-### parsing/
-Tests for parsing and syntax features:
-- `basic_syntax_try.rb` - Basic expectations, setup/teardown
-- `advanced_features_try.rb` - Exceptions, helpers, multiple expectations
-- `multiline_try.rb` - Multi-line code blocks
-
-### edge_cases/
-Tests for error handling and edge cases:
-- `error_handling_try.rb` - Deliberate failures, exceptions
-
-### features/
-Tests for specific framework features:
-- `fails_mode_try.rb` - Tests for fails mode functionality
-
-### utilities/
-Tests for internal functionality:
-- `debug_teardown_try.rb` - Teardown detection tests
-- `test_context_modes_try.rb` - Fresh vs shared context tests
-- `test_setup_execution1_try.rb` - TestBatch execution tests
-- `test_setup_execution2_try.rb` - Fresh context execution tests
+This directory contains the test suite for Tryouts v3.0, organized by functionality for better maintainability and discoverability.
 
 ## Running Tests
 
 ```bash
-# Run all tests
-bundle exec tryouts try/
+# All tests
+try
 
-# Run specific category
-bundle exec tryouts try/core/
-bundle exec tryouts try/parsing/
-bundle exec tryouts try/edge_cases/
-bundle exec tryouts try/features/
+# By directory or file
+try try/core/
+try try/core/advanced_syntax_try.rb
 
-# Run utilities (debug scripts)
-ruby try/utilities/debug_teardown.rb
+# Noise, more or less
+try -v  # verbose mode includes the source code, expected and actual output.,
+try -vf # verbose, only for failed tests
+try -q  # quiet mode, just dots and end result
+try -q  2> /dev/null # if you only care about the exit code
 ```
 
-## Adding New Tests
+To integrate with existing CI workflows or for old school homies, run the tests as rspec or minitest.
 
-Place new test files in the appropriate category:
-- Core framework functionality → `core/`
-- Parsing/syntax features → `parsing/`
-- Error handling/edge cases → `edge_cases/`
-- Framework features → `features/`
-- Debug/testing utilities → `utilities/`
+```bash
+try --rspec
+try --minitest
+
+# Or generate the test files for later
+try --generate-rspec try/core/basic_syntax_try.rb > spec/basic_syntax_spec.rb
+try --generate-minitest try/core/basic_syntax_try.rb > test/basic_syntax_test.rb
+```
+
+## Test Content Guidelines
+
+- Tests should read like documentation
+- Use descriptive comments and test case descriptions
+- Group related functionality within files
+- Avoid test framework specific code (mocks, harnesses)
+- Know your expectation types and their behaviour. All testcases are not created equally.
+- Follow the pattern `*_try.rb` to be automatically discovered by the Tryouts framework.
