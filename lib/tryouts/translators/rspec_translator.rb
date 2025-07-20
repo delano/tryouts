@@ -16,7 +16,7 @@ class Tryouts
           # Setup before all tests
           if testrun.setup && !testrun.setup.empty?
             before(:all) do
-              instance_eval(testrun.setup.code)
+              instance_eval(testrun.setup.code, testrun.source_file)
             end
           end
 
@@ -25,10 +25,10 @@ class Tryouts
             next if test_case.empty? || !test_case.expectations?
 
             it test_case.description do
-              result = instance_eval(test_case.code) unless test_case.code.strip.empty?
+              result = instance_eval(test_case.code, testrun.source_file) unless test_case.code.strip.empty?
 
               test_case.expectations.each do |expectation|
-                expected_value = instance_eval(expectation)
+                expected_value = instance_eval(expectation, testrun.source_file)
                 expect(result).to eq(expected_value)
               end
             end
@@ -37,7 +37,7 @@ class Tryouts
           # Teardown after all tests
           if testrun.teardown && !testrun.teardown.empty?
             after(:all) do
-              instance_eval(testrun.teardown.code)
+              instance_eval(testrun.teardown.code, testrun.source_file)
             end
           end
         end

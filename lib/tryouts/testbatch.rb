@@ -238,7 +238,9 @@ class Tryouts
       end
     rescue StandardError => ex
       @global_tally[:total_errors] += 1 if @global_tally
-      raise "Global setup failed: #{ex.message}"
+      Tryouts.trace "(#{ex.class}): #{ex.message}"
+      Tryouts.trace ex.backtrace
+      raise "Global setup failed (#{ex.class}): #{ex.message}"
     end
 
     # Global teardown execution
@@ -266,7 +268,6 @@ class Tryouts
       elapsed_time = Time.now - @start_time
       show_summary(elapsed_time)
     end
-
 
     def show_test_result(result)
       test_case = result[:test_case]

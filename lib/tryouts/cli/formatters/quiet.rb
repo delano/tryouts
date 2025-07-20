@@ -39,20 +39,20 @@ class Tryouts
         # Silent in quiet mode
       end
 
-      def test_result(_test_case, result_status, _actual_results = [], _elapsed_time = nil)
+      def test_result(_test_case, result_status, _actual_results = [], _elapsed_time = nil, io = $stderr)
         case result_status
         when :passed
-          print Console.color(:green, '.')
+          io.print Console.color(:green, '.')
         when :failed
-          print Console.color(:red, 'F')
+          io.print Console.color(:red, 'F')
         when :error
-          print Console.color(:red, 'E')
+          io.print Console.color(:red, 'E')
         when :skipped
-          print Console.color(:yellow, 'S')
+          io.print Console.color(:yellow, 'S')
         else
-          print '?'
+          io.print '?'
         end
-        $stdout.flush
+        io.flush
       end
 
       def test_output(test_case, output_text)
@@ -78,18 +78,18 @@ class Tryouts
       end
 
       # Summary operations - show results
-      def batch_summary(total_tests, failed_count, elapsed_time)
+      def batch_summary(total_tests, failed_count, elapsed_time, io = $stderr)
         return unless @show_final_summary
 
-        puts # New line after dots
+        io.puts # New line after dots
 
         if failed_count > 0
           passed   = total_tests - failed_count
           time_str = elapsed_time ? " (#{elapsed_time.round(2)}s)" : ''
-          puts "#{failed_count} failed, #{passed} passed#{time_str}"
+          io.puts "#{failed_count} failed, #{passed} passed#{time_str}"
         else
           time_str = elapsed_time ? " (#{elapsed_time.round(2)}s)" : ''
-          puts "#{total_tests} passed#{time_str}"
+          io.puts "#{total_tests} passed#{time_str}"
         end
       end
 
