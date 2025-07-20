@@ -29,6 +29,7 @@ class Tryouts
     def regular? = type == :regular
     def exception? = type == :exception
     def boolean? = type == :boolean
+    def true? = type == :true
     def false? = type == :false
   end
 

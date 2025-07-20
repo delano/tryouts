@@ -1,21 +1,21 @@
-# lib/tryouts/expectation_evaluators/false.rb
+# lib/tryouts/expectation_evaluators/true.rb
 
 require_relative 'base'
 
 class Tryouts
   module ExpectationEvaluators
-    class False < Base
+    class True < Base
       def self.handles?(expectation_type)
-        expectation_type == :false # rubocop:disable Lint/BooleanSymbol
+        expectation_type == :true
       end
 
       def evaluate(actual_result = nil)
         expression_result = eval_expectation_content(@expectation.content, actual_result)
 
         build_result(
-          passed: expression_result == false,
+          passed: expression_result == true,
           actual: expression_result,
-          expected: 'false (exactly)',
+          expected: 'true (exactly)',
         )
       rescue StandardError => ex
         handle_evaluation_error(ex, actual_result)

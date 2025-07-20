@@ -4,6 +4,7 @@ require_relative 'base'
 require_relative 'regular'
 require_relative 'exception'
 require_relative 'boolean'
+require_relative 'true'
 require_relative 'false'
 
 class Tryouts
@@ -47,6 +48,7 @@ class Tryouts
       register(Regular)
       register(Exception)
       register(Boolean)
+      register(True)
       register(False)
     end
   end

@@ -13,9 +13,9 @@ class Tryouts
         expression_result = eval_expectation_content(@expectation.content, actual_result)
 
         build_result(
-          passed: expression_result == true,
+          passed: [true, false].include?(expression_result),
           actual: expression_result,
-          expected: 'true (boolean)',
+          expected: 'true or false (boolean)',
         )
       rescue StandardError => ex
         handle_evaluation_error(ex, actual_result)

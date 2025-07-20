@@ -36,9 +36,11 @@ class Tryouts
                 in /^#\s*=!>\s*(.*)$/ # Exception expectation (updated for consistency)
                   { type: :exception_expectation, content: $1.strip, line: index, ast: parse_expectation($1.strip) }
                 in /^#\s*==>\s*(.*)$/ # Boolean true expectation
-                  { type: :boolean_expectation, content: $1.strip, line: index, ast: parse_expectation($1.strip) }
-                in /^#\s*=\/=>\s*(.*)$/ # Boolean false expectation
+                  { type: :true_expectation, content: $1.strip, line: index, ast: parse_expectation($1.strip) }
+                in %r{^#\s*=/=>\s*(.*)$} # Boolean false expectation
                   { type: :false_expectation, content: $1.strip, line: index, ast: parse_expectation($1.strip) }
+                in /^#\s*=\|>\s*(.*)$/ # Boolean (true or false) expectation
+                  { type: :boolean_expectation, content: $1.strip, line: index, ast: parse_expectation($1.strip) }
                 in /^#\s*=>\s*(.*)$/ # Regular expectation
                   { type: :expectation, content: $1.strip, line: index, ast: parse_expectation($1.strip) }
                 in /^##\s*=>\s*(.*)$/ # Commented out expectation (should be ignored)
@@ -121,10 +123,13 @@ class Tryouts
         in [_, { type: :exception_expectation }]
           current_block[:expectations] << token
 
-        in [_, { type: :boolean_expectation }]
+        in [_, { type: :true_expectation }]
           current_block[:expectations] << token
 
         in [_, { type: :false_expectation }]
+          current_block[:expectations] << token
+
+        in [_, { type: :boolean_expectation }]
           current_block[:expectations] << token
 
         in [_, { type: :comment | :blank }]
@@ -305,8 +310,9 @@ class Tryouts
           expectations: exp_tokens.map { |token|
             type = case token[:type]
                    when :exception_expectation then :exception
-                   when :boolean_expectation then :boolean
+                   when :true_expectation then :true
                    when :false_expectation then :false
+                   when :boolean_expectation then :boolean
                    else :regular
                    end
             Expectation.new(content: token[:content], type: type)

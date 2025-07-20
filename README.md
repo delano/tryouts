@@ -72,7 +72,7 @@ try -D    # debug mode
 
 ## Writing Tests
 
-Tryouts use a unique comment-based expectation syntax:
+Tryouts use a comment-based syntax for expecations:
 
 ```ruby
 # Setup code runs before all tests
@@ -114,6 +114,17 @@ puts 'Cleanup complete'
 - **Setup Section**: Code before first test case (accessible via instance variables)
 - **Test Cases**: Description lines (`##`), Ruby code, and expectations (`#=>`)
 - **Teardown Section**: Code after last test case
+
+### Great Expectations System
+
+
+  | Type       | Syntax | Description                | Example                             |
+  |------------|--------|----------------------------|-------------------------------------|
+  | :regular   | #=>    | Traditional value equality | #=> [1, 2, 3]                       |
+  | :true      | #==>   | Must be exactly true       | #==> result.include?(2)             |
+  | :false     | #=/=>  | Must be exactly false      | #=/=> result.empty?                 |
+  | :boolean   | #=|>   | Must be true OR false      | #=|> result                         |
+  | :exception | #=!>   | Must raise an exception    | #=!> error.is_a?(ZeroDivisionError) |
 
 ## Framework Integration
 
