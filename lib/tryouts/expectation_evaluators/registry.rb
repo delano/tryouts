@@ -1,5 +1,6 @@
 # lib/tryouts/expectation_evaluators/registry.rb
 
+require_relative 'result_packet'
 require_relative 'base'
 require_relative 'regular'
 require_relative 'exception'

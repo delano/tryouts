@@ -32,21 +32,45 @@ class Tryouts
 
       # Evaluates expectation content in the test context with predefined variables
       #
-      # This method defines the variables that expectations can access:
-      # - `result`: contains the actual_result if provided
-      # - `_`: shorthand alias for actual_result if provided
+      # This method is the core of the expectation evaluation system, providing context-aware
+      # variable access for different expectation types:
+      #
+      # VARIABLE AVAILABILITY:
+      # - `result`: contains actual_result (regular) or timing_ms (performance)
+      # - `_`: shorthand alias for the same data as result
+      #
+      # DESIGN DECISIONS:
+      # - Add new values to ResultPacket to avoid method signature changes
+      # - Use define_singleton_method for clean variable injection
+      # - Using instance_eval for evaluation provides:
+      #     - Full access to test context (instance variables, methods)
+      #     - Clean variable injection (result, _)
+      #     - Proper file/line reporting for debugging
+      #     - Support for complex Ruby expressions in expectations
+      #
+      #   Potential enhancements (without breaking changes):
+      #     - Add more variables to ResultPacket (memory usage, etc.)
+      #     - Provide additional helper methods in evaluation context
+      #     - Enhanced error reporting with better stack traces
       #
       # @param content [String] the expectation code to evaluate
-      # @param actual_result [Object] the result to make available as 'result' and '_' variables
+      # @param result_packet [ResultPacket] container with actual_result and timing data
       # @return [Object] the result of evaluating the content
-      def eval_expectation_content(content, actual_result = nil)
+      def eval_expectation_content(content, result_packet = nil)
         path  = @test_case.path
         range = @test_case.line_range
 
-        # Make actual result available as 'result' and '_' variables if provided
-        if actual_result
-          @context.define_singleton_method(:result) { actual_result }
-          @context.define_singleton_method(:_) { actual_result }
+        if result_packet
+          # For performance expectations, timing data takes precedence for result/_
+          if result_packet.execution_time_ns
+            timing_ms = result_packet.execution_time_ms
+            @context.define_singleton_method(:result) { timing_ms }
+            @context.define_singleton_method(:_) { timing_ms }
+          elsif result_packet.actual_result
+            # For regular expectations, use actual_result
+            @context.define_singleton_method(:result) { result_packet.actual_result }
+            @context.define_singleton_method(:_) { result_packet.actual_result }
+          end
         end
 
         @context.instance_eval(content, path, range.first + 1)
