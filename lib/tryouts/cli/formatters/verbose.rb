@@ -330,9 +330,9 @@ class Tryouts
         padding        = '<' * padding_length
 
         [
-          '-' * @line_width,
-          header_content + padding,
-          '-' * @line_width,
+          indent_text('-' * @line_width, 1),
+          indent_text(header_content + padding, 1),
+          indent_text('-' * @line_width, 1),
         ].join("\n")
       end
     end

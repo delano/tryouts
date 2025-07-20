@@ -3,6 +3,22 @@
 require 'stringio'
 
 class Tryouts
+  # Factory for creating fresh context containers for each test
+  class FreshContextFactory
+    def initialize
+      @containers_created = 0
+    end
+
+    def create_container
+      @containers_created += 1
+      Object.new
+    end
+
+    def containers_created_count
+      @containers_created
+    end
+  end
+
   # Modern TestBatch using Ruby 3.4+ patterns and formatter system
   class TestBatch
     attr_reader :testrun, :failed_count, :container, :status, :results, :formatter, :output_manager
@@ -19,6 +35,13 @@ class Tryouts
       @results         = []
       @start_time      = nil
       @test_case_count = 0
+
+      # Expose context objects for testing - different strategies for each mode
+      @shared_context = if options[:shared_context]
+                          @container  # Shared mode: single container reused across tests
+                        else
+                          FreshContextFactory.new  # Fresh mode: factory that creates new containers
+                        end
     end
 
     # Main execution pipeline using functional composition
@@ -136,7 +159,11 @@ class Tryouts
 
     # Fresh context execution - setup runs per test, isolated state
     def execute_with_fresh_context(test_case)
-      fresh_container = Object.new
+      fresh_container = if @shared_context.is_a?(FreshContextFactory)
+                          @shared_context.create_container
+                        else
+                          Object.new  # Fallback for backwards compatibility
+                        end
 
       # Execute setup in fresh context if present
       setup = @testrun.setup

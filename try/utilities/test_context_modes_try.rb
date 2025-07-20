@@ -34,5 +34,9 @@ batch_fresh.size == batch_shared.size
 testrun = @parser.parse
 batch_shared = Tryouts::TestBatch.new(testrun, shared_context: true)
 batch_fresh = Tryouts::TestBatch.new(testrun, shared_context: false)
-batch_fresh.instance_variable_get(:@shared_context) != batch_shared.instance_variable_get(:@shared_context)
+
+contextA = batch_fresh.instance_variable_get(:@shared_context)
+contextB = batch_shared.instance_variable_get(:@shared_context)
+
+!(contextA.nil? && contextB.nil?) && contextA != contextB
 #=> true

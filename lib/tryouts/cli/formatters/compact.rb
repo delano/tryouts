@@ -22,14 +22,11 @@ class Tryouts
       end
 
       # File-level operations - compact single lines
-      def file_start(file_path, context_info = {}, io = $stderr)
-        return unless @show_debug
-
-        framework   = context_info[:framework] || :direct
-        context     = context_info[:context] || :fresh
+      def file_start(file_path, _context_info = {}, io = $stderr)
         pretty_path = Console.pretty_path(file_path)
 
-        io.puts indent_text("Running: #{pretty_path} (#{framework}/#{context})", 1)
+        io.puts
+        io.puts indent_text("#{pretty_path}", 0)
       end
 
       def file_end(file_path, context_info = {}, io = $stderr)
@@ -62,7 +59,6 @@ class Tryouts
       def file_result(_file_path, total_tests, failed_count, error_count, elapsed_time, io = $stdout)
         issues_count = failed_count + error_count
         passed_count = total_tests - issues_count
-
         details      = [
           # "#{passed_count} passed",
         ]
