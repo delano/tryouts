@@ -1,4 +1,5 @@
-# Test file for fails mode testing
+# try/features/fails_mode_try.rb
+# Tests for fails mode functionality
 
 # This should pass
 result1 = 1 + 1
