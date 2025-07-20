@@ -101,6 +101,10 @@ class Tryouts
         puts indent_text(Console.color(:dim, message), 2)
       end
 
+      def test_end(_test_case, _index, _total)
+        puts
+      end
+
       def test_result(test_case, result_status, actual_results = [], _elapsed_time = nil)
         should_show = @show_passed || result_status != :passed
 

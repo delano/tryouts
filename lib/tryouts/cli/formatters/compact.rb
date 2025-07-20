@@ -32,6 +32,10 @@ class Tryouts
         io.puts indent_text("Running: #{pretty_path} (#{framework}/#{context})", 1)
       end
 
+      def file_end(file_path, context_info = {}, io = $stderr)
+        # No output in compact mode
+      end
+
       def file_parsed(_file_path, test_count, io = $stderr, setup_present: false, teardown_present: false)
         # Don't show parsing info in compact mode unless debug
         return unless @show_debug
@@ -85,6 +89,10 @@ class Tryouts
         desc = "test #{index}" if desc.empty?
 
         io.puts "    Running: #{desc}"
+      end
+
+      def test_end(test_case, index, _total, io = $stdout)
+        # No output for test end
       end
 
       def test_result(test_case, result_status, actual_results = [], _elapsed_time = nil, io = $stdout)
