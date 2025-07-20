@@ -54,19 +54,35 @@ class Tryouts
         io.puts "#{pretty_path}: #{test_count} tests"
       end
 
+      # Summary operations
+      def batch_summary(total_tests, failed_count, elapsed_time)
+        # Skip - file_result already shows this information with better alignment
+      end
+
       def file_result(_file_path, total_tests, failed_count, error_count, elapsed_time, io = $stdout)
-        detail = []
-        if failed_count > 0
+        issues_count = failed_count + error_count
+        passed_count = total_tests - issues_count
+
+        details      = [
+          # "#{passed_count} passed",
+        ]
+
+        if issues_count > 0
           status = Console.color(:red, '✗')
-          detail << "#{failed_count}/#{total_tests} failed"
+          details << "#{passed_count}/#{total_tests} passed"
         else
           status = Console.color(:green, '✓')
-          detail << "#{total_tests} passed"
+          details << "#{total_tests} passed"
         end
 
         if error_count > 0
+          status = Console.color(:yellow, '⚠') if error_count == 0
+          details << "#{error_count} errors"
+        end
+
+        if failed_count > 0
           status = Console.color(:yellow, '⚠') if failed_count == 0
-          detail << "#{error_count} errors"
+          details << "#{failed_count} failed"
         end
 
         time_str = if elapsed_time
@@ -78,7 +94,7 @@ class Tryouts
                    else
                      ''
                    end
-        io.puts "  #{status} #{detail.join(', ')}#{time_str}"
+        io.puts "  #{status} #{details.join(', ')}#{time_str}"
       end
 
       # Test-level operations - only show in debug mode for compact
@@ -164,11 +180,6 @@ class Tryouts
         # In compact mode, just show that there was output
         lines = output_text.lines.count
         io.puts "    Teardown output (#{lines} lines)"
-      end
-
-      # Summary operations
-      def batch_summary(total_tests, failed_count, elapsed_time)
-        # Skip - file_result already shows this information with better alignment
       end
 
       def grand_total(total_tests, failed_count, error_count, successful_files, total_files, elapsed_time, io = $stderr)
