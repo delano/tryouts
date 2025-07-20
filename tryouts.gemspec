@@ -9,7 +9,7 @@ Gem::Specification.new do |spec|
   spec.email                 = 'gems@solutious.com'
   spec.homepage              = 'https://github.com/delano/tryouts'
   spec.license               = 'MIT' # replace with actual license
-  spec.required_ruby_version = Gem::Requirement.new('>= 3.4')
+  spec.required_ruby_version = Gem::Requirement.new('>= 3.2')
 
   spec.files       = Dir['{lib,exe}/**/*', 'LICENSE.txt', 'README.md'] # Include the exe folder
   spec.bindir      = 'exe' # Specify that executables are in the exe folder
