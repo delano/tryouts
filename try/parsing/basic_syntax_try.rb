@@ -1,4 +1,5 @@
-# try/proof1_try.rb
+# try/parsing/basic_syntax_try.rb
+# Tests for basic tryout syntax, expectations, and setup/teardown
 
 puts 'If you see this the setup ran correctly.'
 

@@ -1,4 +1,5 @@
-# try/step2_try.rb
+# try/parsing/advanced_features_try.rb
+# Tests for advanced features: exceptions, helper methods, multiple expectations
 
 puts 'if you can see this, step2 setup succeeded'
 

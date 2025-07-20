@@ -1,4 +1,4 @@
-# test/test_helper.rb
+# try/test_helper.rb
 
 # Coverage is handled by the CLI entry point to avoid double initialization
 
