@@ -37,7 +37,8 @@
 # Note: These intensive checks run before pushing to catch issues early
 # but allow faster local development with lighter pre-commit hooks.
 
-fail_fast: true
+# Allow all failures to happen so they can be corrected in one go
+fail_fast: false
 
 # Skip generated/dependency directories
 exclude: "^(vendor|node_modules|dist|build)/"
