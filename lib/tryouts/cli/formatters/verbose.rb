@@ -142,7 +142,7 @@ class Tryouts
         end
 
         location = "#{Console.pretty_path(test_case.path)}:#{test_case.line_range.first + 1}"
-        puts indent_text("#{status_line} #{test_case.description} @ #{location}", 2)
+        puts indent_text("#{status_line} @ #{location}", 2)
         puts
 
         # Show source code for verbose mode

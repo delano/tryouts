@@ -1,6 +1,7 @@
 # lib/tryouts/testbatch.rb
 
 require 'stringio'
+require_relative 'expectation_evaluators/registry'
 
 class Tryouts
   # Factory for creating fresh context containers for each test
@@ -179,101 +180,24 @@ class Tryouts
       build_error_result(test_case, ex)
     end
 
-    # Evaluate expectations using pattern matching for clean result handling
+    # Evaluate expectations using new object-oriented evaluation system
     def evaluate_expectations(test_case, actual_result, context)
-      if test_case.expectations.empty?
-        { passed: true, actual_results: [], expected_results: [] }
-      elsif test_case.exception_expectations?
-        # Handle exception expectations differently from regular expectations
-        evaluate_exception_expectations(test_case, context)
-        else
-          evaluate_regular_expectations(test_case, actual_result, context)
+      return { passed: true, actual_results: [], expected_results: [] } if test_case.expectations.empty?
+
+      evaluation_results = test_case.expectations.map do |expectation|
+        evaluator = ExpectationEvaluators::Registry.evaluator_for(expectation, test_case, context)
+        evaluator.evaluate(actual_result)
       end
+
+      aggregate_evaluation_results(evaluation_results)
     end
 
-    def evaluate_regular_expectations(test_case, actual_result, context)
-      evaluation_results = test_case.regular_expectations.map do |expectation|
-        evaluate_single_expectation(expectation, actual_result, context, test_case)
-      end
-
+    # Aggregate individual evaluation results into the expected format
+    def aggregate_evaluation_results(evaluation_results)
       {
         passed: evaluation_results.all? { |r| r[:passed] },
         actual_results: evaluation_results.map { |r| r[:actual] },
-        expected_results: evaluation_results.map { |r| r[:expected] },
-      }
-    end
-
-    def evaluate_exception_expectations(test_case, context)
-        # For exception expectations, we need to execute the code and catch the exception
-
-        # Execute the test code - this should raise an exception
-        path  = test_case.path
-        range = test_case.line_range
-        context.instance_eval(test_case.code, path, range.first + 1)
-
-        # If we get here, no exception was raised - that's a failure
-        {
-          passed: false,
-          actual_results: ['No exception was raised'],
-          expected_results: test_case.exception_expectations.map(&:content),
-        }
-    rescue StandardError => ex
-        # Exception was caught - now evaluate the exception expectations
-        evaluation_results = test_case.exception_expectations.map do |expectation|
-          evaluate_exception_expectation(expectation, ex, context, test_case)
-        end
-
-        {
-          passed: evaluation_results.all? { |r| r[:passed] },
-          actual_results: evaluation_results.map { |r| r[:actual] },
-          expected_results: evaluation_results.map { |r| r[:expected] },
-        }
-    end
-
-    def evaluate_exception_expectation(expectation, caught_error, context, test_case)
-      path  = test_case.path
-      range = test_case.line_range
-
-      # Make the caught error available as 'error' in the expectation context
-      context.define_singleton_method(:error) { caught_error }
-
-      begin
-        expected_value = context.instance_eval(expectation.content, path, range.first + 1)
-
-        {
-          passed: !!expected_value, # Convert to boolean
-          actual: caught_error.message,
-          expected: expectation.content,
-          expectation: expectation.content,
-        }
-      rescue StandardError => ex
-        {
-          passed: false,
-          actual: caught_error.message,
-          expected: "EXPECTED: #{ex.message}",
-          expectation: expectation.content,
-        }
-      end
-    end
-
-    def evaluate_single_expectation(expectation, actual_result, context, test_case)
-      path  = test_case.path
-      range = test_case.line_range
-
-      expected_value = context.instance_eval(expectation.content, path, range.first + 1)
-
-      {
-        passed: actual_result == expected_value,
-        actual: actual_result,
-        expected: expected_value,
-        expectation: expectation.content,
-      }
-    rescue StandardError => ex
-      {
-        passed: false,
-        actual: actual_result,
-        expected: "EXPECTED: #{ex.message}",
-        expectation: expectation.content,
+        expected_results: evaluation_results.map { |r| r[:expected] }
       }
     end
 
