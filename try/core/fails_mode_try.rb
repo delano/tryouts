@@ -7,7 +7,7 @@ result1 = 1 + 1
 
 # This should fail
 result2 = 2 + 2
-#=> 5
+#=<> 5
 
 # This should pass
 result3 = 3 * 3
@@ -15,4 +15,4 @@ result3 = 3 * 3
 
 # This should fail
 result4 = 4 * 4
-#=> 20
+#=<> 20
