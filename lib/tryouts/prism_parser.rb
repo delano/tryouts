@@ -269,10 +269,11 @@ class Tryouts
     end
 
     def calculate_end_line(block)
-      last_tokens = [*block[:code], *block[:expectations], *block[:comments]]
-      return block[:start_line] if last_tokens.empty?
+      # Only consider actual content (code and expectations), not blank lines/comments
+      content_tokens = [*block[:code], *block[:expectations]]
+      return block[:start_line] if content_tokens.empty?
 
-      last_tokens.map { |token| token[:line] }.max || block[:start_line]
+      content_tokens.map { |token| token[:line] }.max || block[:start_line]
     end
 
     def build_test_case(block)

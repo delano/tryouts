@@ -129,17 +129,17 @@ class Tryouts
         puts
 
         status_line = case result_status
-                      when :passed
+        when :passed
           Console.color(:green, 'PASSED')
-                      when :failed
+        when :failed
           Console.color(:red, 'FAILED')
-                      when :error
+        when :error
           Console.color(:red, 'ERROR')
-                      when :skipped
+        when :skipped
           Console.color(:yellow, 'SKIPPED')
         else
           'UNKNOWN'
-                      end
+        end
 
         location = "#{Console.pretty_path(test_case.path)}:#{test_case.line_range.first + 1}"
         puts indent_text("#{status_line} #{test_case.description} @ #{location}", 2)
