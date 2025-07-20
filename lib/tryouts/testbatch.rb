@@ -303,8 +303,6 @@ class Tryouts
         @failed_count += 1
       end
 
-      @output_manager&.file_start(path, context: @options[:shared_context] ? :shared : :fresh)
-
       show_test_result(result)
 
       # Show captured output if any exists
