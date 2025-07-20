@@ -33,7 +33,9 @@ class Tryouts
                   { type: :description, content: $1.strip, line: index }
                 in /^#\s*TEST\s*\d*:\s*(.*)$/  # rubocop:disable Lint/DuplicateBranch
                   { type: :description, content: $1.strip, line: index }
-                in /^#\s*=>\s*(.*)$/ # Expectation
+                in /^#\s*!\s*=>\s*(.*)$/ # Exception expectation
+                  { type: :exception_expectation, content: $1.strip, line: index, ast: parse_expectation($1.strip) }
+                in /^#\s*=>\s*(.*)$/ # Regular expectation
                   { type: :expectation, content: $1.strip, line: index, ast: parse_expectation($1.strip) }
                 in /^##\s*=>\s*(.*)$/ # Commented out expectation (should be ignored)
                   { type: :comment, content: '=>' + $1.strip, line: index }
@@ -62,10 +64,10 @@ class Tryouts
           # Skip blanks and find next non-blank tokens
           non_blank_following = following_tokens.reject { |t| t[:type] == :blank }
 
-          # Must have: code immediately followed by expectation (with possible blanks between)
+          # Must have: code immediately followed by expectation or exception_expectation (with possible blanks between)
           if non_blank_following.size >= 2 &&
              non_blank_following[0][:type] == :code &&
-             non_blank_following[1][:type] == :expectation
+             (non_blank_following[1][:type] == :expectation || non_blank_following[1][:type] == :exception_expectation)
             token.merge(type: :description)
           else
             token.merge(type: :comment)
@@ -110,6 +112,9 @@ class Tryouts
           current_block = new_test_block.merge(code: [token], start_line: token[:line])
 
         in [_, { type: :expectation }]
+          current_block[:expectations] << token
+
+        in [_, { type: :exception_expectation }]
           current_block[:expectations] << token
 
         in [_, { type: :comment | :blank }]
@@ -286,7 +291,10 @@ class Tryouts
         TestCase.new(
           description: desc,
           code: extract_code_content(code_tokens),
-          expectations: exp_tokens.map { |token| token[:content] },
+          expectations: exp_tokens.map { |token|
+            type = token[:type] == :exception_expectation ? :exception : :regular
+            Expectation.new(content: token[:content], type: type)
+          },
           line_range: start_line..end_line,
           path: @source_path,
           source_lines: source_lines,

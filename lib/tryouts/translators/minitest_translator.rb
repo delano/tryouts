@@ -27,11 +27,24 @@ class Tryouts
 
             method_name = "test_#{index.to_s.rjust(3, '0')}_#{parameterize(test_case.description)}"
             define_method(method_name) do
-              result = instance_eval(test_case.code) unless test_case.code.strip.empty?
+              if test_case.exception_expectations?
+                # Handle exception expectations
+                error = assert_raises(StandardError) do
+                  instance_eval(test_case.code) unless test_case.code.strip.empty?
+                end
 
-              test_case.expectations.each do |expectation|
-                expected_value = instance_eval(expectation)
-                assert_equal expected_value, result
+                test_case.exception_expectations.each do |expectation|
+                  result = instance_eval(expectation.content)
+                  assert result, "Exception expectation failed: #{expectation.content}"
+                end
+              else
+                # Handle regular expectations
+                result = instance_eval(test_case.code) unless test_case.code.strip.empty?
+
+                test_case.regular_expectations.each do |expectation|
+                  expected_value = instance_eval(expectation.content)
+                  assert_equal expected_value, result
+                end
               end
             end
           end
@@ -72,15 +85,31 @@ class Tryouts
 
           method_name = "test_#{index.to_s.rjust(3, '0')}_#{parameterize(test_case.description)}"
           lines << "  def #{method_name}"
-          unless test_case.code.strip.empty?
-            lines << '    result = begin'
-            test_case.code.lines.each { |line| lines << "      #{line.chomp}" }
+
+          if test_case.exception_expectations?
+            # Handle exception expectations
+            lines << '    error = assert_raises(StandardError) do'
+            unless test_case.code.strip.empty?
+              test_case.code.lines.each { |line| lines << "      #{line.chomp}" }
+            end
             lines << '    end'
+
+            test_case.exception_expectations.each do |expectation|
+              lines << "    assert #{expectation}, \"Exception expectation failed: #{expectation}\""
+            end
+          else
+            # Handle regular expectations
+            unless test_case.code.strip.empty?
+              lines << '    result = begin'
+              test_case.code.lines.each { |line| lines << "      #{line.chomp}" }
+              lines << '    end'
+            end
+
+            test_case.expectations.each do |expectation|
+              lines << "    assert_equal #{expectation}, result"
+            end
           end
 
-          test_case.expectations.each do |expectation|
-            lines << "    assert_equal #{expectation}, result"
-          end
           lines << '  end'
           lines << ''
         end

@@ -11,6 +11,23 @@ class Tryouts
     def expectations?
       !expectations.empty?
     end
+
+    def exception_expectations?
+      expectations.any?(&:exception?)
+    end
+
+    def regular_expectations
+      expectations.filter(&:regular?)
+    end
+
+    def exception_expectations
+      expectations.filter(&:exception?)
+    end
+  end
+
+  Expectation = Data.define(:content, :type) do
+    def regular? = type == :regular
+    def exception? = type == :exception
   end
 
   Setup = Data.define(:code, :line_range, :path) do

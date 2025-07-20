@@ -25,11 +25,27 @@ class Tryouts
             next if test_case.empty? || !test_case.expectations?
 
             it test_case.description do
-              result = instance_eval(test_case.code, testrun.source_file) unless test_case.code.strip.empty?
+              if test_case.exception_expectations?
+                # Handle exception expectations
+                error = nil
+                expect {
+                  instance_eval(test_case.code, testrun.source_file) unless test_case.code.strip.empty?
+                }.to raise_error do |caught_error|
+                  error = caught_error
+                end
 
-              test_case.expectations.each do |expectation|
-                expected_value = instance_eval(expectation, testrun.source_file)
-                expect(result).to eq(expected_value)
+                test_case.exception_expectations.each do |expectation|
+                  expected_value = instance_eval(expectation.content, testrun.source_file)
+                  expect(expected_value).to be_truthy
+                end
+              else
+                # Handle regular expectations
+                result = instance_eval(test_case.code, testrun.source_file) unless test_case.code.strip.empty?
+
+                test_case.regular_expectations.each do |expectation|
+                  expected_value = instance_eval(expectation.content, testrun.source_file)
+                  expect(result).to eq(expected_value)
+                end
               end
             end
           end
@@ -61,15 +77,34 @@ class Tryouts
           next if test_case.empty? || !test_case.expectations?
 
           lines << "  it '#{test_case.description}' do"
-          unless test_case.code.strip.empty?
-            lines << '    result = begin'
-            test_case.code.lines.each { |line| lines << "      #{line.chomp}" }
+
+          if test_case.exception_expectations?
+            # Handle exception expectations
+            lines << '    error = nil'
+            lines << '    expect {'
+            unless test_case.code.strip.empty?
+              test_case.code.lines.each { |line| lines << "      #{line.chomp}" }
+            end
+            lines << '    }.to raise_error do |caught_error|'
+            lines << '      error = caught_error'
             lines << '    end'
+
+            test_case.exception_expectations.each do |expectation|
+              lines << "    expect(#{expectation.content}).to be_truthy"
+            end
+          else
+            # Handle regular expectations
+            unless test_case.code.strip.empty?
+              lines << '    result = begin'
+              test_case.code.lines.each { |line| lines << "      #{line.chomp}" }
+              lines << '    end'
+            end
+
+            test_case.regular_expectations.each do |expectation|
+              lines << "    expect(result).to eq(#{expectation.content})"
+            end
           end
 
-          test_case.expectations.each do |expectation|
-            lines << "    expect(result).to eq(#{expectation})"
-          end
           lines << '  end'
           lines << ''
         end

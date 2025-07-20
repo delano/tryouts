@@ -115,14 +115,21 @@ class Tryouts
 
     # Shared context execution - setup runs once, all tests share state
     def execute_with_shared_context(test_case)
-      code  = test_case.code
-      path  = test_case.path
-      range = test_case.line_range
+      if test_case.exception_expectations?
+        # For exception tests, don't execute code here - let evaluate_expectations handle it
+        expectations_result = evaluate_expectations(test_case, nil, @container)
+        build_test_result(test_case, nil, expectations_result)
+      else
+        # Regular execution for non-exception tests
+        code  = test_case.code
+        path  = test_case.path
+        range = test_case.line_range
 
-      result_value        = @container.instance_eval(code, path, range.first + 1)
-      expectations_result = evaluate_expectations(test_case, result_value, @container)
+        result_value        = @container.instance_eval(code, path, range.first + 1)
+        expectations_result = evaluate_expectations(test_case, result_value, @container)
 
-      build_test_result(test_case, result_value, expectations_result)
+        build_test_result(test_case, result_value, expectations_result)
+      end
     rescue StandardError => ex
       build_error_result(test_case, ex.message, ex)
     end
@@ -137,15 +144,21 @@ class Tryouts
         fresh_container.instance_eval(setup.code, setup.path, 1)
       end
 
-      # Execute test in same fresh context
-      code  = test_case.code
-      path  = test_case.path
-      range = test_case.line_range
+      if test_case.exception_expectations?
+        # For exception tests, don't execute code here - let evaluate_expectations handle it
+        expectations_result = evaluate_expectations(test_case, nil, fresh_container)
+        build_test_result(test_case, nil, expectations_result)
+      else
+        # Regular execution for non-exception tests
+        code  = test_case.code
+        path  = test_case.path
+        range = test_case.line_range
 
-      result_value        = fresh_container.instance_eval(code, path, range.first + 1)
-      expectations_result = evaluate_expectations(test_case, result_value, fresh_container)
+        result_value        = fresh_container.instance_eval(code, path, range.first + 1)
+        expectations_result = evaluate_expectations(test_case, result_value, fresh_container)
 
-      build_test_result(test_case, result_value, expectations_result)
+        build_test_result(test_case, result_value, expectations_result)
+      end
     rescue StandardError => ex
       build_error_result(test_case, ex.message, ex)
     end
@@ -155,8 +168,45 @@ class Tryouts
       if test_case.expectations.empty?
         { passed: true, actual_results: [], expected_results: [] }
       else
-        evaluation_results = test_case.expectations.map do |expectation|
-          evaluate_single_expectation(expectation, actual_result, context, test_case)
+        # Handle exception expectations differently from regular expectations
+        if test_case.exception_expectations?
+          evaluate_exception_expectations(test_case, context)
+        else
+          evaluate_regular_expectations(test_case, actual_result, context)
+        end
+      end
+    end
+
+    def evaluate_regular_expectations(test_case, actual_result, context)
+      evaluation_results = test_case.regular_expectations.map do |expectation|
+        evaluate_single_expectation(expectation, actual_result, context, test_case)
+      end
+
+      {
+        passed: evaluation_results.all? { |r| r[:passed] },
+        actual_results: evaluation_results.map { |r| r[:actual] },
+        expected_results: evaluation_results.map { |r| r[:expected] },
+      }
+    end
+
+    def evaluate_exception_expectations(test_case, context)
+      # For exception expectations, we need to execute the code and catch the exception
+      begin
+        # Execute the test code - this should raise an exception
+        path = test_case.path
+        range = test_case.line_range
+        context.instance_eval(test_case.code, path, range.first + 1)
+
+        # If we get here, no exception was raised - that's a failure
+        {
+          passed: false,
+          actual_results: ["No exception was raised"],
+          expected_results: test_case.exception_expectations.map(&:content),
+        }
+      rescue StandardError => error
+        # Exception was caught - now evaluate the exception expectations
+        evaluation_results = test_case.exception_expectations.map do |expectation|
+          evaluate_exception_expectation(expectation, error, context, test_case)
         end
 
         {
@@ -167,24 +217,50 @@ class Tryouts
       end
     end
 
+    def evaluate_exception_expectation(expectation, caught_error, context, test_case)
+      path = test_case.path
+      range = test_case.line_range
+
+      # Make the caught error available as 'error' in the expectation context
+      context.define_singleton_method(:error) { caught_error }
+
+      begin
+        expected_value = context.instance_eval(expectation.content, path, range.first + 1)
+
+        {
+          passed: !!expected_value, # Convert to boolean
+          actual: caught_error.message,
+          expected: expectation.content,
+          expectation: expectation.content,
+        }
+      rescue StandardError => ex
+        {
+          passed: false,
+          actual: caught_error.message,
+          expected: "EXPECTED: #{ex.message}",
+          expectation: expectation.content,
+        }
+      end
+    end
+
     def evaluate_single_expectation(expectation, actual_result, context, test_case)
       path  = test_case.path
       range = test_case.line_range
 
-      expected_value = context.instance_eval(expectation, path, range.first + 1)
+      expected_value = context.instance_eval(expectation.content, path, range.first + 1)
 
       {
         passed: actual_result == expected_value,
         actual: actual_result,
         expected: expected_value,
-        expectation: expectation,
+        expectation: expectation.content,
       }
     rescue StandardError => ex
       {
         passed: false,
         actual: actual_result,
         expected: "EXPECTED: #{ex.message}",
-        expectation: expectation,
+        expectation: expectation.content,
       }
     end
 

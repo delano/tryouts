@@ -27,13 +27,29 @@ a + b + 1
 example_of_an_inline_test_helper_method
 #=> 'I am helping'
 
-## Example of handling exceptions
+## Example of handling exceptions (common syntax)
 begin
   raise 'foo'
 rescue StandardError => e
   [e.class, 'foo']
 end
 #=> [RuntimeError, 'foo']
+
+## Standard Exception Test
+raise StandardError.new("test message")
+#!=> error.message == "test message"
+
+## Exception Type Test
+raise ArgumentError.new("bad argument")
+#!=> error.is_a?(ArgumentError)
+
+## Exception Message Pattern Test
+raise StandardError.new("Key not found in Redis: test:key")
+#!=> error.message.include?("Key not found in Redis")
+
+## Regular expectation still works
+"hello".upcase
+#=> "HELLO"
 
 ## Messy test with multiple lines of code
 ## intermixed with comments. Only the last
