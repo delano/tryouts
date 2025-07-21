@@ -76,49 +76,51 @@ class Tryouts
       end
     end
     class << self
-      def bright(str)
-        str = [style(ATTRIBUTES[:bright]), str, default_style].join
+      def bright(str, io = $stdout)
+        str = [style(ATTRIBUTES[:bright], io: io), str, default_style(io)].join
         str.extend Console::InstanceMethods
         str
       end
 
-      def underline(str)
-        str = [style(ATTRIBUTES[:underline]), str, default_style].join
+      def underline(str, io = $stdout)
+        str = [style(ATTRIBUTES[:underline], io: io), str, default_style(io)].join
         str.extend Console::InstanceMethods
         str
       end
 
-      def reverse(str)
-        str = [style(ATTRIBUTES[:reverse]), str, default_style].join
+      def reverse(str, io = $stdout)
+        str = [style(ATTRIBUTES[:reverse], io: io), str, default_style(io)].join
         str.extend Console::InstanceMethods
         str
       end
 
-      def color(col, str)
-        str = [style(COLOURS[col]), str, default_style].join
+      def color(col, str, io = $stdout)
+        str = [style(COLOURS[col], io: io), str, default_style(io)].join
         str.extend Console::InstanceMethods
         str
       end
 
-      def att(name, str)
-        str = [style(ATTRIBUTES[name]), str, default_style].join
+      def att(name, str, io = $stdout)
+        str = [style(ATTRIBUTES[name], io: io), str, default_style(io)].join
         str.extend Console::InstanceMethods
         str
       end
 
-      def bgcolor(col, str)
-        str = [style(ATTRIBUTES[col]), str, default_style].join
+      def bgcolor(col, str, io = $stdout)
+        str = [style(ATTRIBUTES[col], io: io), str, default_style(io)].join
         str.extend Console::InstanceMethods
         str
       end
 
-      def style(*att)
+      def style(*att, io: $stdout)
+        # Only output ANSI codes if writing to a TTY
+        return '' unless io.respond_to?(:tty?) && io.tty?
         # => \e[8;34;42m
         "\e[%sm" % att.join(';')
       end
 
-      def default_style
-        style(ATTRIBUTES[:default], COLOURS[:default], BGCOLOURS[:default])
+      def default_style(io = $stdout)
+        style(ATTRIBUTES[:default], COLOURS[:default], BGCOLOURS[:default], io: io)
       end
 
       # Converts an absolute file path to a path relative to the current working
