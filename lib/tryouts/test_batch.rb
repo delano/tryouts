@@ -37,14 +37,14 @@ class Tryouts
       @start_time      = nil
       @test_case_count = 0
       @setup_failed    = false
-      
+
       # Setup container for fresh context mode - preserves @instance_variables from setup
       @setup_container = nil
 
       # Circuit breaker for batch-level failure protection
-      @consecutive_failures = 0
+      @consecutive_failures     = 0
       @max_consecutive_failures = options[:max_consecutive_failures] || 10
-      @circuit_breaker_active = false
+      @circuit_breaker_active   = false
 
       # Expose context objects for testing - different strategies for each mode
       @shared_context = if options[:shared_context]
@@ -71,7 +71,7 @@ class Tryouts
 
         # Stop execution if setup failed
         if @setup_failed
-          @output_manager&.error("Stopping batch execution due to setup failure")
+          @output_manager&.error('Stopping batch execution due to setup failure')
           @status = :failed
           finalize_results([])
           return false
@@ -83,7 +83,7 @@ class Tryouts
 
         # Stop execution if setup failed
         if @setup_failed
-          @output_manager&.error("Stopping batch execution due to setup failure")
+          @output_manager&.error('Stopping batch execution due to setup failure')
           @status = :failed
           finalize_results([])
           return false
@@ -109,10 +109,10 @@ class Tryouts
         update_circuit_breaker(result)
 
         result
-      rescue StandardError => e
-        @output_manager&.test_end(test_case, idx, @test_case_count, status: :failed, error: e)
+      rescue StandardError => ex
+        @output_manager&.test_end(test_case, idx, @test_case_count, status: :failed, error: ex)
         # Create error result packet to maintain consistent data flow
-        error_result = build_error_result(test_case, e)
+        error_result = build_error_result(test_case, ex)
         process_test_result(error_result)
 
         # Update circuit breaker for exception cases
@@ -189,7 +189,7 @@ class Tryouts
           error: result.error,
           captured_output: captured_output,
           elapsed_time: result.elapsed_time,
-          metadata: result.metadata
+          metadata: result.metadata,
         )
       end
 
@@ -242,7 +242,7 @@ class Tryouts
         # Check if we need output capture for any expectations
         needs_output_capture = test_case.expectations.any?(&:output?)
 
-        result_value, execution_time_ns, stdout_content, stderr_content, expectations_result =
+        result_value, _, _, _, expectations_result =
           execute_with_timeout(test_timeout, test_case) do
             if needs_output_capture
               # Execute with output capture using Fiber-local isolation
@@ -256,9 +256,9 @@ class Tryouts
             else
               # Regular execution with timing capture only
               execution_start_ns = Process.clock_gettime(Process::CLOCK_MONOTONIC, :nanosecond)
-              result_value = container.instance_eval(code, path, range.first + 1)
-              execution_end_ns = Process.clock_gettime(Process::CLOCK_MONOTONIC, :nanosecond)
-              execution_time_ns = execution_end_ns - execution_start_ns
+              result_value       = container.instance_eval(code, path, range.first + 1)
+              execution_end_ns   = Process.clock_gettime(Process::CLOCK_MONOTONIC, :nanosecond)
+              execution_time_ns  = execution_end_ns - execution_start_ns
 
               expectations_result = evaluate_expectations(test_case, result_value, container, execution_time_ns)
               [result_value, execution_time_ns, nil, nil, expectations_result]
@@ -293,9 +293,9 @@ class Tryouts
 
           # Execute with timing capture
           execution_start_ns = Process.clock_gettime(Process::CLOCK_MONOTONIC, :nanosecond)
-          result_value = container.instance_eval(code, path, range.first + 1)
-          execution_end_ns = Process.clock_gettime(Process::CLOCK_MONOTONIC, :nanosecond)
-          execution_time_ns = execution_end_ns - execution_start_ns
+          result_value       = container.instance_eval(code, path, range.first + 1)
+          execution_end_ns   = Process.clock_gettime(Process::CLOCK_MONOTONIC, :nanosecond)
+          execution_time_ns  = execution_end_ns - execution_start_ns
 
           [result_value, execution_time_ns]
         end.resume.tap do |result_value, execution_time_ns|
@@ -334,7 +334,7 @@ class Tryouts
       {
         passed: evaluation_results.all? { |r| r[:passed] },
         actual_results: evaluation_results.map { |r| r[:actual] },
-        expected_results: evaluation_results.map { |r| r[:expected] }
+        expected_results: evaluation_results.map { |r| r[:expected] },
       }
     end
 
@@ -345,14 +345,14 @@ class Tryouts
           test_case,
           result_value,
           expectations_result[:actual_results],
-          expectations_result[:expected_results]
+          expectations_result[:expected_results],
         )
       else
         TestCaseResultPacket.from_failure(
           test_case,
           result_value,
           expectations_result[:actual_results],
-          expectations_result[:expected_results]
+          expectations_result[:expected_results],
         )
       end
     end
@@ -392,7 +392,7 @@ class Tryouts
         @output_manager&.setup_output(captured_output) if captured_output && !captured_output.empty?
       end
     rescue StandardError => ex
-      @setup_failed = true
+      @setup_failed                 = true
       @global_tally[:total_errors] += 1 if @global_tally
 
       # Classify error and handle appropriately
@@ -429,7 +429,7 @@ class Tryouts
         @output_manager&.setup_output(captured_output) if captured_output && !captured_output.empty?
       end
     rescue StandardError => ex
-      @setup_failed = true
+      @setup_failed                 = true
       @global_tally[:total_errors] += 1 if @global_tally
 
       # Classify error and handle appropriately
@@ -474,11 +474,11 @@ class Tryouts
       @output_manager&.error("Teardown failed: #{ex.message}")
 
       # Teardown failures are generally non-fatal - log and continue
-      unless Tryouts.batch_stopping_error?(ex)
-        @output_manager&.error("Continuing despite teardown failure")
-      else
+      if Tryouts.batch_stopping_error?(ex)
         # Only catastrophic errors should potentially affect batch completion
-        @output_manager&.error("Teardown failure may affect subsequent operations")
+        @output_manager&.error('Teardown failure may affect subsequent operations')
+      else
+        @output_manager&.error('Continuing despite teardown failure')
       end
     end
 
@@ -531,11 +531,9 @@ class Tryouts
     end
 
     # Timeout protection for individual test execution
-    def execute_with_timeout(timeout_seconds, test_case)
-      Timeout.timeout(timeout_seconds) do
-        yield
-      end
-    rescue Timeout::Error => e
+    def execute_with_timeout(timeout_seconds, test_case, &)
+      Timeout.timeout(timeout_seconds, &)
+    rescue Timeout::Error
       Tryouts.debug "Test timeout after #{timeout_seconds}s: #{test_case.description}"
       raise StandardError.new("Test execution timeout (#{timeout_seconds}s)")
     end
@@ -550,7 +548,7 @@ class Tryouts
         end
       else
         # Reset on success
-        @consecutive_failures = 0
+        @consecutive_failures   = 0
         @circuit_breaker_active = false
       end
     end
