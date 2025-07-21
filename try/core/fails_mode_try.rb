@@ -1,4 +1,5 @@
-# Test file for fails mode testing
+# try/core/fails_mode_try.rb
+# Tests for fails mode functionality
 
 # This should pass
 result1 = 1 + 1
@@ -6,7 +7,7 @@ result1 = 1 + 1
 
 # This should fail
 result2 = 2 + 2
-#=> 5
+#=<> 5
 
 # This should pass
 result3 = 3 * 3
@@ -14,4 +15,4 @@ result3 = 3 * 3
 
 # This should fail
 result4 = 4 * 4
-#=> 20
+#=<> 20

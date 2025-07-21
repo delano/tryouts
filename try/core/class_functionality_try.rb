@@ -1,5 +1,6 @@
-# Main Tryouts class tests
-require_relative 'test_helper'
+# try/core/class_functionality_try.rb
+# Tests for core Tryouts class functionality
+require_relative '../test_helper'
 
 ## TEST: TRYOUTS_LIB_HOME constant is defined
 defined?(TRYOUTS_LIB_HOME)
@@ -162,13 +163,16 @@ rescue LoadError
 end
 #=> "SysInfo"
 
-## TEST: Coverage is initialized if ENV variable is set
-# This test checks if simplecov is available without reloading it
+## TEST: Coverage loading status matches environment
+# SimpleCov should be loaded when COVERAGE env var is set, not loaded otherwise
 load_result = begin
   defined?(SimpleCov) ? "loaded" : "not_loaded"
 rescue
   "not_available"
 end
-load_result
-#=> "loaded"
+
+expected_result = ENV['COVERAGE'] ? "loaded" : "not_loaded"
+load_result == expected_result
+#=> true
+
 Tryouts.debug = false

@@ -1,6 +1,7 @@
-# Console module tests
-require_relative 'test_helper'
-require_relative '../lib/tryouts/console'
+# try/formatters/console_formatting_try.rb
+# Tests for Console module ANSI colors and formatting
+require_relative '../test_helper'
+require_relative '../../lib/tryouts/console'
 
 ## TEST: ANSI color constants are defined
 Tryouts::Console::COLOURS.keys.include?(:red)

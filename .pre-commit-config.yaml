@@ -46,8 +46,8 @@ default_install_hook_types:
 # Default execution stage
 default_stages: [pre-commit]
 
-# Terminate checks on first failure
-fail_fast: true
+# Avoid multiple sequential commit failures
+fail_fast: false
 
 # Ignore generated and dependency directories
 exclude: "^$"
@@ -75,7 +75,7 @@ repos:
 
   # Commit message issue tracking integration
   - repo: https://github.com/avilaton/add-msg-issue-prefix-hook
-    rev: v0.0.11
+    rev: v0.0.12
     hooks:
       - id: add-msg-issue-prefix
         stages: [prepare-commit-msg]

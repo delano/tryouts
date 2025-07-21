@@ -13,14 +13,16 @@ permissions:
   contents: read
 
 jobs:
-  basic-tests:
+  tryouts-groups:
     timeout-minutes: 10
-    runs-on: ubuntu-latest
-    name: Basic Tests (Ruby ${{ matrix.ruby }})
+    runs-on: ubuntu-24.04
+    name: "Tryouts: ${{ matrix.testgroup }} (Ruby ${{ matrix.ruby }})"
+    continue-on-error: false
     strategy:
       fail-fast: true
       matrix:
         ruby: ["3.4", "3.5"]
+        testgroup: [core, expectations, formatters, translators]
 
     steps:
       - uses: actions/checkout@v4
@@ -31,44 +33,18 @@ jobs:
           bundler-cache: false
 
       - name: Configure bundle groups
-        run: bundle config set --local with 'test development'
-
-      - name: Install dependencies
-        run: bundle install
-
-      - name: Run basic proof tests
-        run: ruby exe/try try/proof*_try.rb
-
-  framework-tests:
-    timeout-minutes: 10
-    runs-on: ubuntu-latest
-    name: Framework Tests (Ruby ${{ matrix.ruby }})
-    strategy:
-      fail-fast: true
-      matrix:
-        ruby: ["3.4", "3.5"]
-
-    steps:
-      - uses: actions/checkout@v4
-      - name: Set up Ruby
-        uses: ruby/setup-ruby@v1
-        with:
-          ruby-version: ${{ matrix.ruby }}
-          bundler-cache: false
-
-      - name: Configure bundle groups
-        run: bundle config set --local with 'test development'
+        run: bundle config set --local without 'development'
 
       - name: Install dependencies
         run: bundle install
 
       - name: Run framework unit tests with coverage
-        run: COVERAGE=1 ruby exe/try test/*_try.rb
+        run: COVERAGE=1 FORCE_COLOR=1 bundle exec exe/try try/${{ matrix.testgroup }}
 
-  examples:
+  safety:
     timeout-minutes: 10
-    runs-on: ubuntu-latest
-    name: Examples (Ruby ${{ matrix.ruby }})
+    runs-on: ubuntu-24.04
+    name: "Runtime Safety Checks (intentionally fail)  (Ruby ${{ matrix.ruby }})"
     continue-on-error: true
     strategy:
       fail-fast: false
@@ -84,17 +60,17 @@ jobs:
           bundler-cache: false
 
       - name: Configure bundle groups
-        run: bundle config set --local with 'test development'
+        run: bundle config set --local without 'development'
 
       - name: Install dependencies
         run: bundle install
 
-      - name: Run example demonstrations (may fail intentionally)
-        run: ruby exe/try examples/test_*.rb
+      - name: Run framework unit tests with coverage
+        run: COVERAGE=1 FORCE_COLOR=1 bundle exec exe/try try/safety
 
   cli-options:
     timeout-minutes: 10
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     name: CLI Options Test (Ruby ${{ matrix.ruby }})
     strategy:
       fail-fast: true
@@ -110,22 +86,22 @@ jobs:
           bundler-cache: false
 
       - name: Configure bundle groups
-        run: bundle config set --local with 'test development'
+        run: bundle config set --local with 'test'
 
       - name: Install dependencies
         run: bundle install
 
       - name: Test version flag
-        run: ruby exe/try -V
+        run: bundle exec exe/try -V
 
       - name: Test verbose mode
-        run: ruby exe/try -v try/proof1_try.rb
+        run: bundle exec exe/try -v try/core/advanced_syntax_try.rb
 
       - name: Test debug mode
-        run: ruby exe/try -D try/proof1_try.rb
+        run: bundle exec exe/try -D try/core/advanced_syntax_try.rb
 
       - name: Test verbose failures
-        run: ruby exe/try -vf try/proof1_try.rb
+        run: bundle exec exe/try -vf try/core/advanced_syntax_try.rb
 
       - name: Test quiet mode
-        run: ruby exe/try -q try/proof1_try.rb
+        run: bundle exec exe/try -q try/core/advanced_syntax_try.rb

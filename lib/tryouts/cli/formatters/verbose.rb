@@ -32,20 +32,23 @@ class Tryouts
 
         output = case level
         when 0, 1
-          ['', separator_line, header_line, separator_line]
+          [separator_line, header_line, separator_line]
         else
-          ['', header_line, separator_line]
+          [header_line, separator_line]
         end
 
         with_indent(level) do
           puts output.join("\n")
         end
-        puts
       end
 
       # File-level operations
       def file_start(file_path, _context_info = {})
         puts file_header_visual(file_path)
+      end
+
+      def file_end(_file_path, _context_info = {})
+        # No output in verbose mode
       end
 
       def file_parsed(_file_path, _test_count, setup_present: false, teardown_present: false)
@@ -64,28 +67,39 @@ class Tryouts
         puts indent_text(message, 1)
       end
 
+      # Summary operations
+      #
+      # Called right before file_result
+      def batch_summary(total_tests, failed_count, elapsed_time)
+        # No output in verbose mode
+      end
+
       def file_result(_file_path, total_tests, failed_count, error_count, elapsed_time)
         issues_count = failed_count + error_count
-        details      = []
+        passed_count = total_tests - issues_count
+        details      = [
+          "#{passed_count} passed",
+        ]
 
-        status = if issues_count > 0
+        if issues_count > 0
           details << "#{failed_count} failed" if failed_count > 0
           details << "#{error_count} errors" if error_count > 0
           details_str = details.join(', ')
-          Console.color(:red, "✗ #{issues_count}/#{total_tests} tests had issues (#{details_str})")
+          color       = :red
+
+          time_str = elapsed_time ? " (#{elapsed_time.round(2)}s)" : ''
+          message  = "✗ Out of #{total_tests} tests: #{details_str}#{time_str}"
+          puts indent_text(Console.color(color, message), 2)
         else
-          Console.color(:green, "✓ #{total_tests} tests passed")
+          message = "#{total_tests} tests passed"
+          color   = :green
+          puts indent_text(Console.color(color, "✓ #{message}"), 2)
         end
 
-        puts indent_text(status, 2)
         return unless elapsed_time
 
-        time_msg =
-          if elapsed_time < 2.0
-            "Completed in #{(elapsed_time * 1000).round}ms"
-          else
-            "Completed in #{elapsed_time.round(3)}s"
-          end
+        time_msg = "Completed in #{format_timing(elapsed_time).strip.tr('()', '')}"
+
         puts indent_text(Console.color(:dim, time_msg), 2)
       end
 
@@ -97,33 +111,42 @@ class Tryouts
         puts indent_text(Console.color(:dim, message), 2)
       end
 
-      def test_result(test_case, result_status, actual_results = [], _elapsed_time = nil)
-        should_show = @show_passed || result_status != :passed
+      def test_end(_test_case, _index, _total)
+        # No output in verbose mode
+      end
+
+      def test_result(result_packet)
+        should_show = @show_passed || !result_packet.passed?
 
         return unless should_show
 
-        status_line = case result_status
-                      when :passed
+        status_line = case result_packet.status
+        when :passed
           Console.color(:green, 'PASSED')
-                      when :failed
+        when :failed
           Console.color(:red, 'FAILED')
-                      when :error
+        when :error
           Console.color(:red, 'ERROR')
-                      when :skipped
+        when :skipped
           Console.color(:yellow, 'SKIPPED')
         else
           'UNKNOWN'
-                      end
+        end
 
+        test_case = result_packet.test_case
         location = "#{Console.pretty_path(test_case.path)}:#{test_case.line_range.first + 1}"
-        puts indent_text("#{status_line} #{test_case.description} @ #{location}", 2)
+        puts
+        puts indent_text("#{status_line} @ #{location}", 2)
 
         # Show source code for verbose mode
         show_test_source_code(test_case)
 
         # Show failure details for failed tests
-        if [:failed, :error].include?(result_status)
-          show_failure_details(test_case, actual_results)
+        if result_packet.failed? || result_packet.error?
+          show_failure_details(test_case, result_packet.actual_results, result_packet.expected_results)
+        # Show exception details for passed exception expectations
+        elsif result_packet.passed? && has_exception_expectations?(test_case)
+          show_exception_details(test_case, result_packet.actual_results, result_packet.expected_results)
         end
       end
 
@@ -168,29 +191,13 @@ class Tryouts
         end
       end
 
-      # Summary operations
-      def batch_summary(total_tests, failed_count, elapsed_time)
-        if failed_count > 0
-          passed  = total_tests - failed_count
-          message = "#{failed_count} failed, #{passed} passed"
-          color   = :red
-        else
-          message = "#{total_tests} tests passed"
-          color   = :green
-        end
-
-        time_str = elapsed_time ? " (#{elapsed_time.round(2)}s)" : ''
-        summary  = Console.color(color, "#{message}#{time_str}")
-        puts summary
-      end
-
       def grand_total(total_tests, failed_count, error_count, successful_files, total_files, elapsed_time)
         puts
         puts '=' * @line_width
         puts 'Grand Total:'
 
         issues_count = failed_count + error_count
-        time_str =
+        time_str     =
           if elapsed_time < 2.0
             " (#{(elapsed_time * 1000).round}ms)"
           else
@@ -198,7 +205,7 @@ class Tryouts
           end
 
         if issues_count > 0
-          passed  = total_tests - issues_count
+          passed  = [total_tests - issues_count, 0].max  # Ensure passed never goes negative
           details = []
           details << "#{failed_count} failed" if failed_count > 0
           details << "#{error_count} errors" if error_count > 0
@@ -216,6 +223,7 @@ class Tryouts
         return unless @show_debug
 
         prefix = Console.color(:cyan, 'INFO ')
+        puts
         puts indent_text("#{prefix} #{message}", level + 1)
       end
 
@@ -260,9 +268,29 @@ class Tryouts
 
       private
 
-      def show_test_source_code(test_case)
-        puts indent_text('Source code:', 3)
+      def has_exception_expectations?(test_case)
+        test_case.expectations.any? { |exp| exp.type == :exception }
+      end
 
+      def show_exception_details(test_case, actual_results, expected_results = [])
+        return if actual_results.empty?
+
+        puts indent_text('Exception Details:', 4)
+
+        actual_results.each_with_index do |actual, idx|
+          expected = expected_results[idx] if expected_results && idx < expected_results.length
+          expectation = test_case.expectations[idx] if test_case.expectations
+
+          if expectation&.type == :exception
+            puts indent_text("Caught: #{Console.color(:blue, actual.inspect)}", 5)
+            puts indent_text("Expectation: #{Console.color(:green, expectation.content)}", 5)
+            puts indent_text("Result: #{Console.color(:green, expected.inspect)}", 5) if expected
+          end
+        end
+        puts
+      end
+
+      def show_test_source_code(test_case)
         # Use pre-captured source lines from parsing
         start_line = test_case.line_range.first
 
@@ -270,9 +298,8 @@ class Tryouts
           line_num     = start_line + index
           line_display = format('%3d: %s', line_num + 1, line_content)
 
-          # Highlight expectation lines by checking if this line
-          # contains the expectation syntax
-          if line_content.match?(/^\s*#\s*=>\s*/)
+          # Highlight expectation lines by checking if this line contains any expectation syntax
+          if line_content.match?(/^\s*#\s*=(!|<|=|\/=|\||:|~|%|\d+)?>\s*/)
             line_display = Console.color(:yellow, line_display)
           end
 
@@ -281,24 +308,28 @@ class Tryouts
         puts
       end
 
-      def show_failure_details(test_case, actual_results)
+      def show_failure_details(test_case, actual_results, expected_results = [])
         return if actual_results.empty?
 
-        puts indent_text('Expected vs Actual:', 3)
-
         actual_results.each_with_index do |actual, idx|
+          expected      = expected_results[idx] if expected_results && idx < expected_results.length
           expected_line = test_case.expectations[idx] if test_case.expectations
 
-          if expected_line
-            puts indent_text("Expected: #{Console.color(:green, expected_line)}", 4)
+          if !expected.nil?
+            # Use the evaluated expected value from the evaluator
+            puts indent_text("Expected: #{Console.color(:green, expected.inspect)}", 4)
+            puts indent_text("Actual:   #{Console.color(:red, actual.inspect)}", 4)
+          elsif expected_line
+            # Fallback to raw expectation content
+            puts indent_text("Expected: #{Console.color(:green, expected_line.content)}", 4)
             puts indent_text("Actual:   #{Console.color(:red, actual.inspect)}", 4)
           else
             puts indent_text("Actual:   #{Console.color(:red, actual.inspect)}", 4)
           end
 
           # Show difference if both are strings
-          if expected_line && actual.is_a?(String) && expected_line.is_a?(String)
-            show_string_diff(expected_line, actual)
+          if !expected.nil? && actual.is_a?(String) && expected.is_a?(String)
+            show_string_diff(expected, actual)
           end
 
           puts
@@ -320,10 +351,20 @@ class Tryouts
         padding        = '<' * padding_length
 
         [
-          '-' * @line_width,
-          header_content + padding,
-          '-' * @line_width,
+          indent_text('-' * @line_width, 1),
+          indent_text(header_content + padding, 1),
+          indent_text('-' * @line_width, 1),
         ].join("\n")
+      end
+
+      def format_timing(elapsed_time)
+        if elapsed_time < 0.001
+          " (#{(elapsed_time * 1_000_000).round}μs)"
+        elsif elapsed_time < 1
+          " (#{(elapsed_time * 1000).round}ms)"
+        else
+          " (#{elapsed_time.round(2)}s)"
+        end
       end
     end
 
@@ -333,9 +374,9 @@ class Tryouts
         super(options.merge(show_passed: false))
       end
 
-      def test_result(test_case, result_status, actual_results = [], elapsed_time = nil)
+      def test_result(result_packet)
         # Only show failed/error tests, but with full source code
-        return if result_status == :passed
+        return if result_packet.passed?
 
         super
       end

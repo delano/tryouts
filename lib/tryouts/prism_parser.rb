@@ -33,7 +33,25 @@ class Tryouts
                   { type: :description, content: $1.strip, line: index }
                 in /^#\s*TEST\s*\d*:\s*(.*)$/  # rubocop:disable Lint/DuplicateBranch
                   { type: :description, content: $1.strip, line: index }
-                in /^#\s*=>\s*(.*)$/ # Expectation
+                in /^#\s*=!>\s*(.*)$/ # Exception expectation (updated for consistency)
+                  { type: :exception_expectation, content: $1.strip, line: index, ast: parse_expectation($1.strip) }
+                in /^#\s*=<>\s*(.*)$/ # Intentional failure expectation
+                  { type: :intentional_failure_expectation, content: $1.strip, line: index, ast: parse_expectation($1.strip) }
+                in /^#\s*==>\s*(.*)$/ # Boolean true expectation
+                  { type: :true_expectation, content: $1.strip, line: index, ast: parse_expectation($1.strip) }
+                in %r{^#\s*=/=>\s*(.*)$} # Boolean false expectation
+                  { type: :false_expectation, content: $1.strip, line: index, ast: parse_expectation($1.strip) }
+                in /^#\s*=\|>\s*(.*)$/ # Boolean (true or false) expectation
+                  { type: :boolean_expectation, content: $1.strip, line: index, ast: parse_expectation($1.strip) }
+                in /^#\s*=:>\s*(.*)$/ # Result type expectation
+                  { type: :result_type_expectation, content: $1.strip, line: index, ast: parse_expectation($1.strip) }
+                in /^#\s*=~>\s*(.*)$/ # Regex match expectation
+                  { type: :regex_match_expectation, content: $1.strip, line: index, ast: parse_expectation($1.strip) }
+                in /^#\s*=%>\s*(.*)$/ # Performance time expectation
+                  { type: :performance_time_expectation, content: $1.strip, line: index, ast: parse_expectation($1.strip) }
+                in /^#\s*=(\d+)>\s*(.*)$/ # Output expectation (stdout/stderr with pipe number)
+                  { type: :output_expectation, content: $2.strip, pipe: $1.to_i, line: index, ast: parse_expectation($2.strip) }
+                in /^#\s*=>\s*(.*)$/ # Regular expectation
                   { type: :expectation, content: $1.strip, line: index, ast: parse_expectation($1.strip) }
                 in /^##\s*=>\s*(.*)$/ # Commented out expectation (should be ignored)
                   { type: :comment, content: '=>' + $1.strip, line: index }
@@ -56,24 +74,55 @@ class Tryouts
     def classify_potential_descriptions(tokens)
       tokens.map.with_index do |token, index|
         if token[:type] == :potential_description
-          # Look ahead strictly for the pattern: [optional blanks] code expectation
-          following_tokens = tokens[(index + 1)..]
+          # Check if this looks like a test description based on content and context
+          content = token[:content].strip
 
-          # Skip blanks and find next non-blank tokens
-          non_blank_following = following_tokens.reject { |t| t[:type] == :blank }
+          # Skip if it's clearly just a regular comment (short, lowercase, etc.)
+          # Test descriptions are typically longer and more descriptive
+          looks_like_regular_comment = content.length < 20 &&
+                                      content.downcase == content &&
+                                      !content.match?(/test|example|demonstrate|show/i)
 
-          # Must have: code immediately followed by expectation (with possible blanks between)
-          if non_blank_following.size >= 2 &&
-             non_blank_following[0][:type] == :code &&
-             non_blank_following[1][:type] == :expectation
-            token.merge(type: :description)
-          else
+          # Check if there's code immediately before this (suggesting it's mid-test)
+          prev_token = index > 0 ? tokens[index - 1] : nil
+          has_code_before = prev_token && prev_token[:type] == :code
+
+          if looks_like_regular_comment || has_code_before
+            # Treat as regular comment
             token.merge(type: :comment)
+          else
+            # Look ahead for test pattern: code + at least one expectation within reasonable distance
+            following_tokens = tokens[(index + 1)..]
+
+            # Skip blanks and comments to find meaningful content
+            meaningful_following = following_tokens.reject { |t| [:blank, :comment].include?(t[:type]) }
+
+            # Look for test pattern: at least one code token followed by at least one expectation
+            # within the next 10 meaningful tokens (to avoid matching setup/teardown)
+            test_window = meaningful_following.first(10)
+            has_code = test_window.any? { |t| t[:type] == :code }
+            has_expectation = test_window.any? { |t| is_expectation_type?(t[:type]) }
+
+            if has_code && has_expectation
+              token.merge(type: :description)
+            else
+              token.merge(type: :comment)
+            end
           end
         else
           token
         end
       end
+    end
+
+    # Check if token type represents any kind of expectation
+    def is_expectation_type?(type)
+      [
+        :expectation, :exception_expectation, :intentional_failure_expectation,
+        :true_expectation, :false_expectation, :boolean_expectation,
+        :result_type_expectation, :regex_match_expectation,
+        :performance_time_expectation, :output_expectation
+      ].include?(type)
     end
 
     # Group tokens into logical test blocks using pattern matching
@@ -110,6 +159,33 @@ class Tryouts
           current_block = new_test_block.merge(code: [token], start_line: token[:line])
 
         in [_, { type: :expectation }]
+          current_block[:expectations] << token
+
+        in [_, { type: :exception_expectation }]
+          current_block[:expectations] << token
+
+        in [_, { type: :intentional_failure_expectation }]
+          current_block[:expectations] << token
+
+        in [_, { type: :true_expectation }]
+          current_block[:expectations] << token
+
+        in [_, { type: :false_expectation }]
+          current_block[:expectations] << token
+
+        in [_, { type: :boolean_expectation }]
+          current_block[:expectations] << token
+
+        in [_, { type: :result_type_expectation }]
+          current_block[:expectations] << token
+
+        in [_, { type: :regex_match_expectation }]
+          current_block[:expectations] << token
+
+        in [_, { type: :performance_time_expectation }]
+          current_block[:expectations] << token
+
+        in [_, { type: :output_expectation }]
           current_block[:expectations] << token
 
         in [_, { type: :comment | :blank }]
@@ -264,10 +340,11 @@ class Tryouts
     end
 
     def calculate_end_line(block)
-      last_tokens = [*block[:code], *block[:expectations], *block[:comments]]
-      return block[:start_line] if last_tokens.empty?
+      # Only consider actual content (code and expectations), not blank lines/comments
+      content_tokens = [*block[:code], *block[:expectations]]
+      return block[:start_line] if content_tokens.empty?
 
-      last_tokens.map { |token| token[:line] }.max || block[:start_line]
+      content_tokens.map { |token| token[:line] }.max || block[:start_line]
     end
 
     def build_test_case(block)
@@ -286,7 +363,27 @@ class Tryouts
         TestCase.new(
           description: desc,
           code: extract_code_content(code_tokens),
-          expectations: exp_tokens.map { |token| token[:content] },
+          expectations: exp_tokens.map { |token|
+            type = case token[:type]
+                   when :exception_expectation then :exception
+                   when :intentional_failure_expectation then :intentional_failure
+                   when :true_expectation then :true
+                   when :false_expectation then :false
+                   when :boolean_expectation then :boolean
+                   when :result_type_expectation then :result_type
+                   when :regex_match_expectation then :regex_match
+                   when :performance_time_expectation then :performance_time
+                   when :output_expectation then :output
+                   else :regular
+                   end
+
+            # For output expectations, we need to preserve the pipe number
+            if token[:type] == :output_expectation
+              OutputExpectation.new(content: token[:content], type: type, pipe: token[:pipe])
+            else
+              Expectation.new(content: token[:content], type: type)
+            end
+          },
           line_range: start_line..end_line,
           path: @source_path,
           source_lines: source_lines,

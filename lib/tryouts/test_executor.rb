@@ -38,6 +38,7 @@ class Tryouts
         global_tally: @global_tally,
       )
 
+      # TestBatch handles file output, so don't duplicate it here
       unless @options[:verbose]
         context_mode = @options[:shared_context] ? 'shared' : 'fresh'
         @output_manager.file_execution_start(@file, @testrun.total_tests, context_mode)
@@ -49,15 +50,16 @@ class Tryouts
         test_results << last_result if last_result
       end
 
-      file_failed_count                 = test_results.count { |r| r[:status] == :failed }
-      file_error_count                  = test_results.count { |r| r[:status] == :error }
-      @global_tally[:total_tests]      += batch.size
+      file_failed_count                 = test_results.count { |r| r.failed? }
+      file_error_count                  = test_results.count { |r| r.error? }
+      executed_test_count               = test_results.size
+      @global_tally[:total_tests]      += executed_test_count
       @global_tally[:total_failed]     += file_failed_count
       @global_tally[:total_errors]     += file_error_count
       @global_tally[:successful_files] += 1 if success
 
       duration = Time.now.to_f - @file_start.to_f
-      @output_manager.file_success(@file, batch.size, file_failed_count, file_error_count, duration)
+      @output_manager.file_success(@file, executed_test_count, file_failed_count, file_error_count, duration)
 
       # Combine failures and errors to determine the exit code.
       success ? 0 : (file_failed_count + file_error_count)

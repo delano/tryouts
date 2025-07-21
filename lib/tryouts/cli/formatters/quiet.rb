@@ -22,6 +22,10 @@ class Tryouts
         # Silent in quiet mode
       end
 
+      def file_end(_file_path, _context_info = {}, io = $stderr)
+        io.puts # add newline after all dots
+      end
+
       def file_parsed(file_path, test_count, setup_present: false, teardown_present: false)
         # Silent in quiet mode
       end
@@ -39,20 +43,24 @@ class Tryouts
         # Silent in quiet mode
       end
 
-      def test_result(_test_case, result_status, _actual_results = [], _elapsed_time = nil)
-        case result_status
+      def test_end(test_case, index, total, io = $stderr)
+        # Silent in quiet mode
+      end
+
+      def test_result(result_packet, io = $stderr)
+        case result_packet.status
         when :passed
-          print Console.color(:green, '.')
+          io.print Console.color(:green, '.')
         when :failed
-          print Console.color(:red, 'F')
+          io.print Console.color(:red, 'F')
         when :error
-          print Console.color(:red, 'E')
+          io.print Console.color(:red, 'E')
         when :skipped
-          print Console.color(:yellow, 'S')
+          io.print Console.color(:yellow, 'S')
         else
-          print '?'
+          io.print '?'
         end
-        $stdout.flush
+        io.flush
       end
 
       def test_output(test_case, output_text)
@@ -78,18 +86,16 @@ class Tryouts
       end
 
       # Summary operations - show results
-      def batch_summary(total_tests, failed_count, elapsed_time)
+      def batch_summary(total_tests, failed_count, elapsed_time, io = $stderr)
         return unless @show_final_summary
-
-        puts # New line after dots
 
         if failed_count > 0
           passed   = total_tests - failed_count
           time_str = elapsed_time ? " (#{elapsed_time.round(2)}s)" : ''
-          puts "#{failed_count} failed, #{passed} passed#{time_str}"
+          io.puts "#{failed_count} failed, #{passed} passed#{time_str}"
         else
           time_str = elapsed_time ? " (#{elapsed_time.round(2)}s)" : ''
-          puts "#{total_tests} passed#{time_str}"
+          io.puts "#{total_tests} passed#{time_str}"
         end
       end
 
@@ -106,7 +112,7 @@ class Tryouts
 
         issues_count = failed_count + error_count
         if issues_count > 0
-          passed = total_tests - issues_count
+          passed = [total_tests - issues_count, 0].max  # Ensure passed never goes negative
           details = []
           details << "#{failed_count} failed" if failed_count > 0
           details << "#{error_count} errors" if error_count > 0
@@ -148,9 +154,9 @@ class Tryouts
 
     # Quiet formatter that only shows dots for failures and errors
     class QuietFailsFormatter < QuietFormatter
-      def test_result(test_case, result_status, actual_results = [], elapsed_time = nil)
+      def test_result(result_packet)
         # Only show non-pass dots in fails mode
-        return if result_status == :passed
+        return if result_packet.passed?
 
         super
       end

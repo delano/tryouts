@@ -29,6 +29,9 @@ AllCops:
     - "try/**/*.rb"
     - "vendor/**/*"
 
+Style/StderrPuts:
+  Enabled: false
+
 Layout/CaseIndentation:
   Enabled: true
   EnforcedStyle: end # case, end

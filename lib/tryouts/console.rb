@@ -76,49 +76,85 @@ class Tryouts
       end
     end
     class << self
-      def bright(str)
-        str = [style(ATTRIBUTES[:bright]), str, default_style].join
+      def bright(str, io = $stdout)
+        str = [style(ATTRIBUTES[:bright], io: io), str, default_style(io)].join
         str.extend Console::InstanceMethods
         str
       end
 
-      def underline(str)
-        str = [style(ATTRIBUTES[:underline]), str, default_style].join
+      def underline(str, io = $stdout)
+        str = [style(ATTRIBUTES[:underline], io: io), str, default_style(io)].join
         str.extend Console::InstanceMethods
         str
       end
 
-      def reverse(str)
-        str = [style(ATTRIBUTES[:reverse]), str, default_style].join
+      def reverse(str, io = $stdout)
+        str = [style(ATTRIBUTES[:reverse], io: io), str, default_style(io)].join
         str.extend Console::InstanceMethods
         str
       end
 
-      def color(col, str)
-        str = [style(COLOURS[col]), str, default_style].join
+      def color(col, str, io = $stdout)
+        str = [style(COLOURS[col], io: io), str, default_style(io)].join
         str.extend Console::InstanceMethods
         str
       end
 
-      def att(name, str)
-        str = [style(ATTRIBUTES[name]), str, default_style].join
+      def att(name, str, io = $stdout)
+        str = [style(ATTRIBUTES[name], io: io), str, default_style(io)].join
         str.extend Console::InstanceMethods
         str
       end
 
-      def bgcolor(col, str)
-        str = [style(ATTRIBUTES[col]), str, default_style].join
+      def bgcolor(col, str, io = $stdout)
+        str = [style(ATTRIBUTES[col], io: io), str, default_style(io)].join
         str.extend Console::InstanceMethods
         str
       end
 
-      def style(*att)
-        # => \e[8;34;42m
-        "\e[%sm" % att.join(';')
+      def style(*att, io: nil)
+        # Only output ANSI codes if colors are supported
+        target_io = io || $stdout
+
+        # Explicit color control via environment variables
+        # FORCE_COLOR/CLICOLOR_FORCE override NO_COLOR
+        return "\e[%sm" % att.join(';') if ENV['FORCE_COLOR'] || ENV['CLICOLOR_FORCE']
+        return '' if ENV['NO_COLOR']
+
+        # Check if we're outputting to a real TTY
+        tty_output = (target_io.respond_to?(:tty?) && target_io.tty?) ||
+                     ($stdout.respond_to?(:tty?) && $stdout.tty?) ||
+                     ($stderr.respond_to?(:tty?) && $stderr.tty?)
+
+        # If we have a real TTY, always use colors
+        return "\e[%sm" % att.join(';') if tty_output
+
+        # For environments like Claude Code where TTY detection fails but we want colors
+        # Check if output appears to be redirected to a file/pipe
+        if ENV['TERM'] && ENV['TERM'] != 'dumb'
+          # Check if stdout/stderr look like they're redirected using file stats
+          begin
+            stdout_stat = $stdout.stat
+            stderr_stat = $stderr.stat
+
+            # If either stdout or stderr looks like a regular file or pipe, disable colors
+            stdout_redirected = stdout_stat.file? || stdout_stat.pipe?
+            stderr_redirected = stderr_stat.file? || stderr_stat.pipe?
+
+            # Enable colors if neither appears redirected
+            return "\e[%sm" % att.join(';') unless stdout_redirected || stderr_redirected
+          rescue
+            # If stat fails, fall back to enabling colors with TERM set
+            return "\e[%sm" % att.join(';')
+          end
+        end
+
+        # Default: no colors
+        ''
       end
 
-      def default_style
-        style(ATTRIBUTES[:default], COLOURS[:default], BGCOLOURS[:default])
+      def default_style(io = $stdout)
+        style(ATTRIBUTES[:default], COLOURS[:default], BGCOLOURS[:default], io: io)
       end
 
       # Converts an absolute file path to a path relative to the current working
