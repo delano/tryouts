@@ -62,10 +62,10 @@ class Tryouts
                           end
 
         # Create result packet for expression evaluation
-        result_packet = ResultPacket.from_execution_with_output(actual_result, stdout_content, stderr_content)
+        expectation_result = ExpectationResult.from_execution_with_output(actual_result, stdout_content, stderr_content)
 
         # Evaluate the expectation expression (could be string literal or regex)
-        expected_pattern = eval_expectation_content(@expectation.content, result_packet)
+        expected_pattern = eval_expectation_content(@expectation.content, expectation_result)
 
         # Determine matching strategy based on expectation type
         matched = case expected_pattern

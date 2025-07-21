@@ -51,8 +51,8 @@ class Tryouts
       end
 
       def evaluate(actual_result = nil)
-        result_packet = ResultPacket.from_result(actual_result)
-        expected_value = eval_expectation_content(@expectation.content, result_packet)
+        expectation_result = ExpectationResult.from_result(actual_result)
+        expected_value = eval_expectation_content(@expectation.content, expectation_result)
 
         build_result(
           passed: actual_result == expected_value,

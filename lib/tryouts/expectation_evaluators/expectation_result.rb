@@ -1,4 +1,4 @@
-# lib/tryouts/expectation_evaluators/result_packet.rb
+# lib/tryouts/expectation_evaluators/expectation_result.rb
 
 class Tryouts
   module ExpectationEvaluators
@@ -10,13 +10,13 @@ class Tryouts
     # breaking evaluator method signatures.
     #
     # Usage:
-    #   ResultPacket.from_result(actual_result)                           # Regular expectations
-    #   ResultPacket.from_timing(actual_result, execution_time_ns)        # Performance expectations
-    #   ResultPacket.from_execution_with_output(actual_result, stdout, stderr) # Output expectations
+    #   ExpectationResult.from_result(actual_result)                           # Regular expectations
+    #   ExpectationResult.from_timing(actual_result, execution_time_ns)        # Performance expectations
+    #   ExpectationResult.from_execution_with_output(actual_result, stdout, stderr) # Output expectations
     #
     # Variables available in eval_expectation_content:
     #   result, _ : actual_result (regular) or execution_time_ms (performance)
-    ResultPacket = Data.define(:actual_result, :execution_time_ns, :start_time_ns, :end_time_ns, :stdout_content, :stderr_content) do
+    ExpectationResult = Data.define(:actual_result, :execution_time_ns, :start_time_ns, :end_time_ns, :stdout_content, :stderr_content) do
       # Convert nanoseconds to milliseconds for human-readable timing
       # Used for display and as the value of `result`/`_` variables in performance expectations
       def execution_time_ms

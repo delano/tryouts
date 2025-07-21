@@ -77,6 +77,96 @@ class Tryouts
     end
   end
 
+  # Test case result packet for formatters
+  # Replaces the simple Hash aggregation with a rich, immutable data structure
+  # containing all execution context and results needed by formatters
+  TestCaseResultPacket = Data.define(
+    :test_case,          # TestCase object
+    :status,             # :passed, :failed, :error
+    :result_value,       # Actual execution result
+    :actual_results,     # Array of actual values from expectations
+    :expected_results,   # Array of expected values from expectations
+    :error,              # Exception object (if any)
+    :captured_output,    # Captured stdout/stderr content
+    :elapsed_time,       # Execution timing (future use)
+    :metadata            # Hash for future extensibility
+  ) do
+    def passed?
+      status == :passed
+    end
+
+    def failed?
+      status == :failed
+    end
+
+    def error?
+      status == :error
+    end
+
+    def has_output?
+      captured_output && !captured_output.empty?
+    end
+
+    def has_error?
+      !error.nil?
+    end
+
+    # Helper for formatter access to first actual/expected values
+    def first_actual
+      actual_results&.first
+    end
+
+    def first_expected
+      expected_results&.first
+    end
+
+    # Create a basic result packet for successful tests
+    def self.from_success(test_case, result_value, actual_results, expected_results, captured_output: nil, elapsed_time: nil, metadata: {})
+      new(
+        test_case: test_case,
+        status: :passed,
+        result_value: result_value,
+        actual_results: actual_results,
+        expected_results: expected_results,
+        error: nil,
+        captured_output: captured_output,
+        elapsed_time: elapsed_time,
+        metadata: metadata
+      )
+    end
+
+    # Create a result packet for failed tests
+    def self.from_failure(test_case, result_value, actual_results, expected_results, captured_output: nil, elapsed_time: nil, metadata: {})
+      new(
+        test_case: test_case,
+        status: :failed,
+        result_value: result_value,
+        actual_results: actual_results,
+        expected_results: expected_results,
+        error: nil,
+        captured_output: captured_output,
+        elapsed_time: elapsed_time,
+        metadata: metadata
+      )
+    end
+
+    # Create a result packet for error cases
+    def self.from_error(test_case, error, captured_output: nil, elapsed_time: nil, metadata: {})
+      error_message = error ? error.message : '<exception is nil>'
+      new(
+        test_case: test_case,
+        status: :error,
+        result_value: nil,
+        actual_results: ["(#{error.class}) #{error_message}"],
+        expected_results: [],
+        error: error,
+        captured_output: captured_output,
+        elapsed_time: elapsed_time,
+        metadata: metadata
+      )
+    end
+  end
+
   # Enhanced error with context
   class TryoutSyntaxError < StandardError
     attr_reader :line_number, :context, :source_file

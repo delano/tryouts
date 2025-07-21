@@ -36,7 +36,7 @@ class Tryouts
     # - Uses Process.clock_gettime(Process::CLOCK_MONOTONIC, :nanosecond) for accuracy
     # - Expected display shows evaluated threshold (e.g., "100", "10.5")
     # - Actual display shows formatted timing (e.g., "5.23ms")
-    # - Timing data passed via ResultPacket for extensibility
+    # - Timing data passed via ExpectationResult for extensibility
     #
     # DESIGN DECISIONS:
     # - Chosen "less than or equal to + 10%" over strict window for usability
@@ -59,10 +59,10 @@ class Tryouts
         end
 
         # Create result packet with timing data available to expectation
-        result_packet = ResultPacket.from_timing(actual_result, execution_time_ns)
-        expected_limit_ms = eval_expectation_content(@expectation.content, result_packet)
+        expectation_result = ExpectationResult.from_timing(actual_result, execution_time_ns)
+        expected_limit_ms = eval_expectation_content(@expectation.content, expectation_result)
 
-        actual_time_ms = result_packet.execution_time_ms
+        actual_time_ms = expectation_result.execution_time_ms
 
         # Performance tolerance: actual <= expected + 10% (not strict window)
         max_allowed_ms = expected_limit_ms * 1.1

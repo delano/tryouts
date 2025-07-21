@@ -37,8 +37,8 @@ class Tryouts
       end
 
       def evaluate(actual_result = nil)
-        result_packet = ResultPacket.from_result(actual_result)
-        pattern = eval_expectation_content(@expectation.content, result_packet)
+        expectation_result = ExpectationResult.from_result(actual_result)
+        pattern = eval_expectation_content(@expectation.content, expectation_result)
 
         # Convert actual_result to string for regex matching
         string_result = actual_result.to_s

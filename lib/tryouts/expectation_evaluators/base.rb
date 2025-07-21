@@ -40,7 +40,7 @@ class Tryouts
       # - `_`: shorthand alias for the same data as result
       #
       # DESIGN DECISIONS:
-      # - Add new values to ResultPacket to avoid method signature changes
+      # - Add new values to ExpectationResult to avoid method signature changes
       # - Use define_singleton_method for clean variable injection
       # - Using instance_eval for evaluation provides:
       #     - Full access to test context (instance variables, methods)
@@ -49,27 +49,27 @@ class Tryouts
       #     - Support for complex Ruby expressions in expectations
       #
       #   Potential enhancements (without breaking changes):
-      #     - Add more variables to ResultPacket (memory usage, etc.)
+      #     - Add more variables to ExpectationResult (memory usage, etc.)
       #     - Provide additional helper methods in evaluation context
       #     - Enhanced error reporting with better stack traces
       #
       # @param content [String] the expectation code to evaluate
-      # @param result_packet [ResultPacket] container with actual_result and timing data
+      # @param expectation_result [ExpectationResult] container with actual_result and timing data
       # @return [Object] the result of evaluating the content
-      def eval_expectation_content(content, result_packet = nil)
+      def eval_expectation_content(content, expectation_result = nil)
         path  = @test_case.path
         range = @test_case.line_range
 
-        if result_packet
+        if expectation_result
           # For performance expectations, timing data takes precedence for result/_
-          if result_packet.execution_time_ns
-            timing_ms = result_packet.execution_time_ms
+          if expectation_result.execution_time_ns
+            timing_ms = expectation_result.execution_time_ms
             @context.define_singleton_method(:result) { timing_ms }
             @context.define_singleton_method(:_) { timing_ms }
-          elsif result_packet.actual_result
+          elsif expectation_result.actual_result
             # For regular expectations, use actual_result
-            @context.define_singleton_method(:result) { result_packet.actual_result }
-            @context.define_singleton_method(:_) { result_packet.actual_result }
+            @context.define_singleton_method(:result) { expectation_result.actual_result }
+            @context.define_singleton_method(:_) { expectation_result.actual_result }
           end
         end
 

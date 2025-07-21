@@ -21,8 +21,8 @@ class Tryouts
         @context.instance_eval(@test_case.code, path, range.first + 1)
 
         # Create result packet for evaluation to show what was expected
-        result_packet = ResultPacket.from_result(nil)
-        expected_value = eval_expectation_content(@expectation.content, result_packet)
+        expectation_result = ExpectationResult.from_result(nil)
+        expected_value = eval_expectation_content(@expectation.content, expectation_result)
 
         build_result(
           passed: false,
@@ -36,8 +36,8 @@ class Tryouts
       def evaluate_exception_condition(caught_error)
         @context.define_singleton_method(:error) { caught_error }
 
-        result_packet = ResultPacket.from_result(caught_error)
-        expected_value = eval_expectation_content(@expectation.content, result_packet)
+        expectation_result = ExpectationResult.from_result(caught_error)
+        expected_value = eval_expectation_content(@expectation.content, expectation_result)
 
         build_result(
           passed: !!expected_value,

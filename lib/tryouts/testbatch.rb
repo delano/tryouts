@@ -263,54 +263,42 @@ class Tryouts
       }
     end
 
-    # Build structured test results using pattern matching
+    # Build structured test results using TestCaseResultPacket
     def build_test_result(test_case, result_value, expectations_result)
       if expectations_result[:passed]
-        {
-          test_case: test_case,
-          status: :passed,
-          result_value: result_value,
-          actual_results: expectations_result[:actual_results],
-          expected_results: expectations_result[:expected_results],
-          error: nil,
-        }
+        TestCaseResultPacket.from_success(
+          test_case,
+          result_value,
+          expectations_result[:actual_results],
+          expectations_result[:expected_results]
+        )
       else
-        {
-          test_case: test_case,
-          status: :failed,
-          result_value: result_value,
-          actual_results: expectations_result[:actual_results],
-          expected_results: expectations_result[:expected_results],
-          error: nil,
-        }
+        TestCaseResultPacket.from_failure(
+          test_case,
+          result_value,
+          expectations_result[:actual_results],
+          expectations_result[:expected_results]
+        )
       end
     end
 
     def build_error_result(test_case, exception)
-      message = exception ? exception.message : '<exception is nil>'
-      {
-        test_case: test_case,
-        status: :error,
-        result_value: nil,
-        actual_results: ["(#{exception.class}) #{message}"],
-        expected_results: [],
-        error: exception,
-      }
+      TestCaseResultPacket.from_error(test_case, exception)
     end
 
     # Process and display test results using formatter
     def process_test_result(result)
       @results << result
 
-      if [:failed, :error].include?(result[:status])
+      if result.failed? || result.error?
         @failed_count += 1
       end
 
       show_test_result(result)
 
       # Show captured output if any exists
-      if result[:captured_output] && !result[:captured_output].empty?
-        @output_manager&.test_output(result[:test_case], result[:captured_output])
+      if result.has_output?
+        @output_manager&.test_output(result.test_case, result.captured_output)
       end
     end
 
