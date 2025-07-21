@@ -48,7 +48,7 @@ class Tryouts
         build_result(
           passed: expression_result == true,
           actual: expression_result,
-          expected: 'true (exactly)',
+          expected: true,
         )
       rescue StandardError => ex
         handle_evaluation_error(ex, actual_result)

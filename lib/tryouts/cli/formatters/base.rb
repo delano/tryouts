@@ -45,7 +45,7 @@ class Tryouts
         raise NotImplementedError, "#{self.class} must implement #test_end"
       end
 
-      def test_result(test_case, result_status, actual_results = [], elapsed_time = nil, io = $stdout)
+      def test_result(test_case, result_status, actual_results = [], elapsed_time = nil, expected_results = [], io = $stdout)
         raise NotImplementedError, "#{self.class} must implement #test_result"
       end
 

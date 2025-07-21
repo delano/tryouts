@@ -71,6 +71,8 @@ class Tryouts
         @output_manager&.test_end(test_case, idx, @test_case_count)
 
         result
+      rescue StandardError => e
+        @output_manager&.test_end(test_case, idx, @test_case_count, status: :failed, error: e)
       end
 
       # Used for a separate purpose then execution_phase.
@@ -269,6 +271,7 @@ class Tryouts
           status: :passed,
           result_value: result_value,
           actual_results: expectations_result[:actual_results],
+          expected_results: expectations_result[:expected_results],
           error: nil,
         }
       else
@@ -277,6 +280,7 @@ class Tryouts
           status: :failed,
           result_value: result_value,
           actual_results: expectations_result[:actual_results],
+          expected_results: expectations_result[:expected_results],
           error: nil,
         }
       end
@@ -289,6 +293,7 @@ class Tryouts
         status: :error,
         result_value: nil,
         actual_results: ["(#{exception.class}) #{message}"],
+        expected_results: [],
         error: exception,
       }
     end
@@ -360,8 +365,9 @@ class Tryouts
       test_case = result[:test_case]
       status    = result[:status]
       actuals   = result[:actual_results]
+      expected  = result[:expected_results]
 
-      @output_manager&.test_result(test_case, status, actuals)
+      @output_manager&.test_result(test_case, status, actuals, nil, expected)
     end
 
     def show_summary(elapsed_time)

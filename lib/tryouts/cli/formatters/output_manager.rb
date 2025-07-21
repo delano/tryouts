@@ -73,8 +73,8 @@ class Tryouts
         end
       end
 
-      def test_result(test_case, result_status, actual_results = [], elapsed_time = nil)
-        @formatter.test_result(test_case, result_status, actual_results, elapsed_time)
+      def test_result(test_case, result_status, actual_results = [], elapsed_time = nil, expected_results = [])
+        @formatter.test_result(test_case, result_status, actual_results, elapsed_time, expected_results)
       end
 
       def test_output(test_case, output_text)

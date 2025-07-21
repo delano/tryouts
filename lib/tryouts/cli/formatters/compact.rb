@@ -107,7 +107,7 @@ class Tryouts
         # No output for test end
       end
 
-      def test_result(test_case, result_status, actual_results = [], _elapsed_time = nil, io = $stdout)
+      def test_result(test_case, result_status, actual_results = [], _elapsed_time = nil, expected_results = [], io = $stdout)
         # Only show failed tests in compact mode unless show_passed is true
         return if result_status == :passed && !@show_passed
 
@@ -272,7 +272,7 @@ class Tryouts
         super(options.merge(show_passed: false))
       end
 
-      def test_result(test_case, result_status, actual_results = [], elapsed_time = nil)
+      def test_result(test_case, result_status, actual_results = [], elapsed_time = nil, expected_results = [])
         # Only show failed/error tests
         return if result_status == :passed
 

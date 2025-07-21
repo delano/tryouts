@@ -76,7 +76,7 @@ class Tryouts
 
       def file_result(_file_path, total_tests, failed_count, error_count, elapsed_time)
         issues_count = failed_count + error_count
-        passed_count  = total_tests - issues_count
+        passed_count = total_tests - issues_count
         details      = [
           "#{passed_count} passed",
         ]
@@ -88,7 +88,7 @@ class Tryouts
           color       = :red
 
           time_str = elapsed_time ? " (#{elapsed_time.round(2)}s)" : ''
-          message = "✗ Out of #{total_tests} tests: #{details_str}#{time_str}"
+          message  = "✗ Out of #{total_tests} tests: #{details_str}#{time_str}"
           puts indent_text(Console.color(color, message), 2)
         else
           message = "#{total_tests} tests passed"
@@ -115,7 +115,7 @@ class Tryouts
         # No output in verbose mode
       end
 
-      def test_result(test_case, result_status, actual_results = [], _elapsed_time = nil)
+      def test_result(test_case, result_status, actual_results = [], _elapsed_time = nil, expected_results = [])
         should_show = @show_passed || result_status != :passed
 
         return unless should_show
@@ -142,7 +142,7 @@ class Tryouts
 
         # Show failure details for failed tests
         if [:failed, :error].include?(result_status)
-          show_failure_details(test_case, actual_results)
+          show_failure_details(test_case, actual_results, expected_results)
         end
       end
 
@@ -193,7 +193,7 @@ class Tryouts
         puts 'Grand Total:'
 
         issues_count = failed_count + error_count
-        time_str =
+        time_str     =
           if elapsed_time < 2.0
             " (#{(elapsed_time * 1000).round}ms)"
           else
@@ -283,13 +283,19 @@ class Tryouts
         puts
       end
 
-      def show_failure_details(test_case, actual_results)
+      def show_failure_details(test_case, actual_results, expected_results = [])
         return if actual_results.empty?
 
         actual_results.each_with_index do |actual, idx|
+          expected      = expected_results[idx] if expected_results && idx < expected_results.length
           expected_line = test_case.expectations[idx] if test_case.expectations
 
-          if expected_line
+          if !expected.nil?
+            # Use the evaluated expected value from the evaluator
+            puts indent_text("Expected: #{Console.color(:green, expected.inspect)}", 4)
+            puts indent_text("Actual:   #{Console.color(:red, actual.inspect)}", 4)
+          elsif expected_line
+            # Fallback to raw expectation content
             puts indent_text("Expected: #{Console.color(:green, expected_line.content)}", 4)
             puts indent_text("Actual:   #{Console.color(:red, actual.inspect)}", 4)
           else
@@ -297,8 +303,8 @@ class Tryouts
           end
 
           # Show difference if both are strings
-          if expected_line && actual.is_a?(String) && expected_line.is_a?(String)
-            show_string_diff(expected_line, actual)
+          if !expected.nil? && actual.is_a?(String) && expected.is_a?(String)
+            show_string_diff(expected, actual)
           end
 
           puts
@@ -326,8 +332,6 @@ class Tryouts
         ].join("\n")
       end
 
-      private
-
       def format_timing(elapsed_time)
         if elapsed_time < 0.001
           " (#{(elapsed_time * 1_000_000).round}μs)"
@@ -345,7 +349,7 @@ class Tryouts
         super(options.merge(show_passed: false))
       end
 
-      def test_result(test_case, result_status, actual_results = [], elapsed_time = nil)
+      def test_result(test_case, result_status, actual_results = [], elapsed_time = nil, expected_results = [])
         # Only show failed/error tests, but with full source code
         return if result_status == :passed
 
