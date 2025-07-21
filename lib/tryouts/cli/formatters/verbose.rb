@@ -144,6 +144,9 @@ class Tryouts
         # Show failure details for failed tests
         if result_packet.failed? || result_packet.error?
           show_failure_details(test_case, result_packet.actual_results, result_packet.expected_results)
+        # Show exception details for passed exception expectations
+        elsif result_packet.passed? && has_exception_expectations?(test_case)
+          show_exception_details(test_case, result_packet.actual_results, result_packet.expected_results)
         end
       end
 
@@ -265,6 +268,28 @@ class Tryouts
 
       private
 
+      def has_exception_expectations?(test_case)
+        test_case.expectations.any? { |exp| exp.type == :exception }
+      end
+
+      def show_exception_details(test_case, actual_results, expected_results = [])
+        return if actual_results.empty?
+
+        puts indent_text('Exception Details:', 4)
+
+        actual_results.each_with_index do |actual, idx|
+          expected = expected_results[idx] if expected_results && idx < expected_results.length
+          expectation = test_case.expectations[idx] if test_case.expectations
+
+          if expectation&.type == :exception
+            puts indent_text("Caught: #{Console.color(:blue, actual.inspect)}", 5)
+            puts indent_text("Expectation: #{Console.color(:green, expectation.content)}", 5)
+            puts indent_text("Result: #{Console.color(:green, expected.inspect)}", 5) if expected
+          end
+        end
+        puts
+      end
+
       def show_test_source_code(test_case)
         # Use pre-captured source lines from parsing
         start_line = test_case.line_range.first
@@ -273,9 +298,8 @@ class Tryouts
           line_num     = start_line + index
           line_display = format('%3d: %s', line_num + 1, line_content)
 
-          # Highlight expectation lines by checking if this line
-          # contains the expectation syntax
-          if line_content.match?(/^\s*#\s*=>\s*/)
+          # Highlight expectation lines by checking if this line contains any expectation syntax
+          if line_content.match?(/^\s*#\s*=(!|<|=|\/=|\||:|~|%|\d+)?>\s*/)
             line_display = Console.color(:yellow, line_display)
           end
 
