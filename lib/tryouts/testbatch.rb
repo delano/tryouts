@@ -38,6 +38,11 @@ class Tryouts
       @test_case_count = 0
       @setup_failed    = false
 
+      # Circuit breaker for batch-level failure protection
+      @consecutive_failures = 0
+      @max_consecutive_failures = options[:max_consecutive_failures] || 10
+      @circuit_breaker_active = false
+
       # Expose context objects for testing - different strategies for each mode
       @shared_context = if options[:shared_context]
                           @container  # Shared mode: single container reused across tests
@@ -67,9 +72,18 @@ class Tryouts
         @output_manager&.trace("Test #{idx + 1}/#{@test_case_count}: #{test_case.description}", 2)
         idx += 1
 
+        # Check circuit breaker before executing test
+        if @circuit_breaker_active
+          @output_manager&.error("Circuit breaker active - skipping remaining tests after #{@consecutive_failures} consecutive failures")
+          break
+        end
+
         @output_manager&.test_start(test_case, idx, @test_case_count)
         result = execute_single_test(test_case, before_test_hook, &) # runs the test code
         @output_manager&.test_end(test_case, idx, @test_case_count)
+
+        # Update circuit breaker state based on result
+        update_circuit_breaker(result)
 
         result
       rescue StandardError => e
@@ -77,6 +91,10 @@ class Tryouts
         # Create error result packet to maintain consistent data flow
         error_result = build_error_result(test_case, e)
         process_test_result(error_result)
+
+        # Update circuit breaker for exception cases
+        update_circuit_breaker(error_result)
+
         error_result
       end
 
@@ -181,9 +199,14 @@ class Tryouts
 
     # Common test execution logic shared by both context modes
     def execute_test_case_with_container(test_case, container)
+      # Individual test timeout protection
+      test_timeout = @options[:test_timeout] || 30 # 30 second default
+
       if test_case.exception_expectations?
         # For exception tests, don't execute code here - let evaluate_expectations handle it
-        expectations_result = evaluate_expectations(test_case, nil, container)
+        expectations_result = execute_with_timeout(test_timeout, test_case) do
+          evaluate_expectations(test_case, nil, container)
+        end
         build_test_result(test_case, nil, expectations_result)
       else
         # Regular execution for non-exception tests with timing and output capture
@@ -194,28 +217,37 @@ class Tryouts
         # Check if we need output capture for any expectations
         needs_output_capture = test_case.expectations.any?(&:output?)
 
-        if needs_output_capture
-          # Execute with output capture using Fiber-local isolation
-          result_value, execution_time_ns, stdout_content, stderr_content =
-            execute_with_output_capture(container, code, path, range)
+        result_value, execution_time_ns, stdout_content, stderr_content, expectations_result =
+          execute_with_timeout(test_timeout, test_case) do
+            if needs_output_capture
+              # Execute with output capture using Fiber-local isolation
+              result_value, execution_time_ns, stdout_content, stderr_content =
+                execute_with_output_capture(container, code, path, range)
 
-          expectations_result = evaluate_expectations(
-            test_case, result_value, container, execution_time_ns, stdout_content, stderr_content
-          )
-        else
-          # Regular execution with timing capture only
-          execution_start_ns = Process.clock_gettime(Process::CLOCK_MONOTONIC, :nanosecond)
-          result_value = container.instance_eval(code, path, range.first + 1)
-          execution_end_ns = Process.clock_gettime(Process::CLOCK_MONOTONIC, :nanosecond)
-          execution_time_ns = execution_end_ns - execution_start_ns
+              expectations_result = evaluate_expectations(
+                test_case, result_value, container, execution_time_ns, stdout_content, stderr_content
+              )
+              [result_value, execution_time_ns, stdout_content, stderr_content, expectations_result]
+            else
+              # Regular execution with timing capture only
+              execution_start_ns = Process.clock_gettime(Process::CLOCK_MONOTONIC, :nanosecond)
+              result_value = container.instance_eval(code, path, range.first + 1)
+              execution_end_ns = Process.clock_gettime(Process::CLOCK_MONOTONIC, :nanosecond)
+              execution_time_ns = execution_end_ns - execution_start_ns
 
-          expectations_result = evaluate_expectations(test_case, result_value, container, execution_time_ns)
-        end
+              expectations_result = evaluate_expectations(test_case, result_value, container, execution_time_ns)
+              [result_value, execution_time_ns, nil, nil, expectations_result]
+            end
+          end
 
         build_test_result(test_case, result_value, expectations_result)
       end
     rescue StandardError => ex
       build_error_result(test_case, ex)
+    rescue SystemExit, SignalException => ex
+      # Handle process control exceptions gracefully
+      Tryouts.debug "Test received #{ex.class}: #{ex.message}"
+      build_error_result(test_case, StandardError.new("Test terminated by #{ex.class}: #{ex.message}"))
     end
 
     # Execute test code with Fiber-based stdout/stderr capture
@@ -433,6 +465,31 @@ class Tryouts
       backtrace     = exception.respond_to?(:backtrace) ? exception.backtrace : nil
 
       @output_manager&.error(error_message, backtrace)
+    end
+
+    # Timeout protection for individual test execution
+    def execute_with_timeout(timeout_seconds, test_case)
+      Timeout.timeout(timeout_seconds) do
+        yield
+      end
+    rescue Timeout::Error => e
+      Tryouts.debug "Test timeout after #{timeout_seconds}s: #{test_case.description}"
+      raise StandardError.new("Test execution timeout (#{timeout_seconds}s)")
+    end
+
+    # Circuit breaker pattern for batch-level failure protection
+    def update_circuit_breaker(result)
+      if result.failed? || result.error?
+        @consecutive_failures += 1
+        if @consecutive_failures >= @max_consecutive_failures
+          @circuit_breaker_active = true
+          Tryouts.debug "Circuit breaker activated after #{@consecutive_failures} consecutive failures"
+        end
+      else
+        # Reset on success
+        @consecutive_failures = 0
+        @circuit_breaker_active = false
+      end
     end
   end
 end
