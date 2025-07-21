@@ -163,13 +163,16 @@ rescue LoadError
 end
 #=> "SysInfo"
 
-## TEST: Coverage is not currently loaded
-# SimpleCov is not part of the current implementation
+## TEST: Coverage loading status matches environment
+# SimpleCov should be loaded when COVERAGE env var is set, not loaded otherwise
 load_result = begin
   defined?(SimpleCov) ? "loaded" : "not_loaded"
 rescue
   "not_available"
 end
-load_result
-#=> "not_loaded"
+
+expected_result = ENV['COVERAGE'] ? "loaded" : "not_loaded"
+load_result == expected_result
+#=> true
+
 Tryouts.debug = false
