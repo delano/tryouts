@@ -42,16 +42,33 @@ Tryouts.update_load_path(lib_glob) if Tryouts.respond_to?(:update_load_path)
 begin
   files, options = Tryouts::CLI.parse_args(ARGV)
 
+  # Expand files if directories are given
+  expanded_files = []
+  files.each do |file_or_dir|
+    if File.directory?(file_or_dir)
+      # If it's a directory, find all *_try.rb files within it
+      dir_files = Dir.glob("**/*_try.rb", base: file_or_dir)
+      expanded_files.concat(dir_files.map { |f| File.join(file_or_dir, f) })
+    else
+      # If it's a file, add it as-is
+      expanded_files << file_or_dir
+    end
+  end
+  files = expanded_files
+
   # Default file discovery if no files specified
   if files.empty?
     raw_files = Dir.glob(
       ['{app,apps,lib,try,tryouts}/**/*_try.rb', './*_try.rb'],
       base: Dir.pwd,
     )
-
+    p [:files, raw_files]
     # Normalize paths so that slight variations are ignored
     # e.g. ./test_try.rb and ././test_try.rb
     files     = raw_files.map { |f| File.expand_path(f, Dir.pwd) }.uniq.sort
+  else
+    # Normalize paths for explicitly specified files/directories
+    files = files.map { |f| File.expand_path(f, Dir.pwd) }.uniq.sort
   end
 
   cli = Tryouts::CLI.new
