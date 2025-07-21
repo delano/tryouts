@@ -202,7 +202,7 @@ class Tryouts
           end
 
         if issues_count > 0
-          passed  = total_tests - issues_count
+          passed  = [total_tests - issues_count, 0].max  # Ensure passed never goes negative
           details = []
           details << "#{failed_count} failed" if failed_count > 0
           details << "#{error_count} errors" if error_count > 0
