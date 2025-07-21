@@ -36,6 +36,7 @@ class Tryouts
       @results         = []
       @start_time      = nil
       @test_case_count = 0
+      @setup_failed    = false
 
       # Expose context objects for testing - different strategies for each mode
       @shared_context = if options[:shared_context]
@@ -73,6 +74,10 @@ class Tryouts
         result
       rescue StandardError => e
         @output_manager&.test_end(test_case, idx, @test_case_count, status: :failed, error: e)
+        # Create error result packet to maintain consistent data flow
+        error_result = build_error_result(test_case, e)
+        process_test_result(error_result)
+        error_result
       end
 
       # Used for a separate purpose then execution_phase.
@@ -330,9 +335,23 @@ class Tryouts
         @output_manager&.setup_output(captured_output) if captured_output && !captured_output.empty?
       end
     rescue StandardError => ex
+      @setup_failed = true
       @global_tally[:total_errors] += 1 if @global_tally
-      Tryouts.trace "(#{ex.class}): #{ex.message}"
+
+      # Classify error and handle appropriately
+      error_type = Tryouts.classify_error(ex)
+
+      Tryouts.debug "Setup failed with #{error_type} error: (#{ex.class}): #{ex.message}"
       Tryouts.trace ex.backtrace
+
+      # For non-catastrophic errors, continue batch execution but mark as failed
+      unless Tryouts.batch_stopping_error?(ex)
+        @output_manager&.error("Global setup failed: #{ex.message}")
+        @output_manager&.error("Continuing with individual tests despite setup failure")
+        return
+      end
+
+      # For catastrophic errors, still raise to stop execution
       raise "Global setup failed (#{ex.class}): #{ex.message}"
     end
 
@@ -352,7 +371,22 @@ class Tryouts
       end
     rescue StandardError => ex
       @global_tally[:total_errors] += 1 if @global_tally
+
+      # Classify error and handle appropriately
+      error_type = Tryouts.classify_error(ex)
+
+      Tryouts.debug "Teardown failed with #{error_type} error: (#{ex.class}): #{ex.message}"
+      Tryouts.trace ex.backtrace
+
       @output_manager&.error("Teardown failed: #{ex.message}")
+
+      # Teardown failures are generally non-fatal - log and continue
+      unless Tryouts.batch_stopping_error?(ex)
+        @output_manager&.error("Continuing despite teardown failure")
+      else
+        # Only catastrophic errors should potentially affect batch completion
+        @output_manager&.error("Teardown failure may affect subsequent operations")
+      end
     end
 
     # Result finalization and summary display
