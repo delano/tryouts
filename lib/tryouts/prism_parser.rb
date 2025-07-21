@@ -74,22 +74,40 @@ class Tryouts
     def classify_potential_descriptions(tokens)
       tokens.map.with_index do |token, index|
         if token[:type] == :potential_description
-          # Look ahead for test pattern: code + at least one expectation within reasonable distance
-          following_tokens = tokens[(index + 1)..]
+          # Check if this looks like a test description based on content and context
+          content = token[:content].strip
 
-          # Skip blanks and comments to find meaningful content
-          meaningful_following = following_tokens.reject { |t| [:blank, :comment].include?(t[:type]) }
+          # Skip if it's clearly just a regular comment (short, lowercase, etc.)
+          # Test descriptions are typically longer and more descriptive
+          looks_like_regular_comment = content.length < 20 &&
+                                      content.downcase == content &&
+                                      !content.match?(/test|example|demonstrate|show/i)
 
-          # Look for test pattern: at least one code token followed by at least one expectation
-          # within the next 10 meaningful tokens (to avoid matching setup/teardown)
-          test_window = meaningful_following.first(10)
-          has_code = test_window.any? { |t| t[:type] == :code }
-          has_expectation = test_window.any? { |t| is_expectation_type?(t[:type]) }
+          # Check if there's code immediately before this (suggesting it's mid-test)
+          prev_token = index > 0 ? tokens[index - 1] : nil
+          has_code_before = prev_token && prev_token[:type] == :code
 
-          if has_code && has_expectation
-            token.merge(type: :description)
-          else
+          if looks_like_regular_comment || has_code_before
+            # Treat as regular comment
             token.merge(type: :comment)
+          else
+            # Look ahead for test pattern: code + at least one expectation within reasonable distance
+            following_tokens = tokens[(index + 1)..]
+
+            # Skip blanks and comments to find meaningful content
+            meaningful_following = following_tokens.reject { |t| [:blank, :comment].include?(t[:type]) }
+
+            # Look for test pattern: at least one code token followed by at least one expectation
+            # within the next 10 meaningful tokens (to avoid matching setup/teardown)
+            test_window = meaningful_following.first(10)
+            has_code = test_window.any? { |t| t[:type] == :code }
+            has_expectation = test_window.any? { |t| is_expectation_type?(t[:type]) }
+
+            if has_code && has_expectation
+              token.merge(type: :description)
+            else
+              token.merge(type: :comment)
+            end
           end
         else
           token
