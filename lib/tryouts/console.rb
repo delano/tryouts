@@ -117,8 +117,9 @@ class Tryouts
         target_io = io || $stdout
 
         # Explicit color control via environment variables
-        return '' if ENV['NO_COLOR']
+        # FORCE_COLOR/CLICOLOR_FORCE override NO_COLOR
         return "\e[%sm" % att.join(';') if ENV['FORCE_COLOR'] || ENV['CLICOLOR_FORCE']
+        return '' if ENV['NO_COLOR']
 
         # Check if we're outputting to a real TTY
         tty_output = (target_io.respond_to?(:tty?) && target_io.tty?) ||

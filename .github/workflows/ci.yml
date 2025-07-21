@@ -39,7 +39,7 @@ jobs:
         run: bundle install
 
       - name: Run framework unit tests with coverage
-        run: COVERAGE=1 bundle exec exe/try try/${{ matrix.testgroup }}
+        run: COVERAGE=1 FORCE_COLOR=1 bundle exec exe/try try/${{ matrix.testgroup }}
 
   safety:
     timeout-minutes: 10
@@ -66,7 +66,7 @@ jobs:
         run: bundle install
 
       - name: Run framework unit tests with coverage
-        run: COVERAGE=1 bundle exec exe/try try/safety
+        run: COVERAGE=1 FORCE_COLOR=1 bundle exec exe/try try/safety
 
   cli-options:
     timeout-minutes: 10
