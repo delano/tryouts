@@ -112,11 +112,44 @@ class Tryouts
         str
       end
 
-      def style(*att, io: $stdout)
-        # Only output ANSI codes if writing to a TTY
-        return '' unless io.respond_to?(:tty?) && io.tty?
-        # => \e[8;34;42m
-        "\e[%sm" % att.join(';')
+      def style(*att, io: nil)
+        # Only output ANSI codes if colors are supported
+        target_io = io || $stdout
+
+        # Explicit color control via environment variables
+        return '' if ENV['NO_COLOR']
+        return "\e[%sm" % att.join(';') if ENV['FORCE_COLOR'] || ENV['CLICOLOR_FORCE']
+
+        # Check if we're outputting to a real TTY
+        tty_output = (target_io.respond_to?(:tty?) && target_io.tty?) ||
+                     ($stdout.respond_to?(:tty?) && $stdout.tty?) ||
+                     ($stderr.respond_to?(:tty?) && $stderr.tty?)
+
+        # If we have a real TTY, always use colors
+        return "\e[%sm" % att.join(';') if tty_output
+
+        # For environments like Claude Code where TTY detection fails but we want colors
+        # Check if output appears to be redirected to a file/pipe
+        if ENV['TERM'] && ENV['TERM'] != 'dumb'
+          # Check if stdout/stderr look like they're redirected using file stats
+          begin
+            stdout_stat = $stdout.stat
+            stderr_stat = $stderr.stat
+
+            # If either stdout or stderr looks like a regular file or pipe, disable colors
+            stdout_redirected = stdout_stat.file? || stdout_stat.pipe?
+            stderr_redirected = stderr_stat.file? || stderr_stat.pipe?
+
+            # Enable colors if neither appears redirected
+            return "\e[%sm" % att.join(';') unless stdout_redirected || stderr_redirected
+          rescue
+            # If stat fails, fall back to enabling colors with TERM set
+            return "\e[%sm" % att.join(';')
+          end
+        end
+
+        # Default: no colors
+        ''
       end
 
       def default_style(io = $stdout)
