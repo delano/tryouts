@@ -3,7 +3,7 @@
 
 ## Test failure example (intentional failure)
 1 + 1
-#=> 3
+#=<> 3
 
 ## Another failing test (intentional failure)
 'hello'.upcase

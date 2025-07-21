@@ -2,20 +2,20 @@
 
 ## TEST: Regular expectation failure
 [1, 2, 3]
-#=> [4, 5, 6]
+#=<> [4, 5, 6]
 
 ## TEST: Boolean true expectation failure
 [1, 2, 3]
-#==> result.empty?
+#==<> result.empty?
 
 ## TEST: Boolean false expectation failure
 []
-#=/=> result.empty?
+#=/=<> result.empty?
 
 ## TEST: Result type failure
 "hello"
-#=:> Integer
+#=:<> Integer
 
 ## TEST: Performance timing failure
 sleep(0.01)
-#=%> 1
+#=%<> 1
