@@ -38,7 +38,7 @@ jobs:
         run: bundle install
 
       - name: Run framework unit tests with coverage
-        run: COVERAGE=1 bundle exec exe/try ${{ matrix.testgroup }}
+        run: COVERAGE=1 bundle exec exe/try try/${{ matrix.testgroup }}
 
   cli-options:
     timeout-minutes: 10
