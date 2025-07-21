@@ -37,6 +37,9 @@ class Tryouts
       @start_time      = nil
       @test_case_count = 0
       @setup_failed    = false
+      
+      # Setup container for fresh context mode - preserves @instance_variables from setup
+      @setup_container = nil
 
       # Circuit breaker for batch-level failure protection
       @consecutive_failures = 0
@@ -65,6 +68,18 @@ class Tryouts
       if shared_context?
         @output_manager&.info('Running global setup...', 2)
         execute_global_setup
+
+        # Stop execution if setup failed
+        if @setup_failed
+          @output_manager&.error("Stopping batch execution due to setup failure")
+          @status = :failed
+          finalize_results([])
+          return false
+        end
+      else
+        # Fresh context mode: execute setup once to establish shared @instance_variables
+        @output_manager&.info('Running setup for fresh context...', 2)
+        execute_fresh_context_setup
 
         # Stop execution if setup failed
         if @setup_failed
@@ -188,7 +203,7 @@ class Tryouts
       execute_test_case_with_container(test_case, @container)
     end
 
-    # Fresh context execution - setup runs per test, isolated state
+    # Fresh context execution - tests run in isolated state but inherit setup @instance_variables
     def execute_with_fresh_context(test_case)
       fresh_container = if @shared_context.is_a?(FreshContextFactory)
                           @shared_context.create_container
@@ -196,10 +211,12 @@ class Tryouts
                           Object.new  # Fallback for backwards compatibility
                         end
 
-      # Execute setup in fresh context if present
-      setup = @testrun.setup
-      if setup && !setup.code.empty?
-        fresh_container.instance_eval(setup.code, setup.path, 1)
+      # Copy @instance_variables from setup container to fresh container
+      if @setup_container
+        @setup_container.instance_variables.each do |var|
+          value = @setup_container.instance_variable_get(var)
+          fresh_container.instance_variable_set(var, value)
+        end
       end
 
       execute_test_case_with_container(test_case, fresh_container)
@@ -392,6 +409,43 @@ class Tryouts
 
       # For catastrophic errors, still raise to stop execution
       raise "Global setup failed (#{ex.class}): #{ex.message}"
+    end
+
+    # Setup execution for fresh context mode - creates @setup_container with @instance_variables
+    def execute_fresh_context_setup
+      setup = @testrun.setup
+
+      if setup && !setup.code.empty? && !@options[:shared_context]
+        @output_manager&.setup_start(setup.line_range)
+
+        # Create setup container to hold @instance_variables
+        @setup_container = Object.new
+
+        # Capture setup output instead of letting it print directly
+        captured_output = capture_output do
+          @setup_container.instance_eval(setup.code, setup.path, setup.line_range.first + 1)
+        end
+
+        @output_manager&.setup_output(captured_output) if captured_output && !captured_output.empty?
+      end
+    rescue StandardError => ex
+      @setup_failed = true
+      @global_tally[:total_errors] += 1 if @global_tally
+
+      # Classify error and handle appropriately
+      error_type = Tryouts.classify_error(ex)
+
+      Tryouts.debug "Setup failed with #{error_type} error: (#{ex.class}): #{ex.message}"
+      Tryouts.trace ex.backtrace
+
+      # For non-catastrophic errors, we still stop batch execution
+      unless Tryouts.batch_stopping_error?(ex)
+        @output_manager&.error("Fresh context setup failed: #{ex.message}")
+        return
+      end
+
+      # For catastrophic errors, still raise to stop execution
+      raise "Fresh context setup failed (#{ex.class}): #{ex.message}"
     end
 
     # Global teardown execution

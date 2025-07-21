@@ -2,7 +2,7 @@
 
 require_relative 'base'
 require_relative 'regular'
-require_relative '../testcase'
+require_relative '../test_case'
 
 class Tryouts
   module ExpectationEvaluators

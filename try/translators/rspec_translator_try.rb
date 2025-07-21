@@ -3,7 +3,7 @@
 
 require_relative '../test_helper'
 require_relative '../../lib/tryouts/translators/rspec_translator'
-require_relative '../../lib/tryouts/testcase'
+require_relative '../../lib/tryouts/test_case'
 
 ## TEST: Translator initializes successfully when rspec is available
 translator = Tryouts::Translators::RSpecTranslator.new
