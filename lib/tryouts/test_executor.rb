@@ -52,13 +52,14 @@ class Tryouts
 
       file_failed_count                 = test_results.count { |r| r.failed? }
       file_error_count                  = test_results.count { |r| r.error? }
-      @global_tally[:total_tests]      += batch.size
+      executed_test_count               = test_results.size
+      @global_tally[:total_tests]      += executed_test_count
       @global_tally[:total_failed]     += file_failed_count
       @global_tally[:total_errors]     += file_error_count
       @global_tally[:successful_files] += 1 if success
 
       duration = Time.now.to_f - @file_start.to_f
-      @output_manager.file_success(@file, batch.size, file_failed_count, file_error_count, duration)
+      @output_manager.file_success(@file, executed_test_count, file_failed_count, file_error_count, duration)
 
       # Combine failures and errors to determine the exit code.
       success ? 0 : (file_failed_count + file_error_count)
