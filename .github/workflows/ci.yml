@@ -13,10 +13,11 @@ permissions:
   contents: read
 
 jobs:
-  core:
+  tryouts-groups:
     timeout-minutes: 10
     runs-on: ubuntu-24.04
     name: "Tryouts: ${{ matrix.testgroup }} (Ruby ${{ matrix.ruby }})"
+    continue-on-error: false
     strategy:
       fail-fast: true
       matrix:
@@ -32,13 +33,40 @@ jobs:
           bundler-cache: false
 
       - name: Configure bundle groups
-        run: bundle config set --local with 'test'
+        run: bundle config set --local without 'development'
 
       - name: Install dependencies
         run: bundle install
 
       - name: Run framework unit tests with coverage
         run: COVERAGE=1 bundle exec exe/try try/${{ matrix.testgroup }}
+
+  safety:
+    timeout-minutes: 10
+    runs-on: ubuntu-24.04
+    name: "Runtime Safety Checks (intentionally fail)  (Ruby ${{ matrix.ruby }})"
+    continue-on-error: true
+    strategy:
+      fail-fast: false
+      matrix:
+        ruby: ["3.4", "3.5"]
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ matrix.ruby }}
+          bundler-cache: false
+
+      - name: Configure bundle groups
+        run: bundle config set --local without 'development'
+
+      - name: Install dependencies
+        run: bundle install
+
+      - name: Run framework unit tests with coverage
+        run: COVERAGE=1 bundle exec exe/try try/safety
 
   cli-options:
     timeout-minutes: 10
