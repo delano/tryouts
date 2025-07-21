@@ -74,16 +74,19 @@ class Tryouts
     def classify_potential_descriptions(tokens)
       tokens.map.with_index do |token, index|
         if token[:type] == :potential_description
-          # Look ahead strictly for the pattern: [optional blanks] code expectation
+          # Look ahead for test pattern: code + at least one expectation within reasonable distance
           following_tokens = tokens[(index + 1)..]
 
-          # Skip blanks and find next non-blank tokens
-          non_blank_following = following_tokens.reject { |t| t[:type] == :blank }
+          # Skip blanks and comments to find meaningful content
+          meaningful_following = following_tokens.reject { |t| [:blank, :comment].include?(t[:type]) }
 
-          # Must have: code immediately followed by expectation or exception_expectation (with possible blanks between)
-          if non_blank_following.size >= 2 &&
-             non_blank_following[0][:type] == :code &&
-             (non_blank_following[1][:type] == :expectation || non_blank_following[1][:type] == :exception_expectation)
+          # Look for test pattern: at least one code token followed by at least one expectation
+          # within the next 10 meaningful tokens (to avoid matching setup/teardown)
+          test_window = meaningful_following.first(10)
+          has_code = test_window.any? { |t| t[:type] == :code }
+          has_expectation = test_window.any? { |t| is_expectation_type?(t[:type]) }
+
+          if has_code && has_expectation
             token.merge(type: :description)
           else
             token.merge(type: :comment)
@@ -92,6 +95,16 @@ class Tryouts
           token
         end
       end
+    end
+
+    # Check if token type represents any kind of expectation
+    def is_expectation_type?(type)
+      [
+        :expectation, :exception_expectation, :intentional_failure_expectation,
+        :true_expectation, :false_expectation, :boolean_expectation,
+        :result_type_expectation, :regex_match_expectation,
+        :performance_time_expectation, :output_expectation
+      ].include?(type)
     end
 
     # Group tokens into logical test blocks using pattern matching
