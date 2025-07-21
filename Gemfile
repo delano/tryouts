@@ -23,7 +23,6 @@ group :development do
 end
 
 group :test do
-  gem 'fakeredis', require: 'fakeredis/rspec'
   gem 'rack-test', require: false
   gem 'rspec', git: 'https://github.com/rspec/rspec'
   gem 'simplecov', require: false

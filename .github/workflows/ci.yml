@@ -32,7 +32,7 @@ jobs:
           bundler-cache: false
 
       - name: Configure bundle groups
-        run: bundle config set --local with 'test development'
+        run: bundle config set --local with 'test'
 
       - name: Install dependencies
         run: bundle install
@@ -58,7 +58,7 @@ jobs:
           bundler-cache: false
 
       - name: Configure bundle groups
-        run: bundle config set --local with 'test development'
+        run: bundle config set --local with 'test'
 
       - name: Install dependencies
         run: bundle install
