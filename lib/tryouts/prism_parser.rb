@@ -16,8 +16,10 @@ class Tryouts
     def parse
       return handle_syntax_errors if @prism_result.failure?
 
-      tokens      = tokenize_content
-      test_blocks = group_into_test_blocks(tokens)
+      tokens           = tokenize_content
+      test_boundaries  = find_test_case_boundaries(tokens)
+      tokens           = classify_potential_descriptions_with_boundaries(tokens, test_boundaries)
+      test_blocks      = group_into_test_blocks(tokens)
       process_test_blocks(test_blocks)
     end
 
@@ -66,8 +68,106 @@ class Tryouts
         tokens << token
       end
 
-      # Post-process to convert potential_descriptions to descriptions or comments
-      classify_potential_descriptions(tokens)
+      # Return tokens with potential_descriptions - they'll be classified later with test boundaries
+      tokens
+    end
+
+    # Find actual test case boundaries by looking for ## descriptions or # TEST: patterns
+    # followed by code and expectations
+    def find_test_case_boundaries(tokens)
+      boundaries = []
+
+      tokens.each_with_index do |token, index|
+        # Look for explicit test descriptions (## or # TEST:)
+        if token[:type] == :description
+          # Find the end of this test case by looking for the last expectation
+          # before the next description or end of file
+          start_line = token[:line]
+          end_line = find_test_case_end(tokens, index)
+
+          boundaries << { start: start_line, end: end_line } if end_line
+        end
+      end
+
+      boundaries
+    end
+
+    # Find where a test case ends by looking for the last expectation
+    # before the next test description or end of tokens
+    def find_test_case_end(tokens, start_index)
+      last_expectation_line = nil
+
+      # Look forward from the description for expectations
+      (start_index + 1).upto(tokens.length - 1) do |i|
+        token = tokens[i]
+
+        # Stop if we hit another test description
+        break if token[:type] == :description
+
+        # Track the last expectation we see
+        if is_expectation_type?(token[:type])
+          last_expectation_line = token[:line]
+        end
+      end
+
+      last_expectation_line
+    end
+
+    # Convert potential_descriptions to descriptions or comments using test case boundaries
+    def classify_potential_descriptions_with_boundaries(tokens, test_boundaries)
+      tokens.map.with_index do |token, index|
+        if token[:type] == :potential_description
+          # Check if this comment falls within any test case boundary
+          line_num = token[:line]
+          within_test_case = test_boundaries.any? { |boundary|
+            line_num >= boundary[:start] && line_num <= boundary[:end]
+          }
+
+          if within_test_case
+            # This comment is within a test case, treat as regular comment
+            token.merge(type: :comment)
+          else
+            # For comments outside test boundaries, be more conservative
+            # Only treat as description if it immediately precedes a test pattern AND
+            # looks like a test description
+            content = token[:content].strip
+
+            # Check if this looks like a test description based on content
+            looks_like_test_description = content.match?(/test|example|demonstrate|show|should|when|given/i) &&
+                                        content.length > 10
+
+            # Check if there's code immediately before this (suggesting it's mid-test)
+            prev_token = index > 0 ? tokens[index - 1] : nil
+            has_code_before = prev_token && prev_token[:type] == :code
+
+            if has_code_before || !looks_like_test_description
+              # Treat as regular comment
+              token.merge(type: :comment)
+            else
+              # Look ahead for IMMEDIATE test pattern (stricter than before)
+              following_tokens = tokens[(index + 1)..]
+
+              # Skip blanks and comments to find meaningful content
+              meaningful_following = following_tokens.reject { |t| [:blank, :comment].include?(t[:type]) }
+
+              # Look for test pattern within next 5 tokens (more restrictive)
+              test_window = meaningful_following.first(5)
+              has_code = test_window.any? { |t| t[:type] == :code }
+              has_expectation = test_window.any? { |t| is_expectation_type?(t[:type]) }
+
+              # Only promote to description if BOTH code and expectation are found nearby
+              # AND it looks like a test description
+              if has_code && has_expectation && looks_like_test_description
+                token.merge(type: :description)
+              else
+                token.merge(type: :comment)
+              end
+            end
+          end
+        else
+          token
+        end
+      end
     end
 
     # Convert potential_descriptions to descriptions or comments based on context
