@@ -29,6 +29,10 @@ class Tryouts
           actual: 'No exception was raised',
           expected: expected_value,
         )
+      rescue SystemStackError, NoMemoryError, SecurityError, ScriptError => ex
+        # Handle system-level exceptions that don't inherit from StandardError
+        # ScriptError includes: LoadError, SyntaxError, NotImplementedError
+        evaluate_exception_condition(ex)
       rescue StandardError => ex
         evaluate_exception_condition(ex)
       end
