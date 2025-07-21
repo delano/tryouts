@@ -32,15 +32,14 @@ class Tryouts
 
         output = case level
         when 0, 1
-          ['', separator_line, header_line, separator_line]
+          [separator_line, header_line, separator_line]
         else
-          ['', header_line, separator_line]
+          [header_line, separator_line]
         end
 
         with_indent(level) do
           puts output.join("\n")
         end
-        puts
       end
 
       # File-level operations
@@ -99,12 +98,7 @@ class Tryouts
 
         return unless elapsed_time
 
-        time_msg =
-          if elapsed_time < 2.0
-            "Completed in #{(elapsed_time * 1000).round}ms"
-          else
-            "Completed in #{elapsed_time.round(3)}s"
-          end
+        time_msg = "Completed in #{format_timing(elapsed_time).strip.tr('()', '')}"
 
         puts indent_text(Console.color(:dim, time_msg), 2)
       end
@@ -126,8 +120,6 @@ class Tryouts
 
         return unless should_show
 
-        puts
-
         status_line = case result_status
         when :passed
           Console.color(:green, 'PASSED')
@@ -142,8 +134,8 @@ class Tryouts
         end
 
         location = "#{Console.pretty_path(test_case.path)}:#{test_case.line_range.first + 1}"
-        puts indent_text("#{status_line} @ #{location}", 2)
         puts
+        puts indent_text("#{status_line} @ #{location}", 2)
 
         # Show source code for verbose mode
         show_test_source_code(test_case)
@@ -332,6 +324,18 @@ class Tryouts
           indent_text(header_content + padding, 1),
           indent_text('-' * @line_width, 1),
         ].join("\n")
+      end
+
+      private
+
+      def format_timing(elapsed_time)
+        if elapsed_time < 0.001
+          " (#{(elapsed_time * 1_000_000).round}μs)"
+        elsif elapsed_time < 1
+          " (#{(elapsed_time * 1000).round}ms)"
+        else
+          " (#{elapsed_time.round(2)}s)"
+        end
       end
     end
 

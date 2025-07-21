@@ -13,12 +13,20 @@ class Tryouts
       end
 
       # Phase-level output - minimal for compact mode
-      def phase_header(message, _file_count = nil, level = 0, io = $stderr)
-        # Skip execution phase headers in compact mode - they create unwanted empty lines
-        return if level >= 1
-
-        text       = "#{message}..."
-        io.puts indent_text(text, level)
+      def phase_header(message, file_count = nil, level = 0, io = $stderr)
+        # Show processing header but skip execution phase headers to avoid empty lines
+        case level
+        when 0
+          # Main processing header
+          text = file_count ? "#{message}" : "#{message}..."
+          io.puts text
+        when 1
+          # Skip execution phase headers - they create unwanted empty lines
+          return
+        else
+          # Other phase headers with minimal formatting
+          io.puts indent_text(message, level - 1)
+        end
       end
 
       # File-level operations - compact single lines
@@ -44,7 +52,6 @@ class Tryouts
 
       def file_execution_start(file_path, test_count, _context_mode, io = $stderr)
         pretty_path = Console.pretty_path(file_path)
-        io.puts
         io.puts "#{pretty_path}: #{test_count} tests"
       end
 
@@ -79,11 +86,7 @@ class Tryouts
         end
 
         time_str = if elapsed_time
-                     if elapsed_time < 2
-                       " (#{(elapsed_time * 1000).to_i}ms)"
-                     else
-                       " (#{elapsed_time.round(2)}s)"
-                     end
+                     format_timing(elapsed_time)
                    else
                      ''
                    end
@@ -114,19 +117,32 @@ class Tryouts
         case result_status
         when :passed
           status = Console.color(:green, '✓')
+          io.puts indent_text("#{status} #{desc}", 1)
         when :failed
           status = Console.color(:red, '✗')
+          io.puts indent_text("#{status} #{desc}", 1)
+
+          # Show minimal context for failures
           if actual_results.any?
-            failure_info = " (got: #{actual_results.first.inspect})"
-            desc        += failure_info
+            failure_info = "got: #{actual_results.first.inspect}"
+            io.puts indent_text("    #{failure_info}", 1)
+          end
+
+          # Show 1-2 lines of test context if available
+          if test_case.source_lines && test_case.source_lines.size <= 3
+            test_case.source_lines.each do |line|
+              next if line.strip.empty? || line.strip.start_with?('#')
+              io.puts indent_text("    #{line.strip}", 1)
+              break # Only show first relevant line
+            end
           end
         when :skipped
           status = Console.color(:yellow, '-')
+          io.puts indent_text("#{status} #{desc}", 1)
         else
           status = '?'
+          io.puts indent_text("#{status} #{desc}", 1)
         end
-
-        io.puts indent_text("#{status} #{desc}", 1)
       end
 
       def test_output(_test_case, output_text, io = $stdout)
@@ -190,11 +206,7 @@ class Tryouts
           result = Console.color(:green, "#{total_tests} tests passed")
         end
 
-        time_str = if elapsed_time < 2
-                     "#{(elapsed_time * 1000).to_i}ms"
-                   else
-                     "#{elapsed_time.round(2)}s"
-                   end
+        time_str = format_timing(elapsed_time)
 
         io.puts "Total: #{result} (#{time_str})"
         io.puts "Files: #{successful_files} of #{total_files} successful"
@@ -238,6 +250,18 @@ class Tryouts
           io.puts '.' * 50
         else
           io.puts '-' * 50
+        end
+      end
+
+      private
+
+      def format_timing(elapsed_time)
+        if elapsed_time < 0.001
+          " (#{(elapsed_time * 1_000_000).round}μs)"
+        elsif elapsed_time < 1
+          " (#{(elapsed_time * 1000).round}ms)"
+        else
+          " (#{elapsed_time.round(2)}s)"
         end
       end
     end
