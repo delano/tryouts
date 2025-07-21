@@ -47,8 +47,8 @@ class Tryouts
         # Silent in quiet mode
       end
 
-      def test_result(_test_case, result_status, _actual_results = [], _elapsed_time = nil, _expected_results = [], io = $stderr)
-        case result_status
+      def test_result(result_packet, io = $stderr)
+        case result_packet.status
         when :passed
           io.print Console.color(:green, '.')
         when :failed
@@ -154,9 +154,9 @@ class Tryouts
 
     # Quiet formatter that only shows dots for failures and errors
     class QuietFailsFormatter < QuietFormatter
-      def test_result(test_case, result_status, actual_results = [], elapsed_time = nil, expected_results = [])
+      def test_result(result_packet)
         # Only show non-pass dots in fails mode
-        return if result_status == :passed
+        return if result_packet.passed?
 
         super
       end

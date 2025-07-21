@@ -115,12 +115,12 @@ class Tryouts
         # No output in verbose mode
       end
 
-      def test_result(test_case, result_status, actual_results = [], _elapsed_time = nil, expected_results = [])
-        should_show = @show_passed || result_status != :passed
+      def test_result(result_packet)
+        should_show = @show_passed || !result_packet.passed?
 
         return unless should_show
 
-        status_line = case result_status
+        status_line = case result_packet.status
         when :passed
           Console.color(:green, 'PASSED')
         when :failed
@@ -133,6 +133,7 @@ class Tryouts
           'UNKNOWN'
         end
 
+        test_case = result_packet.test_case
         location = "#{Console.pretty_path(test_case.path)}:#{test_case.line_range.first + 1}"
         puts
         puts indent_text("#{status_line} @ #{location}", 2)
@@ -141,8 +142,8 @@ class Tryouts
         show_test_source_code(test_case)
 
         # Show failure details for failed tests
-        if [:failed, :error].include?(result_status)
-          show_failure_details(test_case, actual_results, expected_results)
+        if result_packet.failed? || result_packet.error?
+          show_failure_details(test_case, result_packet.actual_results, result_packet.expected_results)
         end
       end
 
@@ -349,9 +350,9 @@ class Tryouts
         super(options.merge(show_passed: false))
       end
 
-      def test_result(test_case, result_status, actual_results = [], elapsed_time = nil, expected_results = [])
+      def test_result(result_packet)
         # Only show failed/error tests, but with full source code
-        return if result_status == :passed
+        return if result_packet.passed?
 
         super
       end

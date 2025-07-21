@@ -107,14 +107,15 @@ class Tryouts
         # No output for test end
       end
 
-      def test_result(test_case, result_status, actual_results = [], _elapsed_time = nil, expected_results = [], io = $stdout)
+      def test_result(result_packet, io = $stdout)
         # Only show failed tests in compact mode unless show_passed is true
-        return if result_status == :passed && !@show_passed
+        return if result_packet.passed? && !@show_passed
 
+        test_case = result_packet.test_case
         desc = test_case.description.to_s
         desc = 'unnamed test' if desc.empty?
 
-        case result_status
+        case result_packet.status
         when :passed
           status = Console.color(:green, '✓')
           io.puts indent_text("#{status} #{desc}", 1)
@@ -123,8 +124,8 @@ class Tryouts
           io.puts indent_text("#{status} #{desc}", 1)
 
           # Show minimal context for failures
-          if actual_results.any?
-            failure_info = "got: #{actual_results.first.inspect}"
+          if result_packet.actual_results.any?
+            failure_info = "got: #{result_packet.first_actual.inspect}"
             io.puts indent_text("    #{failure_info}", 1)
           end
 
@@ -272,9 +273,9 @@ class Tryouts
         super(options.merge(show_passed: false))
       end
 
-      def test_result(test_case, result_status, actual_results = [], elapsed_time = nil, expected_results = [])
+      def test_result(result_packet)
         # Only show failed/error tests
-        return if result_status == :passed
+        return if result_packet.passed?
 
         super
       end

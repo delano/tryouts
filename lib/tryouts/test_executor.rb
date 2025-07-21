@@ -50,8 +50,8 @@ class Tryouts
         test_results << last_result if last_result
       end
 
-      file_failed_count                 = test_results.count { |r| r[:status] == :failed }
-      file_error_count                  = test_results.count { |r| r[:status] == :error }
+      file_failed_count                 = test_results.count { |r| r.failed? }
+      file_error_count                  = test_results.count { |r| r.error? }
       @global_tally[:total_tests]      += batch.size
       @global_tally[:total_failed]     += file_failed_count
       @global_tally[:total_errors]     += file_error_count

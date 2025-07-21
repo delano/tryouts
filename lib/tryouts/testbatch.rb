@@ -131,8 +131,21 @@ class Tryouts
                  end
       end
 
-      # Add captured output to the result
-      result[:captured_output] = captured_output if captured_output && !captured_output.empty?
+      # Add captured output to the result if any exists
+      if captured_output && !captured_output.empty?
+        # Create new result packet with captured output
+        result = result.class.new(
+          test_case: result.test_case,
+          status: result.status,
+          result_value: result.result_value,
+          actual_results: result.actual_results,
+          expected_results: result.expected_results,
+          error: result.error,
+          captured_output: captured_output,
+          elapsed_time: result.elapsed_time,
+          metadata: result.metadata
+        )
+      end
 
       process_test_result(result)
       yield(test_case) if block_given?
@@ -350,12 +363,7 @@ class Tryouts
     end
 
     def show_test_result(result)
-      test_case = result[:test_case]
-      status    = result[:status]
-      actuals   = result[:actual_results]
-      expected  = result[:expected_results]
-
-      @output_manager&.test_result(test_case, status, actuals, nil, expected)
+      @output_manager&.test_result(result)
     end
 
     def show_summary(elapsed_time)
