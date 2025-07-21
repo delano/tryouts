@@ -11,12 +11,12 @@
 
 ## Divide by zero exception test
 1/0
-#!=> error.is_a?(ZeroDivisionError)
+#=!> error.is_a?(ZeroDivisionError)
 
 ## Manually raise a stack level too deep
 raise SystemStackError.new('Manually created this SystemStackError for testing')
-#!=> error.is_a?(SystemStackError)
+#=!> error.is_a?(SystemStackError)
 
 ## Raise a load error
 raise LoadError.new('Manually created this LoadError for testing')
-#!=> error.is_a?(LoadError)
+#=!> error.is_a?(LoadError)

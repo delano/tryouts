@@ -38,15 +38,15 @@ end
 
 ## Standard Exception Test
 raise StandardError.new("test message")
-#!=> error.message == "test message"
+#=!> error.message == "test message"
 
 ## Exception Type Test
 raise ArgumentError.new("bad argument")
-#!=> error.is_a?(ArgumentError)
+#=!> error.is_a?(ArgumentError)
 
 ## Exception Message Pattern Test
 raise StandardError.new("Key not found in Redis: test:key")
-#!=> error.message.include?("Key not found in Redis")
+#=!> error.message.include?("Key not found in Redis")
 
 ## Regular expectation still works
 "hello".upcase
