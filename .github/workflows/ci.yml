@@ -13,36 +13,10 @@ permissions:
   contents: read
 
 jobs:
-  basic-tests:
-    timeout-minutes: 10
-    runs-on: ubuntu-latest
-    name: Basic Tests (Ruby ${{ matrix.ruby }})
-    strategy:
-      fail-fast: true
-      matrix:
-        ruby: ["3.4", "3.5"]
-
-    steps:
-      - uses: actions/checkout@v4
-      - name: Set up Ruby
-        uses: ruby/setup-ruby@v1
-        with:
-          ruby-version: ${{ matrix.ruby }}
-          bundler-cache: false
-
-      - name: Configure bundle groups
-        run: bundle config set --local with 'test development'
-
-      - name: Install dependencies
-        run: bundle install
-
-      - name: Run basic proof tests
-        run: ruby exe/try try/proof*_try.rb
-
   core:
     timeout-minutes: 10
-    runs-on: ubuntu-latest
-    name: Core Tests (Ruby ${{ matrix.ruby }})
+    runs-on: ubuntu-24.04
+    name: "Tryouts: ${{ matrix.testgroup }} (Ruby ${{ matrix.ruby }})"
     strategy:
       fail-fast: true
       matrix:
@@ -66,36 +40,9 @@ jobs:
       - name: Run framework unit tests with coverage
         run: COVERAGE=1 bundle exec exe/try ${{ matrix.testgroup }}
 
-  expectations:
-    timeout-minutes: 10
-    runs-on: ubuntu-latest
-    name: Examples (Ruby ${{ matrix.ruby }})
-    continue-on-error: false
-    strategy:
-      fail-fast: false
-      matrix:
-        ruby: ["3.4", "3.5"]
-
-    steps:
-      - uses: actions/checkout@v4
-      - name: Set up Ruby
-        uses: ruby/setup-ruby@v1
-        with:
-          ruby-version: ${{ matrix.ruby }}
-          bundler-cache: false
-
-      - name: Configure bundle groups
-        run: bundle config set --local with 'test development'
-
-      - name: Install dependencies
-        run: bundle install
-
-      - name: Run example demonstrations (may fail intentionally)
-        run: bundle exec exe/try try/expectations
-
   cli-options:
     timeout-minutes: 10
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     name: CLI Options Test (Ruby ${{ matrix.ruby }})
     strategy:
       fail-fast: true
