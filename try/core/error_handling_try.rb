@@ -7,7 +7,7 @@
 
 ## Another failing test (intentional failure)
 'hello'.upcase
-##=> "GOODBYE"
+#=<> "GOODBYE"
 
 ## Divide by zero exception test
 1/0
