@@ -153,11 +153,20 @@ class Tryouts
     # Create a result packet for error cases
     def self.from_error(test_case, error, captured_output: nil, elapsed_time: nil, metadata: {})
       error_message = error ? error.message : '<exception is nil>'
+
+      # Include backtrace in error message when in debug/verbose mode
+      error_display = if error && Tryouts.debug?
+        backtrace_preview = error.backtrace&.first(3)&.join("\n    ")
+        "(#{error.class}) #{error_message}\n    #{backtrace_preview}"
+      else
+        "(#{error.class}) #{error_message}"
+      end
+
       new(
         test_case: test_case,
         status: :error,
         result_value: nil,
-        actual_results: ["(#{error.class}) #{error_message}"],
+        actual_results: [error_display],
         expected_results: [],
         error: error,
         captured_output: captured_output,
