@@ -65,6 +65,14 @@ class Tryouts
       if shared_context?
         @output_manager&.info('Running global setup...', 2)
         execute_global_setup
+
+        # Stop execution if setup failed
+        if @setup_failed
+          @output_manager&.error("Stopping batch execution due to setup failure")
+          @status = :failed
+          finalize_results([])
+          return false
+        end
       end
 
       idx               = 0
@@ -376,10 +384,9 @@ class Tryouts
       Tryouts.debug "Setup failed with #{error_type} error: (#{ex.class}): #{ex.message}"
       Tryouts.trace ex.backtrace
 
-      # For non-catastrophic errors, continue batch execution but mark as failed
+      # For non-catastrophic errors, we still stop batch execution
       unless Tryouts.batch_stopping_error?(ex)
         @output_manager&.error("Global setup failed: #{ex.message}")
-        @output_manager&.error("Continuing with individual tests despite setup failure")
         return
       end
 
@@ -433,7 +440,9 @@ class Tryouts
     end
 
     def show_summary(elapsed_time)
-      @output_manager&.batch_summary(size, @failed_count, elapsed_time)
+      # Use actual executed test count, not total tests in file
+      executed_count = @results.size
+      @output_manager&.batch_summary(executed_count, @failed_count, elapsed_time)
     end
 
     # Helper methods using pattern matching
