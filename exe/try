@@ -1,4 +1,4 @@
-#!/usr/bin/env /Users/d/.rbenv/shims/ruby
+#!/usr/bin/env ruby
 
 # Coverage tracking (must be first)
 if ENV['COVERAGE'] || ENV['SIMPLECOV']
