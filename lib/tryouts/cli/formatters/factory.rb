@@ -33,7 +33,7 @@ class Tryouts
             QuietFormatter.new(options)
           end
         else
-          VerboseFormatter.new(options) # Default to verbose
+          CompactFormatter.new(options) # Default to compact
         end
       end
 
