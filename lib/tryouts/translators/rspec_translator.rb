@@ -2,6 +2,44 @@
 
 class Tryouts
   module Translators
+    # Translates Tryouts test files to RSpec format
+    #
+    # IMPORTANT: Context Mode Differences
+    # ==================================
+    #
+    # Tryouts supports two context modes that behave differently than RSpec:
+    #
+    # 1. Tryouts Shared Context (default):
+    #    - Setup runs once, all tests share the same context object
+    #    - Tests can modify variables/state and affect subsequent tests
+    #    - Behaves like a Ruby script executing top-to-bottom
+    #    - Designed for documentation-style tests where examples build on each other
+    #
+    # 2. Tryouts Fresh Context (--no-shared-context):
+    #    - Setup @instance_variables are copied to each test's fresh context
+    #    - Tests are isolated but inherit setup state
+    #    - Similar to RSpec's before(:each) but with setup state inheritance
+    #
+    # RSpec Translation Behavior:
+    # ===========================
+    # - Uses before(:all) for setup code (closest equivalent to shared context)
+    # - Each 'it' block gets fresh context (RSpec standard)
+    # - Tests that rely on shared state between test cases WILL FAIL
+    # - This is intentional and reveals inappropriate test dependencies
+    #
+    # Example that works in Tryouts shared mode but fails in RSpec:
+    #   ## TEST 1
+    #   @counter = 1
+    #   @counter
+    #   #=> 1
+    #
+    #   ## TEST 2
+    #   @counter += 1  # Will be nil in RSpec, causing failure
+    #   @counter
+    #   #=> 2
+    #
+    # Recommendation: Write tryouts tests that work in fresh context mode
+    # if you plan to use RSpec translation.
     class RSpecTranslator
       def initialize
         require 'rspec/core'

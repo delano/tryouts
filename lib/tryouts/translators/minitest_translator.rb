@@ -2,6 +2,44 @@
 
 class Tryouts
   module Translators
+    # Translates Tryouts test files to Minitest format
+    #
+    # IMPORTANT: Context Mode Differences
+    # ==================================
+    #
+    # Tryouts supports two context modes that behave differently than Minitest:
+    #
+    # 1. Tryouts Shared Context (default):
+    #    - Setup runs once, all tests share the same context object
+    #    - Tests can modify variables/state and affect subsequent tests
+    #    - Behaves like a Ruby script executing top-to-bottom
+    #    - Designed for documentation-style tests where examples build on each other
+    #
+    # 2. Tryouts Fresh Context (--no-shared-context):
+    #    - Setup @instance_variables are copied to each test's fresh context
+    #    - Tests are isolated but inherit setup state
+    #    - Similar to Minitest's setup method but with setup state inheritance
+    #
+    # Minitest Translation Behavior:
+    # ==============================
+    # - Uses setup method which runs before each test (Minitest standard)
+    # - Each test method gets fresh context (Minitest standard)
+    # - Tests that rely on shared state between test cases WILL FAIL
+    # - This is intentional and reveals inappropriate test dependencies
+    #
+    # Example that works in Tryouts shared mode but fails in Minitest:
+    #   ## TEST 1
+    #   @counter = 1
+    #   @counter
+    #   #=> 1
+    #
+    #   ## TEST 2
+    #   @counter += 1  # Will be reset to 1 by setup, then fail
+    #   @counter
+    #   #=> 2
+    #
+    # Recommendation: Write tryouts tests that work in fresh context mode
+    # if you plan to use Minitest translation.
     class MinitestTranslator
       def initialize
         require 'minitest/test'
