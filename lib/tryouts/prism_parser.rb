@@ -460,6 +460,9 @@ class Tryouts
         # Extract source lines from the original source during parsing
         source_lines = @lines[start_line..end_line]
 
+        # Find the first expectation line for better error reporting
+        first_expectation_line = exp_tokens.empty? ? start_line : exp_tokens.first[:line]
+
         TestCase.new(
           description: desc,
           code: extract_code_content(code_tokens),
@@ -487,6 +490,7 @@ class Tryouts
           line_range: start_line..end_line,
           path: @source_path,
           source_lines: source_lines,
+          first_expectation_line: first_expectation_line,
         )
       else
         raise "Invalid test block structure: #{block}"
