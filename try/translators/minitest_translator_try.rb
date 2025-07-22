@@ -32,7 +32,8 @@ test_case = Tryouts::TestCase.new(
   expectations: [Tryouts::Expectation.new(content: "2", type: :regular)],
   line_range: 2..3,
   path: 'test.rb',
-  source_lines: ["puts 'hello'", "#=> 2"]
+  source_lines: ["puts 'hello'", "#=> 2"],
+  first_expectation_line: 3
 )
 testrun = Tryouts::Testrun.new(
   setup: nil,
@@ -53,7 +54,8 @@ test_case = Tryouts::TestCase.new(
   expectations: [Tryouts::Expectation.new(content: "2", type: :regular)],
   line_range: 2..3,
   path: 'test.rb',
-  source_lines: ["puts 'hello'", "#=> 2"]
+  source_lines: ["puts 'hello'", "#=> 2"],
+  first_expectation_line: 3
 )
 testrun = Tryouts::Testrun.new(
   setup: nil,
@@ -74,7 +76,8 @@ test_case = Tryouts::TestCase.new(
   expectations: [Tryouts::Expectation.new(content: "6", type: :regular)],
   line_range: 1..2,
   path: 'test.rb',
-  source_lines: ["puts 'math'", "#=> 6"]
+  source_lines: ["puts 'math'", "#=> 6"],
+  first_expectation_line: 2
 )
 testrun = Tryouts::Testrun.new(
   setup: nil,
@@ -96,7 +99,8 @@ test_case = Tryouts::TestCase.new(
   expectations: [Tryouts::Expectation.new(content: "true", type: :regular)],
   line_range: 1..2,
   path: 'test.rb',
-  source_lines: ["puts 'test'", "#=> true"]
+  source_lines: ["puts 'test'", "#=> true"],
+  first_expectation_line: 2
 )
 testrun = Tryouts::Testrun.new(
   setup: nil,
@@ -124,7 +128,8 @@ test_case = Tryouts::TestCase.new(
   expectations: [Tryouts::Expectation.new(content: "2", type: :regular)],
   line_range: 2..3,
   path: 'test.rb',
-  source_lines: ["puts 'with setup'", "#=> 2"]
+  source_lines: ["puts 'with setup'", "#=> 2"],
+  first_expectation_line: 3
 )
 testrun = Tryouts::Testrun.new(
   setup: setup_code,
@@ -152,7 +157,8 @@ test_case = Tryouts::TestCase.new(
   expectations: [Tryouts::Expectation.new(content: "2", type: :regular)],
   line_range: 2..3,
   path: 'test.rb',
-  source_lines: ["puts 'teardown'", "#=> 2"]
+  source_lines: ["puts 'teardown'", "#=> 2"],
+  first_expectation_line: 3
 )
 testrun = Tryouts::Testrun.new(
   setup: nil,
@@ -175,7 +181,8 @@ exception_test_case = Tryouts::TestCase.new(
   expectations: [Tryouts::Expectation.new(content: "error.is_a?(ZeroDivisionError)", type: :exception)],
   line_range: 4..5,
   path: 'test.rb',
-  source_lines: ["puts 'exception test'", "#=!> error.is_a?(ZeroDivisionError)"]
+  source_lines: ["puts 'exception test'", "#=!> error.is_a?(ZeroDivisionError)"],
+  first_expectation_line: 5
 )
 exception_testrun = Tryouts::Testrun.new(
   setup: nil,
@@ -199,7 +206,8 @@ test_case_1 = Tryouts::TestCase.new(
   expectations: [Tryouts::Expectation.new(content: "4", type: :regular)],
   line_range: 1..2,
   path: 'test.rb',
-  source_lines: ["2 + 2", "#=> 4"]
+  source_lines: ["2 + 2", "#=> 4"],
+  first_expectation_line: 2
 )
 test_case_2 = Tryouts::TestCase.new(
   description: "second test",
@@ -207,7 +215,8 @@ test_case_2 = Tryouts::TestCase.new(
   expectations: [Tryouts::Expectation.new(content: "9", type: :regular)],
   line_range: 3..4,
   path: 'test.rb',
-  source_lines: ["3 * 3", "#=> 9"]
+  source_lines: ["3 * 3", "#=> 9"],
+  first_expectation_line: 4
 )
 multi_testrun = Tryouts::Testrun.new(
   setup: nil,
@@ -231,7 +240,8 @@ simple_case = Tryouts::TestCase.new(
   expectations: [Tryouts::Expectation.new(content: "2", type: :regular)],
   line_range: 1..2,
   path: 'test.rb',
-  source_lines: ["puts 'complex'", "#=> 2"]
+  source_lines: ["puts 'complex'", "#=> 2"],
+  first_expectation_line: 2
 )
 complex_filename_testrun = Tryouts::Testrun.new(
   setup: nil,
@@ -253,7 +263,8 @@ empty_desc_case = Tryouts::TestCase.new(
   expectations: [Tryouts::Expectation.new(content: "true", type: :regular)],
   line_range: 1..2,
   path: 'test.rb',
-  source_lines: ["true", "#=> true"]
+  source_lines: ["true", "#=> true"],
+  first_expectation_line: 2
 )
 empty_desc_testrun = Tryouts::Testrun.new(
   setup: nil,

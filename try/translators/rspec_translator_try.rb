@@ -26,7 +26,8 @@ test_case = Tryouts::TestCase.new(
   expectations: [Tryouts::Expectation.new(content: "6", type: :regular)],
   line_range: 2..3,
   path: 'test.rb',
-  source_lines: ["2 * 3", "#=> 6"]
+  source_lines: ["2 * 3", "#=> 6"],
+  first_expectation_line: 3
 )
 
 testrun = Tryouts::Testrun.new(
@@ -68,7 +69,8 @@ exception_test_case = Tryouts::TestCase.new(
   expectations: [Tryouts::Expectation.new(content: "error.is_a?(ArgumentError)", type: :exception)],
   line_range: 4..5,
   path: 'test.rb',
-  source_lines: ["raise ArgumentError, 'test error'", "#=!> error.is_a?(ArgumentError)"]
+  source_lines: ["raise ArgumentError, 'test error'", "#=!> error.is_a?(ArgumentError)"],
+  first_expectation_line: 5
 )
 
 exception_testrun = Tryouts::Testrun.new(
@@ -128,7 +130,8 @@ test_case_1 = Tryouts::TestCase.new(
   expectations: [Tryouts::Expectation.new(content: "'hello world'", type: :regular)],
   line_range: 1..2,
   path: 'test.rb',
-  source_lines: ["'hello' + ' world'", "#=> 'hello world'"]
+  source_lines: ["'hello' + ' world'", "#=> 'hello world'"],
+  first_expectation_line: 2
 )
 
 test_case_2 = Tryouts::TestCase.new(
@@ -137,7 +140,8 @@ test_case_2 = Tryouts::TestCase.new(
   expectations: [Tryouts::Expectation.new(content: "4", type: :regular)],
   line_range: 3..4,
   path: 'test.rb',
-  source_lines: ["'test'.length", "#=> 4"]
+  source_lines: ["'test'.length", "#=> 4"],
+  first_expectation_line: 4
 )
 
 multi_testrun = Tryouts::Testrun.new(
@@ -197,7 +201,8 @@ empty_desc_case = Tryouts::TestCase.new(
   expectations: [Tryouts::Expectation.new(content: "NilClass", type: :regular)],
   line_range: 1..2,
   path: 'test.rb',
-  source_lines: ["nil.class", "#=> NilClass"]
+  source_lines: ["nil.class", "#=> NilClass"],
+  first_expectation_line: 2
 )
 
 empty_desc_testrun = Tryouts::Testrun.new(
@@ -240,7 +245,8 @@ multi_expectation_case = Tryouts::TestCase.new(
   ],
   line_range: 1..3,
   path: 'test.rb',
-  source_lines: ["[1, 2, 3]", "#=> [1, 2, 3]"]
+  source_lines: ["[1, 2, 3]", "#=> [1, 2, 3]"],
+  first_expectation_line: 2
 )
 
 multi_exp_testrun = Tryouts::Testrun.new(
