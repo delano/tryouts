@@ -1,6 +1,6 @@
 # lib/tryouts/test_executor.rb
 
-require_relative 'testbatch'
+require_relative 'test_batch'
 
 class Tryouts
   class TestExecutor

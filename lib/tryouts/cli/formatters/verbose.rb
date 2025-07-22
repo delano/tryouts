@@ -134,7 +134,7 @@ class Tryouts
         end
 
         test_case = result_packet.test_case
-        location = "#{Console.pretty_path(test_case.path)}:#{test_case.line_range.first + 1}"
+        location = "#{Console.pretty_path(test_case.path)}:#{test_case.first_expectation_line + 1}"
         puts
         puts indent_text("#{status_line} @ #{location}", 2)
 

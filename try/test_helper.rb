@@ -15,3 +15,13 @@ module TestHelper
     $VERBOSE = old_verbose
   end
 end
+
+class Bone
+  attr_accessor :token, :name, :age
+
+  def initialize(token, name, age)
+    @token = token
+    @name = name
+    @age = age
+  end
+end
