@@ -79,7 +79,7 @@ class Tryouts
     def process_files
       failure_count = 0
 
-      @files.each_with_index do |file, idx|
+      @files.each_with_index do |file, _idx|
         result         = process_file(file)
         failure_count += result unless result.zero?
         status         = result.zero? ? Console.color(:green, 'PASS') : Console.color(:red, 'FAIL')

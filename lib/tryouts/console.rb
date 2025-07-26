@@ -143,7 +143,7 @@ class Tryouts
 
             # Enable colors if neither appears redirected
             return "\e[%sm" % att.join(';') unless stdout_redirected || stderr_redirected
-          rescue
+          rescue StandardError
             # If stat fails, fall back to enabling colors with TERM set
             return "\e[%sm" % att.join(';')
           end

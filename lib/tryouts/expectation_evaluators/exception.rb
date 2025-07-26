@@ -22,7 +22,7 @@ class Tryouts
 
         # Create result packet for evaluation to show what was expected
         expectation_result = ExpectationResult.from_result(nil)
-        expected_value = eval_expectation_content(@expectation.content, expectation_result)
+        expected_value     = eval_expectation_content(@expectation.content, expectation_result)
 
         build_result(
           passed: false,
@@ -41,7 +41,7 @@ class Tryouts
         @context.define_singleton_method(:error) { caught_error }
 
         expectation_result = ExpectationResult.from_result(caught_error)
-        expected_value = eval_expectation_content(@expectation.content, expectation_result)
+        expected_value     = eval_expectation_content(@expectation.content, expectation_result)
 
         build_result(
           passed: !!expected_value,

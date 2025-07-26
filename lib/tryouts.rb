@@ -1,7 +1,5 @@
 # lib/tryouts.rb
 
-
-
 require 'stringio'
 require 'timeout'
 

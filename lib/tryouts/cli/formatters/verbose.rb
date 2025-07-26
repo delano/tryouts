@@ -134,7 +134,7 @@ class Tryouts
         end
 
         test_case = result_packet.test_case
-        location = "#{Console.pretty_path(test_case.path)}:#{test_case.first_expectation_line + 1}"
+        location  = "#{Console.pretty_path(test_case.path)}:#{test_case.first_expectation_line + 1}"
         puts
         puts indent_text("#{status_line} @ #{location}", 2)
 
@@ -279,7 +279,7 @@ class Tryouts
         puts indent_text('Exception Details:', 4)
 
         actual_results.each_with_index do |actual, idx|
-          expected = expected_results[idx] if expected_results && idx < expected_results.length
+          expected    = expected_results[idx] if expected_results && idx < expected_results.length
           expectation = test_case.expectations[idx] if test_case.expectations
 
           if expectation&.type == :exception
@@ -300,7 +300,7 @@ class Tryouts
           line_display = format('%3d: %s', line_num + 1, line_content)
 
           # Highlight expectation lines by checking if this line contains any expectation syntax
-          if line_content.match?(/^\s*#\s*=(!|<|=|\/=|\||:|~|%|\d+)?>\s*/)
+          if line_content.match?(%r{^\s*#\s*=(!|<|=|/=|\||:|~|%|\d+)?>\s*})
             line_display = Console.color(:yellow, line_display)
           end
 

@@ -54,18 +54,18 @@ class Tryouts
             passed: false,
             actual: 'No timing data available',
             expected: 'Performance measurement',
-            error: 'Performance expectations require execution timing data'
+            error: 'Performance expectations require execution timing data',
           )
         end
 
         # Create result packet with timing data available to expectation
         expectation_result = ExpectationResult.from_timing(actual_result, execution_time_ns)
-        expected_limit_ms = eval_expectation_content(@expectation.content, expectation_result)
+        expected_limit_ms  = eval_expectation_content(@expectation.content, expectation_result)
 
         actual_time_ms = expectation_result.execution_time_ms
 
         # Performance tolerance: actual <= expected + 10% (not strict window)
-        max_allowed_ms = expected_limit_ms * 1.1
+        max_allowed_ms   = expected_limit_ms * 1.1
         within_tolerance = actual_time_ms <= max_allowed_ms
 
         build_result(

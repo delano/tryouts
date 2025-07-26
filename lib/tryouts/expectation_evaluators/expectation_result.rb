@@ -32,7 +32,7 @@ class Tryouts
           start_time_ns: nil,
           end_time_ns: nil,
           stdout_content: nil,
-          stderr_content: nil
+          stderr_content: nil,
         )
       end
 
@@ -46,7 +46,7 @@ class Tryouts
           start_time_ns: start_time_ns,
           end_time_ns: end_time_ns,
           stdout_content: nil,
-          stderr_content: nil
+          stderr_content: nil,
         )
       end
 
@@ -59,7 +59,7 @@ class Tryouts
           start_time_ns: nil,
           end_time_ns: nil,
           stdout_content: stdout_content,
-          stderr_content: stderr_content
+          stderr_content: stderr_content,
         )
       end
     end
