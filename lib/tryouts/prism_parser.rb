@@ -470,8 +470,8 @@ class Tryouts
             type = case token[:type]
                    when :exception_expectation then :exception
                    when :intentional_failure_expectation then :intentional_failure
-                   when :true_expectation then :true
-                   when :false_expectation then :false
+                   when :true_expectation then :true # rubocop:disable Lint/BooleanSymbol
+                   when :false_expectation then :false # rubocop:disable Lint/BooleanSymbol
                    when :boolean_expectation then :boolean
                    when :result_type_expectation then :result_type
                    when :regex_match_expectation then :regex_match
