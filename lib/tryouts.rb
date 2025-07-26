@@ -20,19 +20,12 @@ class Tryouts
   @fails       = false
   @container   = Class.new
   @cases       = [] # rubocop:disable ThreadSafety/MutableClassInstanceVariable
-  @sysinfo     = nil
   @testcase_io = StringIO.new
 
   module ClassMethods
     attr_accessor :container, :quiet, :noisy, :fails
     attr_writer :debug
     attr_reader :cases, :testcase_io
-
-    def sysinfo
-      require 'sysinfo'
-      @sysinfo ||= SysInfo.new
-      @sysinfo
-    end
 
     def debug?
       @debug == true
