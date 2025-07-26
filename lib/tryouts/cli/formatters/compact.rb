@@ -22,7 +22,7 @@ class Tryouts
           io.puts text
         when 1
           # Skip execution phase headers - they create unwanted empty lines
-          return
+          nil
         else
           # Other phase headers with minimal formatting
           io.puts indent_text(message, level - 1)
@@ -112,8 +112,8 @@ class Tryouts
         return if result_packet.passed? && !@show_passed
 
         test_case = result_packet.test_case
-        desc = test_case.description.to_s
-        desc = 'unnamed test' if desc.empty?
+        desc      = test_case.description.to_s
+        desc      = 'unnamed test' if desc.empty?
 
         case result_packet.status
         when :passed
@@ -133,6 +133,7 @@ class Tryouts
           if test_case.source_lines && test_case.source_lines.size <= 3
             test_case.source_lines.each do |line|
               next if line.strip.empty? || line.strip.start_with?('#')
+
               io.puts indent_text("    #{line.strip}", 1)
               break # Only show first relevant line
             end
@@ -209,7 +210,7 @@ class Tryouts
 
         time_str = format_timing(elapsed_time)
 
-        io.puts "Total: #{result} (#{time_str})"
+        io.puts "Total: #{result} #{time_str}"
         io.puts "Files: #{successful_files} of #{total_files} successful"
       end
 

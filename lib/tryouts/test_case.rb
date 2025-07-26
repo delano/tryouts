@@ -89,7 +89,7 @@ class Tryouts
     :error,              # Exception object (if any)
     :captured_output,    # Captured stdout/stderr content
     :elapsed_time,       # Execution timing (future use)
-    :metadata            # Hash for future extensibility
+    :metadata,            # Hash for future extensibility
   ) do
     def passed?
       status == :passed
@@ -131,7 +131,7 @@ class Tryouts
         error: nil,
         captured_output: captured_output,
         elapsed_time: elapsed_time,
-        metadata: metadata
+        metadata: metadata,
       )
     end
 
@@ -146,7 +146,7 @@ class Tryouts
         error: nil,
         captured_output: captured_output,
         elapsed_time: elapsed_time,
-        metadata: metadata
+        metadata: metadata,
       )
     end
 
@@ -171,7 +171,7 @@ class Tryouts
         error: error,
         captured_output: captured_output,
         elapsed_time: elapsed_time,
-        metadata: metadata
+        metadata: metadata,
       )
     end
   end

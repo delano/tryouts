@@ -46,8 +46,8 @@ begin
   expanded_files = []
   files.each do |file_or_dir|
     if File.directory?(file_or_dir)
-      # If it's a directory, find all *_try.rb files within it
-      dir_files = Dir.glob('**/*_try.rb', base: file_or_dir)
+      # If it's a directory, find all *_try.rb and *.try.rb files within it
+      dir_files = Dir.glob(['**/*_try.rb', '**/*.try.rb'], base: file_or_dir)
       expanded_files.concat(dir_files.map { |f| File.join(file_or_dir, f) })
     else
       # If it's a file, add it as-is
@@ -59,7 +59,7 @@ begin
   # Default file discovery if no files specified
   if files.empty?
     raw_files = Dir.glob(
-      ['{app,apps,lib,try,tryouts}/**/*_try.rb', './*_try.rb'],
+      ['{app,apps,lib,try,tryouts}/**/*_try.rb', './*_try.rb', '{app,apps,lib,try,tryouts}/**/*.try.rb', './*.try.rb'],
       base: Dir.pwd,
     )
 

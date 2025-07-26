@@ -56,9 +56,9 @@ class Tryouts
 
         # Get the appropriate captured content
         captured_content = case pipe_number
-                          when 1 then stdout_content || ""
-                          when 2 then stderr_content || ""
-                          else ""
+                          when 1 then stdout_content || ''
+                          when 2 then stderr_content || ''
+                          else ''
                           end
 
         # Create result packet for expression evaluation
@@ -82,8 +82,8 @@ class Tryouts
 
         # Build result with appropriate pipe description
         pipe_name = case pipe_number
-                   when 1 then "stdout"
-                   when 2 then "stderr"
+                   when 1 then 'stdout'
+                   when 2 then 'stderr'
                    else "pipe#{pipe_number}"
                    end
 
@@ -91,7 +91,7 @@ class Tryouts
           passed: matched,
           actual: "#{pipe_name}: #{captured_content.inspect}",
           expected: expected_pattern.inspect,
-          expectation: @expectation.content
+          expectation: @expectation.content,
         )
       rescue StandardError => ex
         handle_evaluation_error(ex, actual_result)

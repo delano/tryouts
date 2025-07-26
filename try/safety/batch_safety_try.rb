@@ -2,10 +2,18 @@
 #
 # Tests for extenuating circumstances
 
-require_relative '../../lib/tryouts'
+# NOTE: These tests are expected to show as ERRORS in the output since they
+# verify that dangerous exceptions are caught and handled gracefully.
+#
+# Success is measured by:
+# 1. All tests execute (batch doesn't stop)
+# 2. Teardown runs successfully
+# 3. Framework doesn't crash
+# 4. CI workflow is configured with continue-on-error: true for this directory
+#
+# EXPECTED OUTPUT: 0 passed, 4 errors
 
-test_file = 'foo/bar/setup_baz_try.rb'
-Tryouts::PrismParser.new(test_file)
+require_relative '../../lib/tryouts'
 
 ## TEST: Batch does not fail and the following test cases continue
 raise SystemExit
@@ -23,6 +31,3 @@ raise Timeout::Error, 'Intentional timeout error'
 ## TEST: SIGHUP is handled gracefully
 raise SignalException, 'SIGHUP'
 #=<> nil
-
-test_file = 'foo/bar/teardown_baz_try.rb'
-Tryouts::PrismParser.new(test_file)

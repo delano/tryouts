@@ -17,6 +17,5 @@ Gem::Specification.new do |spec|
 
   spec.add_dependency 'minitest', '~> 5.0'
   spec.add_dependency 'rspec', '~> 3.0'
-  spec.add_dependency 'sysinfo', ['>= 0.8', '< 1.0']
   spec.metadata['rubygems_mfa_required'] = 'true'
 end

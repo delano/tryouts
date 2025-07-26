@@ -7,7 +7,6 @@ class Tryouts
   class CLI
     # Enhanced interface for all test output formatting
     module FormatterInterface
-
       attr_reader :current_indent
 
       # Phase-level output (major sections)
@@ -115,6 +114,5 @@ class Tryouts
         @current_indent = old_indent
       end
     end
-
   end
 end

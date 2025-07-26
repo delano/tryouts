@@ -38,11 +38,11 @@ class Tryouts
 
       def evaluate(actual_result = nil)
         expectation_result = ExpectationResult.from_result(actual_result)
-        pattern = eval_expectation_content(@expectation.content, expectation_result)
+        pattern            = eval_expectation_content(@expectation.content, expectation_result)
 
         # Convert actual_result to string for regex matching
         string_result = actual_result.to_s
-        match_result = string_result =~ pattern
+        match_result  = string_result =~ pattern
 
         build_result(
           passed: !match_result.nil?,

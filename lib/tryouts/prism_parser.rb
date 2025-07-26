@@ -83,7 +83,7 @@ class Tryouts
           # Find the end of this test case by looking for the last expectation
           # before the next description or end of file
           start_line = token[:line]
-          end_line = find_test_case_end(tokens, index)
+          end_line   = find_test_case_end(tokens, index)
 
           boundaries << { start: start_line, end: end_line } if end_line
         end
@@ -118,10 +118,10 @@ class Tryouts
       tokens.map.with_index do |token, index|
         if token[:type] == :potential_description
           # Check if this comment falls within any test case boundary
-          line_num = token[:line]
-          within_test_case = test_boundaries.any? { |boundary|
+          line_num         = token[:line]
+          within_test_case = test_boundaries.any? do |boundary|
             line_num >= boundary[:start] && line_num <= boundary[:end]
-          }
+          end
 
           if within_test_case
             # This comment is within a test case, treat as regular comment
@@ -134,10 +134,10 @@ class Tryouts
 
             # Check if this looks like a test description based on content
             looks_like_test_description = content.match?(/test|example|demonstrate|show|should|when|given/i) &&
-                                        content.length > 10
+                                          content.length > 10
 
             # Check if there's code immediately before this (suggesting it's mid-test)
-            prev_token = index > 0 ? tokens[index - 1] : nil
+            prev_token      = index > 0 ? tokens[index - 1] : nil
             has_code_before = prev_token && prev_token[:type] == :code
 
             if has_code_before || !looks_like_test_description
@@ -151,8 +151,8 @@ class Tryouts
               meaningful_following = following_tokens.reject { |t| [:blank, :comment].include?(t[:type]) }
 
               # Look for test pattern within next 5 tokens (more restrictive)
-              test_window = meaningful_following.first(5)
-              has_code = test_window.any? { |t| t[:type] == :code }
+              test_window     = meaningful_following.first(5)
+              has_code        = test_window.any? { |t| t[:type] == :code }
               has_expectation = test_window.any? { |t| is_expectation_type?(t[:type]) }
 
               # Only promote to description if BOTH code and expectation are found nearby
@@ -180,11 +180,11 @@ class Tryouts
           # Skip if it's clearly just a regular comment (short, lowercase, etc.)
           # Test descriptions are typically longer and more descriptive
           looks_like_regular_comment = content.length < 20 &&
-                                      content.downcase == content &&
-                                      !content.match?(/test|example|demonstrate|show/i)
+                                       content.downcase == content &&
+                                       !content.match?(/test|example|demonstrate|show/i)
 
           # Check if there's code immediately before this (suggesting it's mid-test)
-          prev_token = index > 0 ? tokens[index - 1] : nil
+          prev_token      = index > 0 ? tokens[index - 1] : nil
           has_code_before = prev_token && prev_token[:type] == :code
 
           if looks_like_regular_comment || has_code_before
@@ -199,8 +199,8 @@ class Tryouts
 
             # Look for test pattern: at least one code token followed by at least one expectation
             # within the next 10 meaningful tokens (to avoid matching setup/teardown)
-            test_window = meaningful_following.first(10)
-            has_code = test_window.any? { |t| t[:type] == :code }
+            test_window     = meaningful_following.first(10)
+            has_code        = test_window.any? { |t| t[:type] == :code }
             has_expectation = test_window.any? { |t| is_expectation_type?(t[:type]) }
 
             if has_code && has_expectation
@@ -466,12 +466,12 @@ class Tryouts
         TestCase.new(
           description: desc,
           code: extract_code_content(code_tokens),
-          expectations: exp_tokens.map { |token|
+          expectations: exp_tokens.map do |token|
             type = case token[:type]
                    when :exception_expectation then :exception
                    when :intentional_failure_expectation then :intentional_failure
-                   when :true_expectation then :true
-                   when :false_expectation then :false
+                   when :true_expectation then :true # rubocop:disable Lint/BooleanSymbol
+                   when :false_expectation then :false # rubocop:disable Lint/BooleanSymbol
                    when :boolean_expectation then :boolean
                    when :result_type_expectation then :result_type
                    when :regex_match_expectation then :regex_match
@@ -486,7 +486,7 @@ class Tryouts
             else
               Expectation.new(content: token[:content], type: type)
             end
-          },
+          end,
           line_range: start_line..end_line,
           path: @source_path,
           source_lines: source_lines,

@@ -154,15 +154,6 @@ end
 captured_output.start_with?("    ")
 #=> true
 
-## TEST: sysinfo method returns SysInfo object
-begin
-  sysinfo = Tryouts.sysinfo
-  sysinfo.class.name
-rescue LoadError
-  "LoadError"
-end
-#=> "SysInfo"
-
 ## TEST: Coverage loading status matches environment
 # SimpleCov should be loaded when COVERAGE env var is set, not loaded otherwise
 load_result = begin

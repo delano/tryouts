@@ -42,8 +42,8 @@ class Tryouts
       end
 
       def evaluate(actual_result = nil)
-        expectation_result     = ExpectationResult.from_result(actual_result)
-        expression_result = eval_expectation_content(@expectation.content, expectation_result)
+        expectation_result = ExpectationResult.from_result(actual_result)
+        expression_result  = eval_expectation_content(@expectation.content, expectation_result)
 
         build_result(
           passed: expression_result == true,

@@ -56,14 +56,14 @@ class Tryouts
 
         # Delegate to regular evaluator
         regular_evaluator = Regular.new(regular_expectation, @test_case, @context)
-        regular_result = regular_evaluator.evaluate(actual_result)
+        regular_result    = regular_evaluator.evaluate(actual_result)
 
         # Invert the result while preserving metadata
         build_result(
           passed: !regular_result[:passed],
           actual: regular_result[:actual],
           expected: "NOT #{regular_result[:expected]} (intentional failure)",
-          expectation: @expectation.content
+          expectation: @expectation.content,
         )
       rescue StandardError => ex
         # If evaluation itself fails (not the expectation), that's a real error

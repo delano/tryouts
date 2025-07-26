@@ -80,7 +80,7 @@ class Tryouts
         details      = [
           "#{passed_count} passed",
         ]
-
+        puts
         if issues_count > 0
           details << "#{failed_count} failed" if failed_count > 0
           details << "#{error_count} errors" if error_count > 0
@@ -134,7 +134,7 @@ class Tryouts
         end
 
         test_case = result_packet.test_case
-        location = "#{Console.pretty_path(test_case.path)}:#{test_case.first_expectation_line + 1}"
+        location  = "#{Console.pretty_path(test_case.path)}:#{test_case.first_expectation_line + 1}"
         puts
         puts indent_text("#{status_line} @ #{location}", 2)
 
@@ -181,6 +181,7 @@ class Tryouts
       def teardown_start(line_range)
         message = "Executing teardown (lines #{line_range.first}..#{line_range.last})"
         puts indent_text(Console.color(:cyan, message), 2)
+        puts
       end
 
       def teardown_output(output_text)
@@ -278,7 +279,7 @@ class Tryouts
         puts indent_text('Exception Details:', 4)
 
         actual_results.each_with_index do |actual, idx|
-          expected = expected_results[idx] if expected_results && idx < expected_results.length
+          expected    = expected_results[idx] if expected_results && idx < expected_results.length
           expectation = test_case.expectations[idx] if test_case.expectations
 
           if expectation&.type == :exception
@@ -299,7 +300,7 @@ class Tryouts
           line_display = format('%3d: %s', line_num + 1, line_content)
 
           # Highlight expectation lines by checking if this line contains any expectation syntax
-          if line_content.match?(/^\s*#\s*=(!|<|=|\/=|\||:|~|%|\d+)?>\s*/)
+          if line_content.match?(%r{^\s*#\s*=(!|<|=|/=|\||:|~|%|\d+)?>\s*})
             line_display = Console.color(:yellow, line_display)
           end
 
@@ -319,12 +320,13 @@ class Tryouts
             # Use the evaluated expected value from the evaluator
             puts indent_text("Expected: #{Console.color(:green, expected.inspect)}", 4)
             puts indent_text("Actual:   #{Console.color(:red, actual.inspect)}", 4)
-          elsif expected_line
-            # Fallback to raw expectation content
+          elsif expected_line && !expected_results.empty?
+            # Only show raw expectation content if we have expected_results (non-error case)
             puts indent_text("Expected: #{Console.color(:green, expected_line.content)}", 4)
             puts indent_text("Actual:   #{Console.color(:red, actual.inspect)}", 4)
           else
-            puts indent_text("Actual:   #{Console.color(:red, actual.inspect)}", 4)
+            # For error cases (empty expected_results), just show the error
+            puts indent_text("Error:   #{Console.color(:red, actual.inspect)}", 4)
           end
 
           # Show difference if both are strings
