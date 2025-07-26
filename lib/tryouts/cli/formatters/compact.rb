@@ -209,7 +209,7 @@ class Tryouts
 
         time_str = format_timing(elapsed_time)
 
-        io.puts "Total: #{result} (#{time_str})"
+        io.puts "Total: #{result} #{time_str}"
         io.puts "Files: #{successful_files} of #{total_files} successful"
       end
 

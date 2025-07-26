@@ -80,7 +80,7 @@ class Tryouts
         details      = [
           "#{passed_count} passed",
         ]
-
+        puts
         if issues_count > 0
           details << "#{failed_count} failed" if failed_count > 0
           details << "#{error_count} errors" if error_count > 0
@@ -181,6 +181,7 @@ class Tryouts
       def teardown_start(line_range)
         message = "Executing teardown (lines #{line_range.first}..#{line_range.last})"
         puts indent_text(Console.color(:cyan, message), 2)
+        puts
       end
 
       def teardown_output(output_text)
@@ -319,12 +320,13 @@ class Tryouts
             # Use the evaluated expected value from the evaluator
             puts indent_text("Expected: #{Console.color(:green, expected.inspect)}", 4)
             puts indent_text("Actual:   #{Console.color(:red, actual.inspect)}", 4)
-          elsif expected_line
-            # Fallback to raw expectation content
+          elsif expected_line && !expected_results.empty?
+            # Only show raw expectation content if we have expected_results (non-error case)
             puts indent_text("Expected: #{Console.color(:green, expected_line.content)}", 4)
             puts indent_text("Actual:   #{Console.color(:red, actual.inspect)}", 4)
           else
-            puts indent_text("Actual:   #{Console.color(:red, actual.inspect)}", 4)
+            # For error cases (empty expected_results), just show the error
+            puts indent_text("Error:   #{Console.color(:red, actual.inspect)}", 4)
           end
 
           # Show difference if both are strings
