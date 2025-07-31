@@ -34,7 +34,7 @@ class Tryouts
         @current_file = file_path
       end
 
-      def file_result(file_path, total_tests, failed_count, error_count, elapsed_time)
+      def file_result(file_path, total_tests, failed_count, error_count, elapsed_time, io = $stdout)
         # Silent in quiet mode - results shown in batch_summary
       end
 

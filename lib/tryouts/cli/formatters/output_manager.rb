@@ -50,7 +50,7 @@ class Tryouts
 
       def file_success(file_path, total_tests, failed_count, error_count, elapsed_time)
         with_indent(1) do
-          @formatter.file_result(file_path, total_tests, failed_count, error_count, elapsed_time)
+          @formatter.file_result(file_path, total_tests, failed_count, error_count, elapsed_time, $stdout)
         end
       end
 
@@ -104,7 +104,7 @@ class Tryouts
 
       # Summary methods
       def batch_summary(total_tests, failed_count, elapsed_time)
-        @formatter.batch_summary(total_tests, failed_count, elapsed_time)
+        @formatter.batch_summary(total_tests, failed_count, elapsed_time, $stdout)
       end
 
       def grand_total(total_tests, failed_count, error_count, successful_files, total_files, elapsed_time)

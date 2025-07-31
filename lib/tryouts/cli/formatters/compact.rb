@@ -56,7 +56,7 @@ class Tryouts
       end
 
       # Summary operations
-      def batch_summary(total_tests, failed_count, elapsed_time)
+      def batch_summary(total_tests, failed_count, elapsed_time, io = $stdout)
         # Skip - file_result already shows this information with better alignment
       end
 
