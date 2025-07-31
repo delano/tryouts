@@ -1,5 +1,7 @@
 # lib/tryouts/cli/formatters/factory.rb
 
+require_relative '../tty_detector'
+
 class Tryouts
   class CLI
     # Factory for creating formatters and output managers
@@ -33,7 +35,17 @@ class Tryouts
             QuietFormatter.new(options)
           end
         when :live
-          LiveFormatter.new(options)
+          # Check TTY support before creating LiveFormatter
+          tty_check = TTYDetector.check_tty_support(debug: options[:debug])
+
+          if tty_check[:available]
+            LiveFormatter.new(options.merge(tty_available: true))
+          else
+            # Show warning and fall back to CompactFormatter
+            $stderr.puts "⚠️  Live mode requested but not available: #{tty_check[:reason]}"
+            $stderr.puts "   Falling back to compact format. Use --debug to see TTY detection details."
+            CompactFormatter.new(options)
+          end
         else
           CompactFormatter.new(options) # Default to compact
         end

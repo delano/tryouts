@@ -69,7 +69,7 @@ class Tryouts
       end
 
       # Setup/teardown operations - silent
-      def setup_start(line_range)
+      def setup_start(line_range, io = $stdout)
         # Silent in quiet mode
       end
 

@@ -165,7 +165,7 @@ class Tryouts
       end
 
       # Setup/teardown operations - minimal output
-      def setup_start(_line_range)
+      def setup_start(_line_range, _io = $stdout)
         # No file setup start output for compact
       end
 
