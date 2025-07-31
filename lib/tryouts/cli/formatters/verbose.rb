@@ -47,7 +47,7 @@ class Tryouts
         io.puts file_header_visual(file_path)
       end
 
-      def file_end(_file_path, _context_info = {})
+      def file_end(_file_path, _context_info = {}, io = $stdout)
         # No output in verbose mode
       end
 
@@ -228,7 +228,7 @@ class Tryouts
         io.puts indent_text("#{prefix} #{message}", level + 1)
       end
 
-      def trace_info(message, level = 0)
+      def trace_info(message, level = 0, io = $stdout)
         return unless @show_trace
 
         prefix = Console.color(:dim, 'TRACE')
@@ -250,7 +250,7 @@ class Tryouts
       end
 
       # Utility methods
-      def raw_output(text, io)
+      def raw_output(text, io = $stdout)
         io.puts text
       end
 
@@ -368,6 +368,14 @@ class Tryouts
           " (#{elapsed_time.round(2)}s)"
         end
       end
+
+      def live_status_capabilities
+        {
+          supports_coordination: true,     # Verbose can work with coordinated output
+          output_frequency: :high,         # Outputs frequently for each test
+          requires_tty: false              # Works without TTY
+        }
+      end
     end
 
     # Verbose formatter that only shows failures and errors
@@ -376,11 +384,19 @@ class Tryouts
         super(options.merge(show_passed: false))
       end
 
-      def test_result(result_packet)
+      def test_result(result_packet, io = $stdout)
         # Only show failed/error tests, but with full source code
         return if result_packet.passed?
 
         super
+      end
+
+      def live_status_capabilities
+        {
+          supports_coordination: true,     # Verbose can work with coordinated output
+          output_frequency: :high,         # Outputs frequently for each test
+          requires_tty: false              # Works without TTY
+        }
       end
     end
   end

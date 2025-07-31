@@ -13,12 +13,12 @@ class Tryouts
       end
 
       # Phase-level output - silent
-      def phase_header(message, file_count = nil, level = nil)
+      def phase_header(message, file_count = nil, level = nil, io = $stdout)
         # Silent in quiet mode
       end
 
       # File-level operations - minimal
-      def file_start(file_path, context_info = {})
+      def file_start(file_path, context_info = {}, io = $stdout)
         # Silent in quiet mode
       end
 
@@ -26,11 +26,11 @@ class Tryouts
         io.puts # add newline after all dots
       end
 
-      def file_parsed(file_path, test_count, setup_present: false, teardown_present: false)
+      def file_parsed(file_path, test_count, io = $stdout, setup_present: false, teardown_present: false)
         # Silent in quiet mode
       end
 
-      def file_execution_start(file_path, _test_count, _context_mode)
+      def file_execution_start(file_path, _test_count, _context_mode, io = $stdout)
         @current_file = file_path
       end
 
@@ -39,7 +39,7 @@ class Tryouts
       end
 
       # Test-level operations - dot notation
-      def test_start(test_case, index, total)
+      def test_start(test_case, index, total, io = $stdout)
         # Silent in quiet mode
       end
 
@@ -73,15 +73,15 @@ class Tryouts
         # Silent in quiet mode
       end
 
-      def setup_output(output_text)
+      def setup_output(output_text, io = $stdout)
         # Silent in quiet mode
       end
 
-      def teardown_start(line_range)
+      def teardown_start(line_range, io = $stdout)
         # Silent in quiet mode
       end
 
-      def teardown_output(output_text)
+      def teardown_output(output_text, io = $stdout)
         # Silent in quiet mode
       end
 
@@ -99,7 +99,7 @@ class Tryouts
         end
       end
 
-      def grand_total(total_tests, failed_count, error_count, successful_files, total_files, elapsed_time)
+      def grand_total(total_tests, failed_count, error_count, successful_files, total_files, elapsed_time, io = $stdout)
         return unless @show_final_summary
 
         puts
@@ -116,49 +116,71 @@ class Tryouts
           details = []
           details << "#{failed_count} failed" if failed_count > 0
           details << "#{error_count} errors" if error_count > 0
-          puts Console.color(:red, "Total: #{details.join(', ')}, #{passed} passed (#{time_str})")
+          io.puts Console.color(:red, "Total: #{details.join(', ')}, #{passed} passed (#{time_str})")
         else
-          puts Console.color(:green, "Total: #{total_tests} passed (#{time_str})")
+          io.puts Console.color(:green, "Total: #{total_tests} passed (#{time_str})")
         end
 
         if total_files > 1
-          puts "Files: #{successful_files} of #{total_files} successful"
+          io.puts "Files: #{successful_files} of #{total_files} successful"
         end
       end
 
       # Debug and diagnostic output - silent unless errors
-      def debug_info(message, level = 0)
+      def debug_info(message, level = 0, io = $stdout)
         # Silent in quiet mode
       end
 
-      def trace_info(message, level = 0)
+      def trace_info(message, level = 0, io = $stdout)
         # Silent in quiet mode
       end
 
-      def error_message(message, _details = nil)
+      def error_message(message, backtrace = nil, io = $stdout)
         return unless @show_errors
 
-        puts
-        puts Console.color(:red, "ERROR: #{message}")
+        io.puts
+        io.puts Console.color(:red, "ERROR: #{message}")
+
+        return unless backtrace && @show_debug
+
+        backtrace.first(3).each do |line|
+          io.puts "  #{line.chomp}"
+        end
       end
 
       # Utility methods
-      def raw_output(text)
-        puts text if @show_final_summary
+      def raw_output(text, io = $stdout)
+        io.puts text if @show_final_summary
       end
 
       def separator(style = :light)
         # Silent in quiet mode
       end
+
+      def live_status_capabilities
+        {
+          supports_coordination: true,     # Quiet can work with coordinated output
+          output_frequency: :low,          # Very minimal output, mainly dots
+          requires_tty: false              # Works without TTY
+        }
+      end
     end
 
     # Quiet formatter that only shows dots for failures and errors
     class QuietFailsFormatter < QuietFormatter
-      def test_result(result_packet)
+      def test_result(result_packet, io = $stderr)
         # Only show non-pass dots in fails mode
         return if result_packet.passed?
 
         super
+      end
+
+      def live_status_capabilities
+        {
+          supports_coordination: true,     # QuietFails can work with coordinated output
+          output_frequency: :low,          # Very minimal output
+          requires_tty: false              # Works without TTY
+        }
       end
     end
   end

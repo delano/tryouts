@@ -86,7 +86,7 @@ class Tryouts
         raise NotImplementedError, "#{self.class} must implement #trace_info"
       end
 
-      def error_message(message, details = nil, io = $stdout)
+      def error_message(message, backtrace = nil, io = $stdout)
         raise NotImplementedError, "#{self.class} must implement #error_message"
       end
 
@@ -111,6 +111,15 @@ class Tryouts
         yield
       ensure
         @current_indent = old_indent
+      end
+
+      # Live status capability negotiation
+      def live_status_capabilities
+        {
+          supports_coordination: false,    # Can work with coordinated output
+          output_frequency: :medium,       # :low, :medium, :high
+          requires_tty: false              # Must have TTY to function
+        }
       end
     end
   end

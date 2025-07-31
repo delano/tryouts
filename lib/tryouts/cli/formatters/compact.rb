@@ -266,6 +266,14 @@ class Tryouts
           " (#{elapsed_time.round(2)}s)"
         end
       end
+
+      def live_status_capabilities
+        {
+          supports_coordination: true,     # Compact can work with coordinated output
+          output_frequency: :medium,       # Outputs at medium frequency
+          requires_tty: false              # Works without TTY
+        }
+      end
     end
 
     # Compact formatter that only shows failures and errors
@@ -274,11 +282,19 @@ class Tryouts
         super(options.merge(show_passed: false))
       end
 
-      def test_result(result_packet)
+      def test_result(result_packet, io = $stdout)
         # Only show failed/error tests
         return if result_packet.passed?
 
         super
+      end
+
+      def live_status_capabilities
+        {
+          supports_coordination: true,     # Compact can work with coordinated output
+          output_frequency: :low,          # Outputs infrequently, mainly summaries
+          requires_tty: false              # Works without TTY
+        }
       end
     end
   end

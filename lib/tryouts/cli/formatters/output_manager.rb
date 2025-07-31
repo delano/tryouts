@@ -20,8 +20,8 @@ class Tryouts
         @formatter.phase_header("EXECUTING #{test_count} TESTS", test_count, level)
       end
 
-      def error_phase(level = 1)
-        @formatter.phase_header('ERROR DETAILS', level)
+      def error_phase(level = 1, io = $stdout)
+        @formatter.phase_header('ERROR DETAILS', level, io)
       end
 
       # File-level methods
@@ -35,7 +35,7 @@ class Tryouts
         @formatter.file_end(file_path, context_info)
       end
 
-      def file_parsed(file_path, test_count, setup_present: false, teardown_present: false)
+      def file_parsed(file_path, test_count, io = $stdout, setup_present: false, teardown_present: false)
         with_indent(1) do
           @formatter.file_parsed(file_path, test_count,
             setup_present: setup_present,
@@ -44,8 +44,8 @@ class Tryouts
         end
       end
 
-      def file_execution_start(file_path, test_count, context_mode)
-        @formatter.file_execution_start(file_path, test_count, context_mode)
+      def file_execution_start(file_path, test_count, context_mode, io = $stdout)
+        @formatter.file_execution_start(file_path, test_count, context_mode, io)
       end
 
       def file_success(file_path, total_tests, failed_count, error_count, elapsed_time)
@@ -120,7 +120,7 @@ class Tryouts
 
       def trace(message, level = 0)
         with_indent(level) do
-          @formatter.trace_info(message, level)
+          @formatter.trace_info(message, level, io = $stdout)
         end
       end
 

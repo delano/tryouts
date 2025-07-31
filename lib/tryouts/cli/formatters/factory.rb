@@ -1,6 +1,7 @@
 # lib/tryouts/cli/formatters/factory.rb
 
 require_relative '../tty_detector'
+require_relative 'live_status_formatter'
 
 class Tryouts
   class CLI
@@ -15,7 +16,8 @@ class Tryouts
         # Map boolean flags to format symbols if format not explicitly set
         format = options[:format]&.to_sym || determine_format_from_flags(options)
 
-        case format
+        # Create base formatter first
+        base_formatter = case format
         when :verbose
           if options[:fails_only]
             VerboseFailsFormatter.new(options)
@@ -34,20 +36,27 @@ class Tryouts
           else
             QuietFormatter.new(options)
           end
-        when :live
-          # Check TTY support before creating LiveFormatter
+        else
+          CompactFormatter.new(options) # Default to compact
+        end
+
+        # Wrap with LiveStatusFormatter if requested
+        if options[:live_status] || options[:live]
+          # Check TTY support before creating live status wrapper
           tty_check = TTYDetector.check_tty_support(debug: options[:debug])
 
           if tty_check[:available]
-            LiveFormatter.new(options.merge(tty_available: true))
+            LiveStatusFormatter.new(base_formatter, options)
           else
-            # Show warning and fall back to CompactFormatter
-            $stderr.puts "⚠️  Live mode requested but not available: #{tty_check[:reason]}"
-            $stderr.puts "   Falling back to compact format. Use --debug to see TTY detection details."
-            CompactFormatter.new(options)
+            # Show warning and return base formatter
+            if options[:debug]
+              $stderr.puts "⚠️  Live status requested but not available: #{tty_check[:reason]}"
+              $stderr.puts "   Continuing with #{base_formatter.class.name.split('::').last}."
+            end
+            base_formatter
           end
         else
-          CompactFormatter.new(options) # Default to compact
+          base_formatter
         end
       end
 
@@ -57,7 +66,6 @@ class Tryouts
         def determine_format_from_flags(options)
           return :quiet if options[:quiet]
           return :verbose if options[:verbose]
-          return :live if options[:live]
 
           :compact # Default
         end

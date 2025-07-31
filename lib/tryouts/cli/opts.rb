@@ -56,7 +56,7 @@ class Tryouts
           opts.on('-f', '--fails', 'Show only failing tests (with --verbose)') { options[:fails_only]     = true }
           opts.on('-q', '--quiet', 'Minimal output (dots and summary only)') { options[:quiet]            = true }
           opts.on('-c', '--compact', 'Compact single-line output') { options[:compact]                    = true }
-          opts.on('-l', '--live', 'Live output with fixed status display (RSpec-style)') { options[:live] = true }
+          opts.on('--live-status', '--live', 'Live status display (works with -v, -c, -q)') { options[:live_status] = true }
 
           opts.separator "\nInspection Options:"
           opts.on('-i', '--inspect', 'Inspect file structure without running tests') { options[:inspect] = true }
