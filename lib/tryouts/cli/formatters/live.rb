@@ -11,14 +11,12 @@ class Tryouts
     class LiveFormatter
       include FormatterInterface
 
-      STATUS_LINES = 4  # Lines reserved for fixed status display
+      STATUS_LINES = 5  # Lines reserved for fixed status display (4 content + 1 separator)
 
       def initialize(options = {})
         @options    = options
         @show_debug = options.fetch(:debug, false)
         @show_trace = options.fetch(:trace, false)
-
-        require_relative '../../console'
 
         # TTY availability is now determined externally by FormatterFactory
         # If we get here, TTY is available - no fallback needed
@@ -81,8 +79,8 @@ class Tryouts
       end
 
       def file_execution_start(file_path, test_count, context_mode, io = $stdout)
-        pretty_path = Console.pretty_path(file_path)
-        write_scrolling("#{pretty_path}: #{test_count} tests\n", io)
+        # Don't output "Running:" messages to scrolling area - this info is in the live status
+        # Just update the status footer
         update_status(io)
       end
 
@@ -103,7 +101,7 @@ class Tryouts
         details_parts << "#{failed_count} failed" if failed_count > 0
         details_parts << "#{error_count} errors" if error_count > 0
 
-        time_str = elapsed_time ? format_timing(elapsed_time) : ''
+        time_str = elapsed_time ? " #{format_timing(elapsed_time)}" : ''
         write_scrolling("  #{status} #{details_parts.join(', ')}#{time_str}\n", io)
 
         update_status(io)
@@ -117,7 +115,7 @@ class Tryouts
         # Don't update status on test start - too frequent
       end
 
-      def test_end(test_case, index, total, io = $stdout)
+      def test_end(_test_case, _index, _total, io = $stdout)
         @running_totals[:current_test] = nil
         # Don't update status on test end - too frequent
       end
@@ -139,7 +137,7 @@ class Tryouts
         update_status(io)
       end
 
-      def test_output(test_case, output_text, io = $stdout)
+      def test_output(_test_case, output_text, io = $stdout)
         # Only show output for failed tests or in debug mode
         return if output_text.nil? || output_text.strip.empty?
         return unless @show_debug
@@ -230,20 +228,20 @@ class Tryouts
 
       # Utility methods
       def raw_output(text, io = $stdout)
+        return if text.nil? || text.strip.empty?
         write_scrolling(text + "\n", io)
       end
 
       def separator(style = :light, io = $stdout)
-        line = case style
-               when :heavy then '=' * 50
-               when :light then '-' * 50
-               when :dotted then '.' * 50
-               else '-' * 50
-               end
-        write_scrolling(line + "\n", io)
+        # In live mode, we don't show separators as they interfere with clean output
+        # The live status provides separation
       end
 
       private
+
+      def indent_text(text, level)
+        ('  ' * level) + text
+      end
 
       def reserve_status_area(io)
         return unless @tty_available && !@status_active
@@ -301,15 +299,20 @@ class Tryouts
         totals  = @running_totals
         elapsed = totals[:start_time] ? Time.now - totals[:start_time] : 0
 
-        # Line 1: Current progress
+        # Line 1: Empty separator line
+        io.print "\n"
+
+        # Line 2: Current progress
         if totals[:current_file]
           current_info  = "Running: #{totals[:current_file]}"
           current_info += " → #{totals[:current_test]}" if totals[:current_test]
           io.print current_info
+        else
+          io.print "Ready"
         end
         io.print "\n"
 
-        # Line 2: Test counts
+        # Line 3: Test counts
         parts = []
         parts << @pastel.green("#{totals[:passed]} passed") if totals[:passed] > 0
         parts << @pastel.red("#{totals[:failed]} failed") if totals[:failed] > 0
@@ -322,14 +325,14 @@ class Tryouts
         end
         io.print "\n"
 
-        # Line 3: File progress
+        # Line 4: File progress
         files_info  = "Files: #{totals[:files_completed]}"
         files_info += "/#{totals[:total_files]}" if totals[:total_files] > 0
-        files_info += ' completed'
+        files_info += " completed"
         io.print files_info
         io.print "\n"
 
-        # Line 4: Timing
+        # Line 5: Timing
         io.print "Time: #{format_timing(elapsed)}"
       end
 
