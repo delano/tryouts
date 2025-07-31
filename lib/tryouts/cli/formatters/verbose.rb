@@ -21,14 +21,14 @@ class Tryouts
         header_line = message.center(@line_width)
         separator_line = '=' * @line_width
 
-        @stdout.puts separator_line
-        @stdout.puts header_line
-        @stdout.puts separator_line
+        puts(separator_line)
+        puts(header_line)
+        puts(separator_line)
       end
 
       # File-level operations
       def file_start(file_path, context_info: {})
-        @stdout.puts file_header_visual(file_path)
+        puts(file_header_visual(file_path))
       end
 
       def file_parsed(_file_path, test_count:, setup_present: false, teardown_present: false)
@@ -39,40 +39,40 @@ class Tryouts
         extras << 'teardown' if teardown_present
         message += " (#{extras.join(', ')})" unless extras.empty?
 
-        @stdout.puts indent_text(message, 2)
+        puts(indent_text(message, 2))
       end
 
       def file_execution_start(_file_path, test_count:, context_mode:)
         message = "Running #{test_count} tests with #{context_mode} context"
-        @stdout.puts indent_text(message, 1)
+        puts(indent_text(message, 1))
       end
 
       # Summary operations - show detailed failure summary
       def batch_summary(failure_collector)
         return unless failure_collector.any_failures?
 
-        @stdout.puts
-        @stdout.print '=' * 50
-        @stdout.puts Console.color(:red, 'Failed Tests:')
+        puts
+        write '=' * 50
+        puts Console.color(:red, 'Failed Tests:')
 
         failure_collector.failures_by_file.each do |file_path, failures|
           pretty_path = Console.pretty_path(file_path)
-          @stdout.puts
-          @stdout.puts Console.color(:yellow, "#{pretty_path}:")
+          puts
+          puts Console.color(:yellow, "#{pretty_path}:")
 
           failures.each_with_index do |failure, index|
             line_info = failure.line_number > 0 ? ":#{failure.line_number}" : ''
-            @stdout.puts "  #{index + 1}) #{failure.description}#{line_info}"
-            @stdout.puts "     #{Console.color(:red, 'Failure:')} #{failure.failure_reason}"
+            puts "  #{index + 1}) #{failure.description}#{line_info}"
+            puts "     #{Console.color(:red, 'Failure:')} #{failure.failure_reason}"
 
             # Show source context in verbose mode
             if failure.source_context.any?
-              @stdout.puts "     #{Console.color(:cyan, 'Source:')}"
+              puts "     #{Console.color(:cyan, 'Source:')}"
               failure.source_context.each do |line|
-                @stdout.puts "       #{line.strip}"
+                puts "       #{line.strip}"
               end
             end
-            @stdout.puts
+            puts
           end
         end
       end
@@ -82,7 +82,7 @@ class Tryouts
         passed_count = total_tests - issues_count
         details = ["#{passed_count} passed"]
 
-        @stdout.puts
+        puts
         if issues_count > 0
           details << "#{failed_count} failed" if failed_count > 0
           details << "#{error_count} errors" if error_count > 0
@@ -91,17 +91,17 @@ class Tryouts
 
           time_str = elapsed_time ? " (#{elapsed_time.round(2)}s)" : ''
           message = "✗ Out of #{total_tests} tests: #{details_str}#{time_str}"
-          @stdout.puts indent_text(Console.color(color, message), 2)
+          puts indent_text(Console.color(color, message), 2)
         else
           message = "#{total_tests} tests passed"
           color = :green
-          @stdout.puts indent_text(Console.color(color, "✓ #{message}"), 2)
+          puts indent_text(Console.color(color, "✓ #{message}"), 2)
         end
 
         return unless elapsed_time
 
         time_msg = "Completed in #{format_timing(elapsed_time).strip.tr('()', '')}"
-        @stdout.puts indent_text(Console.color(:dim, time_msg), 2)
+        puts indent_text(Console.color(:dim, time_msg), 2)
       end
 
       # Test-level operations
@@ -109,7 +109,7 @@ class Tryouts
         desc = test_case.description.to_s
         desc = 'Unnamed test' if desc.empty?
         message = "Test #{index}/#{total}: #{desc}"
-        @stdout.puts indent_text(Console.color(:dim, message), 2)
+        puts indent_text(Console.color(:dim, message), 2)
       end
 
       def test_result(result_packet)
@@ -131,8 +131,8 @@ class Tryouts
 
         test_case = result_packet.test_case
         location = "#{Console.pretty_path(test_case.path)}:#{test_case.first_expectation_line + 1}"
-        @stdout.puts
-        @stdout.puts indent_text("#{status_line} @ #{location}", 2)
+        puts
+        puts indent_text("#{status_line} @ #{location}", 2)
 
         # Show source code for verbose mode
         show_test_source_code(test_case)
@@ -149,49 +149,49 @@ class Tryouts
       def test_output(test_case:, output_text:, result_packet:)
         return if output_text.nil? || output_text.strip.empty?
 
-        @stdout.puts indent_text('Test Output:', 3)
-        @stdout.puts indent_text(Console.color(:dim, '--- BEGIN OUTPUT ---'), 3)
+        puts indent_text('Test Output:', 3)
+        puts indent_text(Console.color(:dim, '--- BEGIN OUTPUT ---'), 3)
 
         output_text.lines.each do |line|
-          @stdout.puts indent_text(line.chomp, 4)
+          puts indent_text(line.chomp, 4)
         end
 
-        @stdout.puts indent_text(Console.color(:dim, '--- END OUTPUT ---'), 3)
-        @stdout.puts
+        puts indent_text(Console.color(:dim, '--- END OUTPUT ---'), 3)
+        puts
       end
 
       # Setup/teardown operations
       def setup_start(line_range:)
         message = "Executing global setup (lines #{line_range.first}..#{line_range.last})"
-        @stdout.puts indent_text(Console.color(:cyan, message), 2)
+        puts indent_text(Console.color(:cyan, message), 2)
       end
 
       def setup_output(output_text)
         return if output_text.strip.empty?
 
         output_text.lines.each do |line|
-          @stdout.puts indent_text(line.chomp, 0)
+          puts indent_text(line.chomp, 0)
         end
       end
 
       def teardown_start(line_range:)
         message = "Executing teardown (lines #{line_range.first}..#{line_range.last})"
-        @stdout.puts indent_text(Console.color(:cyan, message), 2)
-        @stdout.puts
+        puts indent_text(Console.color(:cyan, message), 2)
+        puts
       end
 
       def teardown_output(output_text)
         return if output_text.strip.empty?
 
         output_text.lines.each do |line|
-          @stdout.puts indent_text(line.chomp, 0)
+          puts indent_text(line.chomp, 0)
         end
       end
 
       def grand_total(total_tests:, failed_count:, error_count:, successful_files:, total_files:, elapsed_time:)
-        @stdout.puts
-        @stdout.puts '=' * @line_width
-        @stdout.puts 'Grand Total:'
+        puts
+        puts '=' * @line_width
+        puts 'Grand Total:'
 
         issues_count = failed_count + error_count
         time_str = if elapsed_time < 2.0
@@ -205,13 +205,13 @@ class Tryouts
           details = []
           details << "#{failed_count} failed" if failed_count > 0
           details << "#{error_count} errors" if error_count > 0
-          @stdout.puts "#{details.join(', ')}, #{passed} passed#{time_str}"
+          puts "#{details.join(', ')}, #{passed} passed#{time_str}"
         else
-          @stdout.puts "#{total_tests} tests passed#{time_str}"
+          puts "#{total_tests} tests passed#{time_str}"
         end
 
-        @stdout.puts "Files: #{successful_files} of #{total_files} successful"
-        @stdout.puts '=' * @line_width
+        puts "Files: #{successful_files} of #{total_files} successful"
+        puts '=' * @line_width
       end
 
       # Debug and diagnostic output
@@ -219,29 +219,29 @@ class Tryouts
         return unless @show_debug
 
         prefix = Console.color(:cyan, 'INFO ')
-        @stdout.puts
-        @stdout.puts indent_text("#{prefix} #{message}", level + 1)
+        puts
+        puts indent_text("#{prefix} #{message}", level + 1)
       end
 
       def trace_info(message, level: 0)
         return unless @show_trace
 
         prefix = Console.color(:dim, 'TRACE')
-        @stdout.puts indent_text("#{prefix} #{message}", level + 1)
+        puts indent_text("#{prefix} #{message}", level + 1)
       end
 
       def error_message(message, backtrace: nil)
         error_msg = Console.color(:red, "ERROR: #{message}")
-        @stdout.puts indent_text(error_msg, 1)
+        puts indent_text(error_msg, 1)
 
         return unless backtrace && @show_debug
 
-        @stdout.puts indent_text('Details:', 2)
+        puts indent_text('Details:', 2)
         # Show first 10 lines of backtrace to avoid overwhelming output
         backtrace.first(10).each do |line|
-          @stdout.puts indent_text(line, 3)
+          puts indent_text(line, 3)
         end
-        @stdout.puts indent_text("... (#{backtrace.length - 10} more lines)", 3) if backtrace.length > 10
+        puts indent_text("... (#{backtrace.length - 10} more lines)", 3) if backtrace.length > 10
       end
 
       def live_status_capabilities
@@ -261,19 +261,19 @@ class Tryouts
       def show_exception_details(test_case, actual_results, expected_results = [])
         return if actual_results.empty?
 
-        @stdout.puts indent_text('Exception Details:', 4)
+        puts indent_text('Exception Details:', 4)
 
         actual_results.each_with_index do |actual, idx|
           expected = expected_results[idx] if expected_results && idx < expected_results.length
           expectation = test_case.expectations[idx] if test_case.expectations
 
           if expectation&.type == :exception
-            @stdout.puts indent_text("Caught: #{Console.color(:blue, actual.inspect)}", 5)
-            @stdout.puts indent_text("Expectation: #{Console.color(:green, expectation.content)}", 5)
-            @stdout.puts indent_text("Result: #{Console.color(:green, expected.inspect)}", 5) if expected
+            puts indent_text("Caught: #{Console.color(:blue, actual.inspect)}", 5)
+            puts indent_text("Expectation: #{Console.color(:green, expectation.content)}", 5)
+            puts indent_text("Result: #{Console.color(:green, expected.inspect)}", 5) if expected
           end
         end
-        @stdout.puts
+        puts
       end
 
       def show_test_source_code(test_case)
@@ -289,9 +289,9 @@ class Tryouts
             line_display = Console.color(:yellow, line_display)
           end
 
-          @stdout.puts indent_text(line_display, 4)
+          puts indent_text(line_display, 4)
         end
-        @stdout.puts
+        puts
       end
 
       def show_failure_details(test_case, actual_results, expected_results = [])
@@ -303,15 +303,15 @@ class Tryouts
 
           if !expected.nil?
             # Use the evaluated expected value from the evaluator
-            @stdout.puts indent_text("Expected: #{Console.color(:green, expected.inspect)}", 4)
-            @stdout.puts indent_text("Actual:   #{Console.color(:red, actual.inspect)}", 4)
+            puts indent_text("Expected: #{Console.color(:green, expected.inspect)}", 4)
+            puts indent_text("Actual:   #{Console.color(:red, actual.inspect)}", 4)
           elsif expected_line && !expected_results.empty?
             # Only show raw expectation content if we have expected_results (non-error case)
-            @stdout.puts indent_text("Expected: #{Console.color(:green, expected_line.content)}", 4)
-            @stdout.puts indent_text("Actual:   #{Console.color(:red, actual.inspect)}", 4)
+            puts indent_text("Expected: #{Console.color(:green, expected_line.content)}", 4)
+            puts indent_text("Actual:   #{Console.color(:red, actual.inspect)}", 4)
           else
             # For error cases (empty expected_results), just show the error
-            @stdout.puts indent_text("Error:   #{Console.color(:red, actual.inspect)}", 4)
+            puts indent_text("Error:   #{Console.color(:red, actual.inspect)}", 4)
           end
 
           # Show difference if both are strings
@@ -319,16 +319,16 @@ class Tryouts
             show_string_diff(expected, actual)
           end
 
-          @stdout.puts
+          puts
         end
       end
 
       def show_string_diff(expected, actual)
         return if expected == actual
 
-        @stdout.puts indent_text('Difference:', 4)
-        @stdout.puts indent_text("- #{Console.color(:red, actual)}", 5)
-        @stdout.puts indent_text("+ #{Console.color(:green, expected)}", 5)
+        puts indent_text('Difference:', 4)
+        puts indent_text("- #{Console.color(:red, actual)}", 5)
+        puts indent_text("+ #{Console.color(:green, expected)}", 5)
       end
 
       def file_header_visual(file_path)

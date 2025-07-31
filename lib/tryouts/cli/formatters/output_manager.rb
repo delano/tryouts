@@ -1,36 +1,50 @@
 # lib/tryouts/cli/formatters/output_manager.rb
 
+require_relative 'live_status_manager'
+
 class Tryouts
   class CLI
     # Output manager that coordinates all output through formatters
     class OutputManager
-      attr_reader :formatter
+      attr_reader :formatter, :live_status_manager
 
-      def initialize(formatter)
+      def initialize(formatter, options = {})
         @formatter = formatter
+        @live_status_manager = LiveStatusManager.new(formatter, options)
+
+        # Connect the formatter to the live status manager
+        @formatter.set_live_status_manager(@live_status_manager)
       end
 
       # Phase-level methods
       def processing_phase(file_count)
-        @formatter.phase_header("PROCESSING #{file_count} FILES", file_count: file_count)
+        message = "PROCESSING #{file_count} FILES"
+        @live_status_manager.handle_event(:phase_header, message, file_count, 0)
+        @formatter.phase_header(message, file_count: file_count)
       end
 
       def execution_phase(test_count)
-        @formatter.phase_header("EXECUTING #{test_count} TESTS", file_count: test_count)
+        message = "EXECUTING #{test_count} TESTS"
+        @live_status_manager.handle_event(:phase_header, message, test_count, 1)
+        @formatter.phase_header(message, file_count: test_count)
       end
 
       def error_phase
-        @formatter.phase_header('ERROR DETAILS')
+        message = 'ERROR DETAILS'
+        @live_status_manager.handle_event(:phase_header, message, nil, 2)
+        @formatter.phase_header(message)
       end
 
       # File-level methods
       def file_start(file_path, framework: :direct, context: :fresh)
         context_info = { framework: framework, context: context }
+        @live_status_manager.handle_event(:file_start, file_path, context_info)
         @formatter.file_start(file_path, context_info: context_info)
       end
 
       def file_end(file_path, framework: :direct, context: :fresh)
         context_info = { framework: framework, context: context }
+        @live_status_manager.handle_event(:file_end, file_path, context_info)
         @formatter.file_end(file_path, context_info: context_info)
       end
 
@@ -70,14 +84,17 @@ class Tryouts
 
       # Test-level methods
       def test_start(test_case, index, total)
+        @live_status_manager.handle_event(:test_start, test_case, index, total)
         @formatter.test_start(test_case: test_case, index: index, total: total)
       end
 
       def test_end(test_case, index, total)
+        @live_status_manager.handle_event(:test_end, test_case, index, total)
         @formatter.test_end(test_case: test_case, index: index, total: total)
       end
 
       def test_result(result_packet)
+        @live_status_manager.handle_event(:test_result, result_packet)
         @formatter.test_result(result_packet)
       end
 
@@ -112,6 +129,7 @@ class Tryouts
       end
 
       def grand_total(total_tests, failed_count, error_count, successful_files, total_files, elapsed_time)
+        @live_status_manager.handle_event(:grand_total, total_tests, failed_count, error_count, successful_files, total_files, elapsed_time)
         @formatter.grand_total(
           total_tests: total_tests,
           failed_count: failed_count,
@@ -133,6 +151,11 @@ class Tryouts
 
       def error(message, backtrace = nil)
         @formatter.error_message(message, backtrace: backtrace)
+      end
+
+      # Raw output method (bypasses formatting)
+      def raw(message)
+        @formatter.stdout.puts(message)
       end
     end
   end

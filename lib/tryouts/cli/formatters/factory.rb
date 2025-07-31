@@ -1,7 +1,6 @@
 # lib/tryouts/cli/formatters/factory.rb
 
 require_relative '../tty_detector'
-require_relative 'live_status_formatter'
 
 class Tryouts
   class CLI
@@ -9,7 +8,7 @@ class Tryouts
     class FormatterFactory
       def self.create_output_manager(options = {})
         formatter = create_formatter(options)
-        OutputManager.new(formatter)
+        OutputManager.new(formatter, options)
       end
 
       def self.create_formatter(options = {})
@@ -40,24 +39,8 @@ class Tryouts
           CompactFormatter.new(options) # Default to compact
         end
 
-        # Wrap with LiveStatusFormatter if requested
-        if options[:live_status] || options[:live]
-          # Check TTY support before creating live status wrapper
-          tty_check = TTYDetector.check_tty_support(debug: options[:debug])
-
-          if tty_check[:available]
-            LiveStatusFormatter.new(base_formatter, options)
-          else
-            # Show warning and return base formatter
-            if options[:debug]
-              $stderr.puts "⚠️  Live status requested but not available: #{tty_check[:reason]}"
-              $stderr.puts "   Continuing with #{base_formatter.class.name.split('::').last}."
-            end
-            base_formatter
-          end
-        else
-          base_formatter
-        end
+        # Return base formatter - live status is now handled by OutputManager/LiveStatusManager
+        base_formatter
       end
 
       class << self

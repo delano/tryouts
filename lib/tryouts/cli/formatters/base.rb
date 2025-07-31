@@ -106,6 +106,33 @@ class Tryouts
         }
       end
 
+      # Live status integration (optional methods)
+      def set_live_status_manager(manager)
+        @live_status_manager = manager
+      end
+
+      def live_status_manager
+        @live_status_manager
+      end
+
+      # Standard output methods that coordinate with live status automatically
+      def write(text)
+        if @live_status_manager&.enabled?
+          @live_status_manager.write_string(text)
+        else
+          @stdout.print(text)
+        end
+      end
+
+      def puts(text = '')
+        write("#{text}\n")
+      end
+
+      # Optional: formatters can implement this to provide custom live status updates
+      def update_live_status(state_updates = {})
+        @live_status_manager&.update_status(state_updates)
+      end
+
       protected
 
       # Utility methods for formatters to use

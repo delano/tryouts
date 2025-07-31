@@ -30,11 +30,8 @@ class Tryouts
       def reserve_status_area
         return unless @available && !@status_active
 
-        # Move cursor down to make space for status area
+        # Simply print empty lines to push content up and make room at bottom
         STATUS_LINES.times { @io.print "\n" }
-
-        # Move cursor back up to content area
-        @io.print @cursor.up(STATUS_LINES)
 
         @status_active = true
       end
@@ -42,39 +39,31 @@ class Tryouts
       def write_scrolling(text)
         return @io.print(text) unless @available
 
-        if @status_active
-          # Save cursor, write content, restore cursor for status area
-          @io.print @cursor.save
-          @io.print text
-          @io.print @cursor.restore
-        else
-          @io.print text
-        end
+        # Always write content normally - the status will be updated separately
+        @io.print text
       end
 
       def update_status(state)
         return unless @available && @status_active
 
-        # Save current cursor position
-        @io.print @cursor.save
+        # Move to status area (bottom of screen) and update in place
+        current_row, current_col = get_cursor_position
 
-        # Move to status area (bottom of screen)
+        # Move to status area at bottom
         @io.print @cursor.move_to(0, TTY::Screen.height - STATUS_LINES + 1)
 
-        # Clear status area
+        # Clear and write status content
         STATUS_LINES.times do
           @io.print @cursor.clear_line
-          @io.print @cursor.down(1) if STATUS_LINES > 1
+          @io.print @cursor.down(1) unless STATUS_LINES == 1
         end
 
-        # Move back to start of status area
+        # Move back to start of status area and write content
         @io.print @cursor.move_to(0, TTY::Screen.height - STATUS_LINES + 1)
-
-        # Write status content
         write_status_content(state)
 
-        # Restore cursor position
-        @io.print @cursor.restore
+        # Move cursor back to where content should continue (just before status area)
+        @io.print @cursor.move_to(0, TTY::Screen.height - STATUS_LINES)
         @io.flush
       end
 
@@ -92,6 +81,12 @@ class Tryouts
       end
 
       private
+
+      def get_cursor_position
+        # Simple approximation - in a real terminal this would query cursor position
+        # For now, return reasonable defaults
+        [10, 0]
+      end
 
       def check_tty_availability
         # Check if we have a real TTY

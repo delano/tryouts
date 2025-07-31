@@ -52,10 +52,10 @@ class Tryouts
       def batch_summary(failure_collector)
         return unless failure_collector.any_failures?
 
-        @stdout.puts
-        @stdout.puts separator
-        @stdout.puts Console.color(:red, 'Failed Tests:')
-        @stdout.puts
+        puts
+        puts separator
+        puts Console.color(:red, 'Failed Tests:')
+        puts
 
         failure_collector.failures_by_file.each do |file_path, failures|
           failures.each do |failure|
@@ -68,10 +68,10 @@ class Tryouts
               pretty_path
                        end
 
-            @stdout.puts "  #{location}"
-            @stdout.puts "    #{Console.color(:red, '✗')} #{failure.description}"
-            @stdout.puts "      #{failure.failure_reason}"
-            @stdout.puts
+            puts "  #{location}"
+            puts "    #{Console.color(:red, '✗')} #{failure.description}"
+            puts "      #{failure.failure_reason}"
+            puts
           end
         end
       end
@@ -99,7 +99,7 @@ class Tryouts
         end
 
         time_str = format_timing(elapsed_time)
-        @stdout.puts "  #{status} #{details.join(', ')}#{time_str}"
+        puts "  #{status} #{details.join(', ')}#{time_str}"
       end
 
       # Test-level operations - only show in debug mode for compact
@@ -109,7 +109,7 @@ class Tryouts
         desc = test_case.description.to_s
         desc = "test #{index}" if desc.empty?
 
-        @stdout.puts "    Running: #{desc}"
+        puts "    Running: #{desc}"
       end
 
       def test_result(result_packet)
@@ -123,15 +123,15 @@ class Tryouts
         case result_packet.status
         when :passed
           status = Console.color(:green, '✓')
-          @stdout.puts indent_text("#{status} #{desc}", 1)
+          puts indent_text("#{status} #{desc}", 1)
         when :failed
           status = Console.color(:red, '✗')
-          @stdout.puts indent_text("#{status} #{desc}", 1)
+          puts indent_text("#{status} #{desc}", 1)
 
           # Show minimal context for failures
           if result_packet.actual_results.any?
             failure_info = "got: #{result_packet.first_actual.inspect}"
-            @stdout.puts indent_text("    #{failure_info}", 1)
+            puts indent_text("    #{failure_info}", 1)
           end
 
           # Show 1-2 lines of test context if available
@@ -139,16 +139,16 @@ class Tryouts
             test_case.source_lines.each do |line|
               next if line.strip.empty? || line.strip.start_with?('#')
 
-              @stdout.puts indent_text("    #{line.strip}", 1)
+              puts indent_text("    #{line.strip}", 1)
               break # Only show first relevant line
             end
           end
         when :skipped
           status = Console.color(:yellow, '-')
-          @stdout.puts indent_text("#{status} #{desc}", 1)
+          puts indent_text("#{status} #{desc}", 1)
         else
           status = '?'
-          @stdout.puts indent_text("#{status} #{desc}", 1)
+          puts indent_text("#{status} #{desc}", 1)
         end
       end
 
@@ -158,15 +158,15 @@ class Tryouts
         return unless @show_debug
         return if result_packet.passed?
 
-        @stdout.puts "    Output: #{output_text.lines.count} lines"
+        puts "    Output: #{output_text.lines.count} lines"
         if output_text.lines.count <= 3
           output_text.lines.each do |line|
-            @stdout.puts "      #{line.chomp}"
+            puts "      #{line.chomp}"
           end
         else
-          @stdout.puts "      #{output_text.lines.first.chomp}"
-          @stdout.puts "      ... (#{output_text.lines.count - 2} more lines)"
-          @stdout.puts "      #{output_text.lines.last.chomp}"
+          puts "      #{output_text.lines.first.chomp}"
+          puts "      ... (#{output_text.lines.count - 2} more lines)"
+          puts "      #{output_text.lines.last.chomp}"
         end
       end
 
