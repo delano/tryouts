@@ -6,111 +6,95 @@ class Tryouts
   class CLI
     # Enhanced interface for all test output formatting
     module FormatterInterface
-      attr_reader :current_indent
+      attr_reader :stdout, :stderr, :current_indent
+
+      def initialize(options = {})
+        @stdout = options.fetch(:stdout, $stdout)
+        @stderr = options.fetch(:stderr, $stderr)
+        @current_indent = 0
+        @options = options
+      end
 
       # Phase-level output (major sections)
-      def phase_header(message, file_count = nil, level = 0, io = $stdout)
-        raise NotImplementedError, "#{self.class} must implement #phase_header"
+      def phase_header(message, file_count: nil)
+        # Default: no output
       end
 
       # File-level operations
-      def file_start(file_path, context_info = {}, io = $stdout)
-        raise NotImplementedError, "#{self.class} must implement #file_start"
+      def file_start(file_path, context_info: {})
+        # Default: no output
       end
 
-      def file_end(file_path, context_info = {}, io = $stdout)
-        raise NotImplementedError, "#{self.class} must implement #file_end"
+      def file_end(file_path, context_info: {})
+        # Default: no output
       end
 
-      def file_parsed(file_path, test_count, io = $stdout, setup_present: false, teardown_present: false)
-        raise NotImplementedError, "#{self.class} must implement #file_parsed"
+      def file_parsed(file_path, test_count:, setup_present: false, teardown_present: false)
+        # Default: no output
       end
 
-      def file_execution_start(file_path, test_count, context_mode, io = $stdout)
-        raise NotImplementedError, "#{self.class} must implement #file_execution_start"
+      def file_execution_start(file_path, test_count:, context_mode:)
+        # Default: no output
       end
 
-      def file_result(file_path, total_tests, failed_count, error_count, elapsed_time, io = $stdout)
-        raise NotImplementedError, "#{self.class} must implement #file_result"
+      def file_result(file_path, total_tests:, failed_count:, error_count:, elapsed_time: nil)
+        # Default: no output
       end
 
       # Test-level operations
-      def test_start(test_case, index, total, io = $stdout)
-        raise NotImplementedError, "#{self.class} must implement #test_start"
+      def test_start(test_case:, index:, total:)
+        # Default: no output
       end
 
-      def test_end(test_case, index, total, io = $stdout)
-        raise NotImplementedError, "#{self.class} must implement #test_end"
+      def test_end(test_case:, index:, total:)
+        # Default: no output
       end
 
-      def test_result(result_packet, io = $stdout)
-        raise NotImplementedError, "#{self.class} must implement #test_result"
+      def test_result(result_packet)
+        # Default: no output
       end
 
-      def test_output(test_case, output_text, io = $stdout)
-        raise NotImplementedError, "#{self.class} must implement #test_output"
+      def test_output(test_case:, output_text:, result_packet:)
+        # Default: no output
       end
 
       # Setup/teardown operations
-      def setup_start(line_range, io = $stdout)
-        raise NotImplementedError, "#{self.class} must implement #setup_start"
+      def setup_start(line_range:)
+        # Default: no output
       end
 
-      def setup_output(output_text, io = $stdout)
-        raise NotImplementedError, "#{self.class} must implement #setup_output"
+      def setup_output(output_text)
+        # Default: no output
       end
 
-      def teardown_start(line_range, io = $stdout)
-        raise NotImplementedError, "#{self.class} must implement #teardown_start"
+      def teardown_start(line_range:)
+        # Default: no output
       end
 
-      def teardown_output(output_text, io = $stdout)
-        raise NotImplementedError, "#{self.class} must implement #teardown_output"
+      def teardown_output(output_text)
+        # Default: no output
       end
 
       # Summary operations
-      def batch_summary(failure_collector, io = $stdout)
-        raise NotImplementedError, "#{self.class} must implement #batch_summary"
+      def batch_summary(failure_collector)
+        # Default: no output
       end
 
-      def grand_total(total_tests, failed_count, error_count, successful_files, total_files, elapsed_time, io = $stdout)
-        raise NotImplementedError, "#{self.class} must implement #grand_total"
+      def grand_total(total_tests:, failed_count:, error_count:, successful_files:, total_files:, elapsed_time:)
+        # Default: no output
       end
 
       # Debug and diagnostic output
-      def debug_info(message, level = 0, io = $stdout)
-        raise NotImplementedError, "#{self.class} must implement #debug_info"
+      def debug_info(message, level: 0)
+        # Default: no output
       end
 
-      def trace_info(message, level = 0, io = $stdout)
-        raise NotImplementedError, "#{self.class} must implement #trace_info"
+      def trace_info(message, level: 0)
+        # Default: no output
       end
 
-      def error_message(message, backtrace = nil, io = $stdout)
-        raise NotImplementedError, "#{self.class} must implement #error_message"
-      end
-
-      # Utility methods
-      def raw_output(text, io = $stdout)
-        raise NotImplementedError, "#{self.class} must implement #raw_output"
-      end
-
-      def separator(style = :light, io = $stdout)
-        raise NotImplementedError, "#{self.class} must implement #separator"
-      end
-
-      def indent_text(text, level = nil)
-        level ||= current_indent || 0
-        indent  = '  ' * level
-        "#{indent}#{text}"
-      end
-
-      def with_indent(level)
-        old_indent      = @current_indent
-        @current_indent = level
-        yield
-      ensure
-        @current_indent = old_indent
+      def error_message(message, backtrace: nil)
+        # Default: no output
       end
 
       # Live status capability negotiation
@@ -118,8 +102,51 @@ class Tryouts
         {
           supports_coordination: false,    # Can work with coordinated output
           output_frequency: :medium,       # :low, :medium, :high
-          requires_tty: false,              # Must have TTY to function
+          requires_tty: false,             # Must have TTY to function
         }
+      end
+
+      protected
+
+      # Utility methods for formatters to use
+      def indent_text(text, level = nil)
+        level ||= current_indent || 0
+        indent = '  ' * level
+        "#{indent}#{text}"
+      end
+
+      def with_indent(level)
+        old_indent = @current_indent
+        @current_indent = level
+        yield
+      ensure
+        @current_indent = old_indent
+      end
+
+      def separator(style = :light)
+        width = @options.fetch(:line_width, 70)
+        case style
+        when :heavy
+          '=' * width
+        when :light
+          '-' * width
+        when :dotted
+          '.' * width
+        else
+          '-' * width
+        end
+      end
+
+      def format_timing(elapsed_time)
+        return '' unless elapsed_time
+
+        if elapsed_time < 0.001
+          " (#{(elapsed_time * 1_000_000).round}μs)"
+        elsif elapsed_time < 1
+          " (#{(elapsed_time * 1000).round}ms)"
+        else
+          " (#{elapsed_time.round(2)}s)"
+        end
       end
     end
   end

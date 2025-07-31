@@ -53,10 +53,10 @@ class Tryouts
           opts.on('--shared-context', 'Override default context mode') { options[:shared_context]         = true }
           opts.on('--no-shared-context', 'Override default context mode') { options[:shared_context]      = false }
           opts.on('-v', '--verbose', 'Show detailed test output with line numbers') { options[:verbose]   = true }
-          opts.on('-f', '--fails', 'Show only failing tests (with --verbose)') { options[:fails_only]     = true }
+          opts.on('-f', '--fails', 'Show only failing tests') { options[:fails_only]                      = true }
           opts.on('-q', '--quiet', 'Minimal output (dots and summary only)') { options[:quiet]            = true }
           opts.on('-c', '--compact', 'Compact single-line output') { options[:compact]                    = true }
-          opts.on('--live-status', '--live', 'Live status display (works with -v, -c, -q)') { options[:live_status] = true }
+          opts.on('-l', '--live', 'Live status display') { options[:live_status]                          = true }
 
           opts.separator "\nInspection Options:"
           opts.on('-i', '--inspect', 'Inspect file structure without running tests') { options[:inspect] = true }

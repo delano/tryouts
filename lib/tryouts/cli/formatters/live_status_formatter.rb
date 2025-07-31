@@ -10,13 +10,13 @@ class Tryouts
       include FormatterInterface
 
       def initialize(base_formatter, options = {})
+        super(options)
         @base_formatter = base_formatter
-        @options        = options
         @show_debug     = options.fetch(:debug, false)
 
         # Initialize state and display
         @state   = TestRunState.empty
-        @display = TTYStatusDisplay.new($stdout, options)
+        @display = TTYStatusDisplay.new(@stdout, options)
 
         # Only enable live status if TTY is available
         @live_status_enabled = @display.available?
@@ -24,9 +24,9 @@ class Tryouts
         return unless @show_debug
 
         if @live_status_enabled
-          $stderr.puts 'DEBUG: LiveStatusFormatter: Live status ENABLED'
+          @stderr.puts 'DEBUG: LiveStatusFormatter: Live status ENABLED'
         else
-          $stderr.puts 'DEBUG: LiveStatusFormatter: Live status DISABLED (no TTY)'
+          @stderr.puts 'DEBUG: LiveStatusFormatter: Live status DISABLED (no TTY)'
         end
       end
 
@@ -35,17 +35,17 @@ class Tryouts
       end
 
       # Override methods that need live status coordination
-      def phase_header(message, file_count = nil, level = 0, io = $stdout)
+      def phase_header(message, file_count: nil)
         # Update state first
-        @state = @state.update_from_event(:phase_header, message, file_count, level)
+        @state = @state.update_from_event(:phase_header, message, file_count, 0)
 
         # Let base formatter handle the output
-        result = @base_formatter.phase_header(message, file_count, level, io)
+        result = @base_formatter.phase_header(message, file_count: file_count)
 
-        # Reserve status area for level 0 (main header)
-        if level == 0 && @live_status_enabled
+        # Reserve status area for main header
+        if message.include?('PROCESSING') && @live_status_enabled
           if @show_debug
-            $stderr.puts 'DEBUG: LiveStatusFormatter: Reserving status area'
+            @stderr.puts 'DEBUG: LiveStatusFormatter: Reserving status area'
           end
           @display.reserve_status_area
           @display.update_status(@state)
@@ -54,82 +54,101 @@ class Tryouts
         result
       end
 
-      def file_parsed(file_path, test_count, io = $stdout, setup_present: false, teardown_present: false)
-        @base_formatter.file_parsed(file_path, test_count, io, setup_present: setup_present, teardown_present: teardown_present)
+      def file_parsed(file_path, test_count:, setup_present: false, teardown_present: false)
+        @base_formatter.file_parsed(
+          file_path,
+          test_count: test_count,
+          setup_present: setup_present,
+          teardown_present: teardown_present
+        )
       end
 
-      def file_execution_start(file_path, test_count, context_mode, io = $stdout)
-        @base_formatter.file_execution_start(file_path, test_count, context_mode, io)
+      def file_execution_start(file_path, test_count:, context_mode:)
+        @base_formatter.file_execution_start(
+          file_path,
+          test_count: test_count,
+          context_mode: context_mode
+        )
       end
 
-      def file_start(file_path, context_info = {}, io = $stdout)
+      def file_start(file_path, context_info: {})
         @state = @state.update_from_event(:file_start, file_path, context_info)
-        result = @base_formatter.file_start(file_path, context_info, io)
+        result = @base_formatter.file_start(file_path, context_info: context_info)
         @display.update_status(@state) if @live_status_enabled
         result
       end
 
-      def file_end(file_path, context_info = {}, io = $stdout)
+      def file_end(file_path, context_info: {})
         @state = @state.update_from_event(:file_end, file_path, context_info)
-        result = @base_formatter.file_end(file_path, context_info, io)
+        result = @base_formatter.file_end(file_path, context_info: context_info)
         @display.update_status(@state) if @live_status_enabled
         result
       end
 
-      def file_result(file_path, total_tests, failed_count, error_count, elapsed_time, io = $stdout)
-        @base_formatter.file_result(file_path, total_tests, failed_count, error_count, elapsed_time, io)
+      def file_result(file_path, total_tests:, failed_count:, error_count:, elapsed_time: nil)
+        @base_formatter.file_result(
+          file_path,
+          total_tests: total_tests,
+          failed_count: failed_count,
+          error_count: error_count,
+          elapsed_time: elapsed_time
+        )
       end
 
-      def test_start(test_case, index, total, io = $stdout)
+      def test_start(test_case:, index:, total:)
         @state = @state.update_from_event(:test_start, test_case, index, total)
-        @base_formatter.test_start(test_case, index, total, io)
+        @base_formatter.test_start(test_case: test_case, index: index, total: total)
         # Don't update status on test start - too frequent and causes flickering
       end
 
-      def test_end(test_case, index, total, io = $stdout)
+      def test_end(test_case:, index:, total:)
         @state = @state.update_from_event(:test_end, test_case, index, total)
-        @base_formatter.test_end(test_case, index, total, io)
+        @base_formatter.test_end(test_case: test_case, index: index, total: total)
         # Don't update status on test end - too frequent
       end
 
-      def test_result(result_packet, io = $stdout)
+      def test_result(result_packet)
         @state = @state.update_from_event(:test_result, result_packet)
-        result = @base_formatter.test_result(result_packet, io)
+        result = @base_formatter.test_result(result_packet)
         @display.update_status(@state) if @live_status_enabled
         result
       end
 
-      def test_output(test_case, output_text, io = $stdout)
-        @base_formatter.test_output(test_case, output_text, io)
+      def test_output(test_case:, output_text:, result_packet:)
+        @base_formatter.test_output(
+          test_case: test_case,
+          output_text: output_text,
+          result_packet: result_packet
+        )
       end
 
       # Setup/teardown operations
-      def setup_start(line_range, io = $stdout)
-        @base_formatter.setup_start(line_range, io)
+      def setup_start(line_range:)
+        @base_formatter.setup_start(line_range: line_range)
       end
 
-      def setup_output(output_text, io = $stdout)
-        @base_formatter.setup_output(output_text, io)
+      def setup_output(output_text)
+        @base_formatter.setup_output(output_text)
       end
 
-      def teardown_start(line_range, io = $stdout)
-        @base_formatter.teardown_start(line_range, io)
+      def teardown_start(line_range:)
+        @base_formatter.teardown_start(line_range: line_range)
       end
 
-      def teardown_output(output_text, io = $stdout)
-        @base_formatter.teardown_output(output_text, io)
+      def teardown_output(output_text)
+        @base_formatter.teardown_output(output_text)
       end
 
       # Summary operations
-      def batch_summary(failure_collector, io = $stdout)
-        @base_formatter.batch_summary(failure_collector, io)
+      def batch_summary(failure_collector)
+        @base_formatter.batch_summary(failure_collector)
       end
 
-      def grand_total(total_tests, failed_count, error_count, successful_files, total_files, elapsed_time, io = $stdout)
+      def grand_total(total_tests:, failed_count:, error_count:, successful_files:, total_files:, elapsed_time:)
         # Clear the live status area and disable live status for final output
         if @live_status_enabled
           if @show_debug
-            $stderr.puts 'DEBUG: LiveStatusFormatter: Clearing status area for final summary'
+            @stderr.puts 'DEBUG: LiveStatusFormatter: Clearing status area for final summary'
           end
           @display.clear_status_area
 
@@ -138,19 +157,17 @@ class Tryouts
         end
 
         # Let base formatter handle the final summary normally
-        @base_formatter.grand_total(total_tests, failed_count, error_count, successful_files, total_files, elapsed_time, io)
+        @base_formatter.grand_total(
+          total_tests: total_tests,
+          failed_count: failed_count,
+          error_count: error_count,
+          successful_files: successful_files,
+          total_files: total_files,
+          elapsed_time: elapsed_time
+        )
       end
 
-      # Override output methods to coordinate with status display
-      def raw_output(text, io = $stdout)
-        if @live_status_enabled
-          @display.write_scrolling(text)
-        else
-          @base_formatter.raw_output(text, io)
-        end
-      end
-
-      def error_message(message, backtrace = nil, io = $stdout)
+      def error_message(message, backtrace: nil)
         if @live_status_enabled
           # Format error message and write through display
           formatted = if @base_formatter.respond_to?(:format_error_message)
@@ -164,32 +181,28 @@ class Tryouts
           end
           @display.write_scrolling(formatted)
         else
-          @base_formatter.error_message(message, backtrace, io)
+          @base_formatter.error_message(message, backtrace: backtrace)
         end
       end
 
-      def debug_info(message, level = 0, io = $stdout)
+      def debug_info(message, level: 0)
         return unless @show_debug
 
         if @live_status_enabled
           # Format debug message and write through display
           formatted = if @base_formatter.respond_to?(:format_debug_message)
-  @base_formatter.format_debug_message(message, level)
-else
-  @base_formatter.indent_text("DEBUG: #{message}", level) + "\n"
-end
+            @base_formatter.format_debug_message(message, level)
+          else
+            indent_text("DEBUG: #{message}", level) + "\n"
+          end
           @display.write_scrolling(formatted)
         else
-          @base_formatter.debug_info(message, level, io)
+          @base_formatter.debug_info(message, level: level)
         end
       end
 
-      def trace_info(message, level = 0, io = $stdout)
-        @base_formatter.trace_info(message, level, io)
-      end
-
-      def separator(style = :light, io = $stdout)
-        @base_formatter.separator(style, io)
+      def trace_info(message, level: 0)
+        @base_formatter.trace_info(message, level: level)
       end
 
       # Provide access to the wrapped formatter for capability checks
@@ -199,10 +212,10 @@ end
         {
           supports_coordination: true,
           output_frequency: if @base_formatter.respond_to?(:live_status_capabilities)
-  @base_formatter.live_status_capabilities[:output_frequency]
-else
-  :medium
-end,
+            @base_formatter.live_status_capabilities[:output_frequency]
+          else
+            :medium
+          end,
           requires_tty: true,
         }
       end
@@ -214,9 +227,9 @@ end,
             @base_formatter.send(method_name, *args, **kwargs, &)
           rescue ArgumentError => ex
             if @show_debug
-              $stderr.puts "DEBUG: LiveStatusFormatter delegation error for #{method_name}: #{ex.message}"
-              $stderr.puts "  args: #{args.inspect}"
-              $stderr.puts "  kwargs: #{kwargs.inspect}"
+              @stderr.puts "DEBUG: LiveStatusFormatter delegation error for #{method_name}: #{ex.message}"
+              @stderr.puts "  args: #{args.inspect}"
+              @stderr.puts "  kwargs: #{kwargs.inspect}"
             end
             # Try without kwargs if that was the issue
             raise unless kwargs.any?

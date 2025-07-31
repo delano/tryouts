@@ -110,7 +110,7 @@ class Tryouts
 
         result
       rescue StandardError => ex
-        @output_manager&.test_end(test_case, idx, @test_case_count, status: :failed, error: ex)
+        @output_manager&.test_end(test_case, idx, @test_case_count)
         # Create error result packet to maintain consistent data flow
         error_result = build_error_result(test_case, ex)
         process_test_result(error_result)
@@ -378,7 +378,7 @@ class Tryouts
 
       # Show captured output if any exists
       if result.has_output?
-        @output_manager&.test_output(result.test_case, result.captured_output)
+        @output_manager&.test_output(result.test_case, result.captured_output, result)
       end
     end
 
