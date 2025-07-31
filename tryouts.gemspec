@@ -17,6 +17,7 @@ Gem::Specification.new do |spec|
   spec.bindir      = 'exe'
   spec.executables = Dir['exe/*'].select { |f| File.file?(f) }.map { |f| File.basename(f) }
 
+  spec.add_dependency 'irb'
   spec.add_dependency 'minitest', '~> 5.0'
   spec.add_dependency 'rspec', '~> 3.0'
   spec.metadata['rubygems_mfa_required'] = 'true'
