@@ -76,7 +76,6 @@ class Tryouts
         end
       end
 
-
       def file_result(_file_path, total_tests:, failed_count:, error_count:, elapsed_time: nil)
         issues_count = failed_count + error_count
         passed_count = total_tests - issues_count
