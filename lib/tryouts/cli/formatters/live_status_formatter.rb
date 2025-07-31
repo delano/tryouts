@@ -123,8 +123,8 @@ class Tryouts
       end
 
       # Summary operations
-      def batch_summary(total_tests, failed_count, elapsed_time, io = $stdout)
-        @base_formatter.batch_summary(total_tests, failed_count, elapsed_time, io)
+      def batch_summary(failure_collector, io = $stdout)
+        @base_formatter.batch_summary(failure_collector, io)
       end
 
       def grand_total(total_tests, failed_count, error_count, successful_files, total_files, elapsed_time, io = $stdout)

@@ -85,21 +85,13 @@ class Tryouts
         # Silent in quiet mode
       end
 
-      # Summary operations - show results
-      def batch_summary(total_tests, failed_count, elapsed_time, io = $stderr)
-        return unless @show_final_summary
-
-        if failed_count > 0
-          passed   = total_tests - failed_count
-          time_str = elapsed_time ? " (#{elapsed_time.round(2)}s)" : ''
-          io.puts "#{failed_count} failed, #{passed} passed#{time_str}"
-        else
-          time_str = elapsed_time ? " (#{elapsed_time.round(2)}s)" : ''
-          io.puts "#{total_tests} passed#{time_str}"
-        end
+      # Summary operations - quiet mode skips failure summary
+      def batch_summary(failure_collector, io = $stderr)
+        # Quiet formatter defaults to no failure summary
+        # Users can override with --failure-summary if needed
       end
 
-      def grand_total(total_tests, failed_count, error_count, successful_files, total_files, elapsed_time, io = $stdout)
+      def grand_total(total_tests, failed_count, error_count, successful_files, total_files, elapsed_time, io = $stderr)
         return unless @show_final_summary
 
         puts
@@ -127,15 +119,15 @@ class Tryouts
       end
 
       # Debug and diagnostic output - silent unless errors
-      def debug_info(message, level = 0, io = $stdout)
+      def debug_info(message, level = 0, io = $stderr)
         # Silent in quiet mode
       end
 
-      def trace_info(message, level = 0, io = $stdout)
+      def trace_info(message, level = 0, io = $stderr)
         # Silent in quiet mode
       end
 
-      def error_message(message, backtrace = nil, io = $stdout)
+      def error_message(message, backtrace = nil, io = $stderr)
         return unless @show_errors
 
         io.puts
@@ -149,7 +141,7 @@ class Tryouts
       end
 
       # Utility methods
-      def raw_output(text, io = $stdout)
+      def raw_output(text, io = $stderr)
         io.puts text if @show_final_summary
       end
 

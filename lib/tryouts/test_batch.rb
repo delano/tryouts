@@ -367,6 +367,11 @@ class Tryouts
 
       if result.failed? || result.error?
         @failed_count += 1
+
+        # Collect failure details for end-of-run summary
+        if @global_tally && @global_tally[:failure_collector]
+          @global_tally[:failure_collector].add_failure(@testrun.source_file, result)
+        end
       end
 
       show_test_result(result)
@@ -494,9 +499,8 @@ class Tryouts
     end
 
     def show_summary(elapsed_time)
-      # Use actual executed test count, not total tests in file
-      executed_count = @results.size
-      @output_manager&.batch_summary(executed_count, @failed_count, elapsed_time)
+      # Summary is now handled by TestRunner with failure details
+      # This method kept for compatibility but no longer calls batch_summary
     end
 
     # Helper methods using pattern matching

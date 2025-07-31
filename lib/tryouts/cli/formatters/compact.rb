@@ -55,9 +55,25 @@ class Tryouts
         io.puts "#{pretty_path}: #{test_count} tests"
       end
 
-      # Summary operations
-      def batch_summary(total_tests, failed_count, elapsed_time, io = $stdout)
-        # Skip - file_result already shows this information with better alignment
+      # Summary operations - show failure summary
+      def batch_summary(failure_collector, io = $stdout)
+        return unless failure_collector.any_failures?
+
+        io.puts
+        io.puts Console.color(:red, "Failed Tests:")
+        io.puts
+
+        failure_collector.failures_by_file.each do |file_path, failures|
+          pretty_path = Console.pretty_path(file_path)
+          io.puts "  #{pretty_path}:"
+
+          failures.each do |failure|
+            line_info = failure.line_number > 0 ? ":#{failure.line_number}" : ""
+            io.puts "    #{Console.color(:red, '✗')} #{failure.description}#{line_info}"
+            io.puts "      #{failure.failure_reason}"
+          end
+          io.puts
+        end
       end
 
       def file_result(_file_path, total_tests, failed_count, error_count, elapsed_time, io = $stdout)

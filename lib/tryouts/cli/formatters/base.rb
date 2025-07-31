@@ -69,7 +69,7 @@ class Tryouts
       end
 
       # Summary operations
-      def batch_summary(total_tests, failed_count, elapsed_time, io = $stdout)
+      def batch_summary(failure_collector, io = $stdout)
         raise NotImplementedError, "#{self.class} must implement #batch_summary"
       end
 

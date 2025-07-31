@@ -67,11 +67,34 @@ class Tryouts
         io.puts indent_text(message, 1)
       end
 
-      # Summary operations
-      #
-      # Called right before file_result
-      def batch_summary(total_tests, failed_count, elapsed_time, io = $stdout)
-        # No output in verbose mode
+      # Summary operations - show detailed failure summary
+      def batch_summary(failure_collector, io = $stdout)
+        return unless failure_collector.any_failures?
+
+        io.puts
+        io.puts Console.color(:red, "Failed Tests:")
+        io.puts "=" * 50
+
+        failure_collector.failures_by_file.each do |file_path, failures|
+          pretty_path = Console.pretty_path(file_path)
+          io.puts
+          io.puts Console.color(:yellow, "#{pretty_path}:")
+
+          failures.each_with_index do |failure, index|
+            line_info = failure.line_number > 0 ? ":#{failure.line_number}" : ""
+            io.puts "  #{index + 1}) #{failure.description}#{line_info}"
+            io.puts "     #{Console.color(:red, 'Failure:')} #{failure.failure_reason}"
+
+            # Show source context in verbose mode
+            if failure.source_context.any?
+              io.puts "     #{Console.color(:cyan, 'Source:')}"
+              failure.source_context.each do |line|
+                io.puts "       #{line.strip}"
+              end
+            end
+            io.puts
+          end
+        end
       end
 
       def file_result(_file_path, total_tests, failed_count, error_count, elapsed_time, io = $stdout)
@@ -215,7 +238,7 @@ class Tryouts
           io.puts "#{total_tests} tests passed#{time_str}"
         end
 
-        io.puts "Files processed: #{successful_files} of #{total_files} successful"
+        io.puts "Files: #{successful_files} of #{total_files} successful"
         io.puts '=' * @line_width
       end
 

@@ -103,8 +103,8 @@ class Tryouts
       end
 
       # Summary methods
-      def batch_summary(total_tests, failed_count, elapsed_time)
-        @formatter.batch_summary(total_tests, failed_count, elapsed_time, $stdout)
+      def batch_summary(failure_collector)
+        @formatter.batch_summary(failure_collector, $stdout)
       end
 
       def grand_total(total_tests, failed_count, error_count, successful_files, total_files, elapsed_time)
