@@ -125,6 +125,7 @@ class Tryouts
 
       # Summary methods
       def batch_summary(failure_collector)
+        @live_status_manager.handle_event(:batch_summary, failure_collector)
         @formatter.batch_summary(failure_collector)
       end
 

@@ -70,12 +70,21 @@ class Tryouts
       def clear_status_area
         return unless @available && @status_active
 
-        # Move to status area and clear it
+        # Move to status area and clear it completely - start from first status line
         @io.print @cursor.move_to(0, TTY::Screen.height - STATUS_LINES + 1)
-        STATUS_LINES.times do
+
+        # Clear each line thoroughly
+        STATUS_LINES.times do |i|
           @io.print @cursor.clear_line
-          @io.print @cursor.down(1)
+          @io.print @cursor.down(1) if i < STATUS_LINES - 1  # Don't go down after last line
         end
+
+        # Move cursor to a clean area for final output - position it well above the cleared area
+        # This ensures no interference with the cleared status content
+        target_row = TTY::Screen.height - STATUS_LINES - 2  # Leave some buffer space
+        @io.print @cursor.move_to(0, target_row)
+        @io.print "\n"  # Add a clean line for final output to start
+        @io.flush
 
         @status_active = false
       end

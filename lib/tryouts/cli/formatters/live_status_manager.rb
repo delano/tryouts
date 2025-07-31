@@ -9,15 +9,15 @@ class Tryouts
     # Replaces the decorator pattern with native integration
     class LiveStatusManager
       def initialize(formatter, options = {})
-        @formatter = formatter
-        @enabled = should_enable_live_status?(formatter, options)
+        @formatter  = formatter
+        @enabled    = should_enable_live_status?(formatter, options)
         @show_debug = options.fetch(:debug, false)
 
         return unless @enabled
 
         # Initialize state tracking and display
-        @state = TestRunState.empty
-        @display = TTYStatusDisplay.new(@formatter.stdout, options)
+        @state           = TestRunState.empty
+        @display         = TTYStatusDisplay.new(@formatter.stdout, options)
         @status_reserved = false
 
         debug_log('LiveStatusManager: Enabled with native integration')
@@ -49,11 +49,11 @@ class Tryouts
       end
 
       # Main event handling - called by OutputManager for each formatter event
-      def handle_event(event_type, *args, **kwargs)
+      def handle_event(event_type, *args, **)
         return unless @enabled
 
         # Update state based on the event
-        @state = @state.update_from_event(event_type, *args, **kwargs)
+        @state = @state.update_from_event(event_type, *args, **)
 
         # Handle special events that need display coordination
         case event_type
@@ -64,8 +64,12 @@ class Tryouts
           end
         when :file_start, :file_end, :test_result
           update_display
-        when :grand_total
+        when :batch_summary
+          # Clear status area before showing batch summary to avoid interference
           clear_status_area
+        when :grand_total
+          # Ensure status area is cleared (redundant safety check)
+          clear_status_area if @status_reserved
         end
       end
 
@@ -78,7 +82,7 @@ class Tryouts
       end
 
       # Output coordination methods
-      def write_output(&block)
+      def write_output
         return yield unless @enabled
 
         # If status area is reserved, coordinate the output
