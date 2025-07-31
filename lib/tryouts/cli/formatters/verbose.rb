@@ -72,8 +72,8 @@ class Tryouts
         return unless failure_collector.any_failures?
 
         io.puts
-        io.puts Console.color(:red, "Failed Tests:")
-        io.puts "=" * 50
+        io.puts Console.color(:red, 'Failed Tests:')
+        io.puts '=' * 50
 
         failure_collector.failures_by_file.each do |file_path, failures|
           pretty_path = Console.pretty_path(file_path)
@@ -81,7 +81,7 @@ class Tryouts
           io.puts Console.color(:yellow, "#{pretty_path}:")
 
           failures.each_with_index do |failure, index|
-            line_info = failure.line_number > 0 ? ":#{failure.line_number}" : ""
+            line_info = failure.line_number > 0 ? ":#{failure.line_number}" : ''
             io.puts "  #{index + 1}) #{failure.description}#{line_info}"
             io.puts "     #{Console.color(:red, 'Failure:')} #{failure.failure_reason}"
 
@@ -396,7 +396,7 @@ class Tryouts
         {
           supports_coordination: true,     # Verbose can work with coordinated output
           output_frequency: :high,         # Outputs frequently for each test
-          requires_tty: false              # Works without TTY
+          requires_tty: false,              # Works without TTY
         }
       end
     end
@@ -418,7 +418,7 @@ class Tryouts
         {
           supports_coordination: true,     # Verbose can work with coordinated output
           output_frequency: :high,         # Outputs frequently for each test
-          requires_tty: false              # Works without TTY
+          requires_tty: false,              # Works without TTY
         }
       end
     end

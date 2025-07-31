@@ -12,15 +12,15 @@ class Tryouts
       STATUS_LINES = 5  # Lines reserved for fixed status display (4 content + 1 separator)
 
       def initialize(io = $stdout, options = {})
-        @io = io
-        @available = check_tty_availability
+        @io         = io
+        @available  = check_tty_availability
         @show_debug = options.fetch(:debug, false)
 
-        if @available
-          @cursor = TTY::Cursor
-          @pastel = Pastel.new
-          @status_active = false
-        end
+        return unless @available
+
+        @cursor        = TTY::Cursor
+        @pastel        = Pastel.new
+        @status_active = false
       end
 
       def available?
@@ -101,7 +101,7 @@ class Tryouts
         return false unless TTY::Screen.width > 0 && TTY::Screen.height > STATUS_LINES + 5
 
         # Check if TERM environment variable suggests terminal capabilities
-        term = ENV['TERM']
+        term = ENV.fetch('TERM', nil)
         return false if term.nil? || term == 'dumb'
 
         # Check if we're likely in a CI environment (common CI env vars)
@@ -109,10 +109,10 @@ class Tryouts
         return false if ci_vars.any? { |var| ENV[var] }
 
         true
-      rescue StandardError => e
+      rescue StandardError => ex
         # If any TTY detection fails, assume not available
         if @show_debug
-          @io.puts "TTY detection failed: #{e.message}"
+          @io.puts "TTY detection failed: #{ex.message}"
         end
         false
       end
@@ -125,11 +125,11 @@ class Tryouts
 
         # Line 2: Current progress
         if state.current_file
-          current_info = "Running: #{state.current_file}"
+          current_info  = "Running: #{state.current_file}"
           current_info += " → #{state.current_test}" if state.current_test
           @io.print current_info
         else
-          @io.print "Ready"
+          @io.print 'Ready'
         end
         @io.print "\n"
 
@@ -147,9 +147,9 @@ class Tryouts
         @io.print "\n"
 
         # Line 4: File progress
-        files_info = "Files: #{state.files_completed}"
+        files_info  = "Files: #{state.files_completed}"
         files_info += "/#{state.total_files}" if state.total_files > 0
-        files_info += " completed"
+        files_info += ' completed'
         @io.print files_info
         @io.print "\n"
 
@@ -170,13 +170,13 @@ class Tryouts
 
     # No-op implementation for when TTY is not available
     class NoOpStatusDisplay
-      def initialize(io = $stdout, options = {})
+      def initialize(io = $stdout, _options = {})
         @io = io
       end
 
-      def available?; false; end
+      def available? = false
       def reserve_status_area; end
-      def write_scrolling(text); @io.print(text); end
+      def write_scrolling(text) = @io.print(text)
       def update_status(state); end
       def clear_status_area; end
     end

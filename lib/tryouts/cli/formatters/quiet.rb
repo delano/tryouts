@@ -30,7 +30,7 @@ class Tryouts
         # Silent in quiet mode
       end
 
-      def file_execution_start(file_path, _test_count, _context_mode, io = $stdout)
+      def file_execution_start(file_path, _test_count, _context_mode, _io = $stdout)
         @current_file = file_path
       end
 
@@ -153,7 +153,7 @@ class Tryouts
         {
           supports_coordination: true,     # Quiet can work with coordinated output
           output_frequency: :low,          # Very minimal output, mainly dots
-          requires_tty: false              # Works without TTY
+          requires_tty: false,              # Works without TTY
         }
       end
     end
@@ -171,7 +171,7 @@ class Tryouts
         {
           supports_coordination: true,     # QuietFails can work with coordinated output
           output_frequency: :low,          # Very minimal output
-          requires_tty: false              # Works without TTY
+          requires_tty: false,              # Works without TTY
         }
       end
     end

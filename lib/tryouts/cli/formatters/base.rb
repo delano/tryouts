@@ -118,7 +118,7 @@ class Tryouts
         {
           supports_coordination: false,    # Can work with coordinated output
           output_frequency: :medium,       # :low, :medium, :high
-          requires_tty: false              # Must have TTY to function
+          requires_tty: false,              # Must have TTY to function
         }
       end
     end

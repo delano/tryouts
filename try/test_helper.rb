@@ -9,7 +9,7 @@ require_relative '../lib/tryouts'
 module TestHelper
   def self.silence_warnings
     old_verbose = $VERBOSE
-    $VERBOSE = nil
+    $VERBOSE    = nil
     yield
   ensure
     $VERBOSE = old_verbose
@@ -21,7 +21,7 @@ class Bone
 
   def initialize(token, name, age)
     @token = token
-    @name = name
-    @age = age
+    @name  = name
+    @age   = age
   end
 end

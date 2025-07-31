@@ -35,7 +35,7 @@ class Tryouts
         @formatter.file_end(file_path, context_info)
       end
 
-      def file_parsed(file_path, test_count, io = $stdout, setup_present: false, teardown_present: false)
+      def file_parsed(file_path, test_count, _io = $stdout, setup_present: false, teardown_present: false)
         with_indent(1) do
           @formatter.file_parsed(file_path, test_count,
             setup_present: setup_present,
@@ -120,7 +120,7 @@ class Tryouts
 
       def trace(message, level = 0)
         with_indent(level) do
-          @formatter.trace_info(message, level, io = $stdout)
+          @formatter.trace_info(message, level, $stdout)
         end
       end
 

@@ -60,7 +60,7 @@ class Tryouts
         return unless failure_collector.any_failures?
 
         io.puts
-        io.puts Console.color(:red, "Failed Tests:")
+        io.puts Console.color(:red, 'Failed Tests:')
         io.puts
 
         failure_collector.failures_by_file.each do |file_path, failures|
@@ -68,7 +68,7 @@ class Tryouts
           io.puts "  #{pretty_path}:"
 
           failures.each do |failure|
-            line_info = failure.line_number > 0 ? ":#{failure.line_number}" : ""
+            line_info = failure.line_number > 0 ? ":#{failure.line_number}" : ''
             io.puts "    #{Console.color(:red, '✗')} #{failure.description}#{line_info}"
             io.puts "      #{failure.failure_reason}"
           end
@@ -287,7 +287,7 @@ class Tryouts
         {
           supports_coordination: true,     # Compact can work with coordinated output
           output_frequency: :medium,       # Outputs at medium frequency
-          requires_tty: false              # Works without TTY
+          requires_tty: false,              # Works without TTY
         }
       end
     end
@@ -309,7 +309,7 @@ class Tryouts
         {
           supports_coordination: true,     # Compact can work with coordinated output
           output_frequency: :low,          # Outputs infrequently, mainly summaries
-          requires_tty: false              # Works without TTY
+          requires_tty: false,              # Works without TTY
         }
       end
     end

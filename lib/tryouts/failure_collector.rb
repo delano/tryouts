@@ -15,7 +15,7 @@ class Tryouts
 
       def description
         desc = test_case.description.to_s.strip
-        desc.empty? ? "unnamed test" : desc
+        desc.empty? ? 'unnamed test' : desc
       end
 
       def failure_reason
@@ -24,13 +24,13 @@ class Tryouts
           if result_packet.actual_results.any? && result_packet.expected_results.any?
             "expected #{result_packet.first_expected.inspect}, got #{result_packet.first_actual.inspect}"
           else
-            "test failed"
+            'test failed'
           end
         when :error
-          error_msg = result_packet.error&.message || "unknown error"
+          error_msg = result_packet.error&.message || 'unknown error'
           "#{result_packet.error&.class&.name || 'Error'}: #{error_msg}"
         else
-          "test did not pass"
+          'test did not pass'
         end
       end
 
@@ -45,7 +45,7 @@ class Tryouts
     end
 
     def initialize
-      @failures = []
+      @failures            = []
       @files_with_failures = Set.new
     end
 
@@ -56,7 +56,7 @@ class Tryouts
       entry = FailureEntry.new(
         file_path: file_path,
         test_case: result_packet.test_case,
-        result_packet: result_packet
+        result_packet: result_packet,
       )
 
       @failures << entry

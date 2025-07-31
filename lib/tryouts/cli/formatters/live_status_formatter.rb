@@ -11,22 +11,22 @@ class Tryouts
 
       def initialize(base_formatter, options = {})
         @base_formatter = base_formatter
-        @options = options
-        @show_debug = options.fetch(:debug, false)
+        @options        = options
+        @show_debug     = options.fetch(:debug, false)
 
         # Initialize state and display
-        @state = TestRunState.empty
+        @state   = TestRunState.empty
         @display = TTYStatusDisplay.new($stdout, options)
 
         # Only enable live status if TTY is available
         @live_status_enabled = @display.available?
 
-        if @show_debug
-          if @live_status_enabled
-            $stderr.puts "DEBUG: LiveStatusFormatter: Live status ENABLED"
-          else
-            $stderr.puts "DEBUG: LiveStatusFormatter: Live status DISABLED (no TTY)"
-          end
+        return unless @show_debug
+
+        if @live_status_enabled
+          $stderr.puts 'DEBUG: LiveStatusFormatter: Live status ENABLED'
+        else
+          $stderr.puts 'DEBUG: LiveStatusFormatter: Live status DISABLED (no TTY)'
         end
       end
 
@@ -45,7 +45,7 @@ class Tryouts
         # Reserve status area for level 0 (main header)
         if level == 0 && @live_status_enabled
           if @show_debug
-            $stderr.puts "DEBUG: LiveStatusFormatter: Reserving status area"
+            $stderr.puts 'DEBUG: LiveStatusFormatter: Reserving status area'
           end
           @display.reserve_status_area
           @display.update_status(@state)
@@ -82,16 +82,14 @@ class Tryouts
 
       def test_start(test_case, index, total, io = $stdout)
         @state = @state.update_from_event(:test_start, test_case, index, total)
-        result = @base_formatter.test_start(test_case, index, total, io)
+        @base_formatter.test_start(test_case, index, total, io)
         # Don't update status on test start - too frequent and causes flickering
-        result
       end
 
       def test_end(test_case, index, total, io = $stdout)
         @state = @state.update_from_event(:test_end, test_case, index, total)
-        result = @base_formatter.test_end(test_case, index, total, io)
+        @base_formatter.test_end(test_case, index, total, io)
         # Don't update status on test end - too frequent
-        result
       end
 
       def test_result(result_packet, io = $stdout)
@@ -131,7 +129,7 @@ class Tryouts
         # Clear the live status area and disable live status for final output
         if @live_status_enabled
           if @show_debug
-            $stderr.puts "DEBUG: LiveStatusFormatter: Clearing status area for final summary"
+            $stderr.puts 'DEBUG: LiveStatusFormatter: Clearing status area for final summary'
           end
           @display.clear_status_area
 
@@ -175,9 +173,11 @@ class Tryouts
 
         if @live_status_enabled
           # Format debug message and write through display
-          formatted = @base_formatter.respond_to?(:format_debug_message) ?
-            @base_formatter.format_debug_message(message, level) :
-            @base_formatter.indent_text("DEBUG: #{message}", level) + "\n"
+          formatted = if @base_formatter.respond_to?(:format_debug_message)
+  @base_formatter.format_debug_message(message, level)
+else
+  @base_formatter.indent_text("DEBUG: #{message}", level) + "\n"
+end
           @display.write_scrolling(formatted)
         else
           @base_formatter.debug_info(message, level, io)
@@ -193,36 +193,35 @@ class Tryouts
       end
 
       # Provide access to the wrapped formatter for capability checks
-      def base_formatter
-        @base_formatter
-      end
+      attr_reader :base_formatter
 
       def live_status_capabilities
         {
           supports_coordination: true,
-          output_frequency: @base_formatter.respond_to?(:live_status_capabilities) ?
-            @base_formatter.live_status_capabilities[:output_frequency] : :medium,
-          requires_tty: true
+          output_frequency: if @base_formatter.respond_to?(:live_status_capabilities)
+  @base_formatter.live_status_capabilities[:output_frequency]
+else
+  :medium
+end,
+          requires_tty: true,
         }
       end
 
       # Method missing to ensure complete delegation with error handling
-      def method_missing(method_name, *args, **kwargs, &block)
+      def method_missing(method_name, *args, **kwargs, &)
         if @base_formatter.respond_to?(method_name)
           begin
-            @base_formatter.send(method_name, *args, **kwargs, &block)
-          rescue ArgumentError => e
+            @base_formatter.send(method_name, *args, **kwargs, &)
+          rescue ArgumentError => ex
             if @show_debug
-              $stderr.puts "DEBUG: LiveStatusFormatter delegation error for #{method_name}: #{e.message}"
+              $stderr.puts "DEBUG: LiveStatusFormatter delegation error for #{method_name}: #{ex.message}"
               $stderr.puts "  args: #{args.inspect}"
               $stderr.puts "  kwargs: #{kwargs.inspect}"
             end
             # Try without kwargs if that was the issue
-            if kwargs.any?
-              @base_formatter.send(method_name, *args, &block)
-            else
-              raise
-            end
+            raise unless kwargs.any?
+
+            @base_formatter.send(method_name, *args, &)
           end
         else
           super

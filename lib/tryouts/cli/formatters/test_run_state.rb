@@ -12,7 +12,7 @@ class Tryouts
       :total_files,
       :current_file,
       :current_test,
-      :start_time
+      :start_time,
     )
       def self.empty
         new(
@@ -24,19 +24,19 @@ class Tryouts
           total_files: 0,
           current_file: nil,
           current_test: nil,
-          start_time: nil
+          start_time: nil,
         )
       end
 
       def self.initial(total_files: 0)
         empty.with(
           total_files: total_files,
-          start_time: Time.now
+          start_time: Time.now,
         )
       end
 
       # Update state based on formatter events using pattern matching
-      def update_from_event(event_type, *args, **kwargs)
+      def update_from_event(event_type, *args, **_kwargs)
         case event_type
         in :phase_header
           _, file_count, level = args
@@ -47,20 +47,20 @@ class Tryouts
           end
 
         in :file_start
-          file_path = args[0]
+          file_path   = args[0]
           pretty_path = Console.pretty_path(file_path)
           with(current_file: pretty_path)
 
         in :file_end
           with(
             files_completed: files_completed + 1,
-            current_file: nil
+            current_file: nil,
           )
 
         in :test_start
           test_case = args[0]
-          desc = test_case.description.to_s
-          desc = "test #{args[1]}" if desc.empty?
+          desc      = test_case.description.to_s
+          desc      = "test #{args[1]}" if desc.empty?
           with(current_test: desc)
 
         in :test_end
@@ -114,6 +114,7 @@ class Tryouts
 
       def completion_percentage
         return 0 if total_files == 0
+
         (files_completed.to_f / total_files * 100).round(1)
       end
     end
