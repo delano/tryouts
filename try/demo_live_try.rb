@@ -5,7 +5,7 @@ puts "This demo showcases real-time status updates during test execution"
 ## TEST: Basic arithmetic operations
 puts "Testing basic arithmetic..."
 sleep(0.1)  # Small delay to see status update
-result = 2 + 3
+result = 2 + 2
 #=<> 5
 
 ## TEST: String operations and interpolation
@@ -33,9 +33,9 @@ formatted = user.transform_keys(&:to_s).transform_values(&:to_s)
 puts "Evaluating boolean expressions..."
 sleep(0.1)
 data = [10, 20, 30, 40, 50]
-#==> data.length == 5
-#==> data.sum == 150
-#=/=> data.empty?
+#==> _.length == 5
+#==> _.sum == 150
+#=/=> _.empty?
 
 ## TEST: Type checking with classes
 puts "Checking data types..."
@@ -58,7 +58,7 @@ sleep(0.02)  # Intentionally quick operation
 puts "Demonstrating failure handling..."
 sleep(0.13)
 wrong_calculation = 3 * 4
-#=> 13  # This should fail (3*4=12, not 13)
+#=<> 13  # This should fail (3*4=12, not 13)
 
 ## TEST: File system operations simulation
 puts "Simulating file operations..."
@@ -101,7 +101,7 @@ text = <<~SAMPLE
   Perfect for testing text processing algorithms.
 SAMPLE
 word_count = text.split.length
-#=> 18
+#=> 23
 
 ## TEST: Data filtering and aggregation
 puts "Filtering and aggregating data..."
@@ -120,7 +120,7 @@ credit_total = credits.sum { |t| t[:amount] }
 puts "Another failure demonstration..."
 sleep(0.11)
 array_length = [1, 2, 3, 4, 5].length
-#=> 4  # This should fail (length is 5, not 4)
+#=<> 4  # This should fail (length is 5, not 4)
 
 ## TEST: Recursive algorithm demonstration
 puts "Running recursive algorithms..."
@@ -145,14 +145,15 @@ sleep(0.17)
 range_data = (1..20).to_a
 evens = range_data.select(&:even?)
 odds = range_data.select(&:odd?)
-#==> evens.length == 10
-#==> odds.length == 10
+[evens, odds]
+#==> _[0].length == 10
+#==> _[1].length == 10
 
 ## TEST: Third intentional failure - type mismatch
 puts "Type validation failure..."
 sleep(0.09)
 number_string = "123"
-#=:> Integer  # This should fail (it's a String, not Integer)
+#=:<> Integer  # This should fail (it's a String, not Integer)
 
 ## TEST: Network simulation
 puts "Simulating network operations..."
@@ -167,7 +168,7 @@ sleep(0.19)
 data_set = Array.new(1000) { rand(1..100) }
 sorted_data = data_set.sort
 median = sorted_data[sorted_data.length / 2]
-#==> median.is_a?(Integer)
+#==> _.is_a?(Integer)
 
 ## TEST: Configuration parsing simulation
 puts "Parsing configuration data..."
