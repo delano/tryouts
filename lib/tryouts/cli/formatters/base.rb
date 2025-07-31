@@ -1,6 +1,5 @@
 # lib/tryouts/cli/formatters/base.rb
 
-require_relative 'factory'
 require_relative 'output_manager'
 
 class Tryouts
