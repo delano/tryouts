@@ -14,7 +14,7 @@ group :development do
   gem 'pry', require: false
   gem 'pry-byebug', require: false
   gem 'rack-proxy', require: false
-  gem 'rubocop', require: false
+  gem 'rubocop', '~>1.79', require: false
   gem 'rubocop-performance', require: false
   gem 'rubocop-rspec', require: false
   gem 'rubocop-thread_safety', require: false
