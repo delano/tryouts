@@ -18,8 +18,16 @@ class Tryouts
 
       File Format:
         ## Test description       # Test case marker
-        code_to_test             # Ruby code
-        #=> expected_result       # Expectation
+        code_to_test              # Ruby code
+        #=> expected_result       # Expectation (various types available)
+
+      Great Expectations System:
+        Multiple expectation types are supported for different testing needs.
+
+        #=>   Value equality        #==> Must be true         #=/=> Must be false
+        #=|>  True OR false         #=!>  Must raise error    #=:>  Type matching
+        #=~>  Regex matching        #=%>  Time constraints    #=1>  STDOUT content
+        #=2>  STDERR content        #=<>  Intentional failure
     HELP
 
     class << self

@@ -56,13 +56,19 @@ class Tryouts
         puts Console.color(:red, 'Failed Tests:')
 
         failure_collector.failures_by_file.each do |file_path, failures|
-          pretty_path = Console.pretty_path(file_path)
-          puts
-          puts Console.color(:yellow, "#{pretty_path}:")
-
           failures.each_with_index do |failure, index|
-            line_info = failure.line_number > 0 ? ":#{failure.line_number}" : ''
-            puts "  #{index + 1}) #{failure.description}#{line_info}"
+            pretty_path = Console.pretty_path(file_path)
+
+            # Include line number with file path for easy copying/clicking
+            if failure.line_number > 0
+              location = "#{pretty_path}:#{failure.line_number}"
+            else
+              location = pretty_path
+            end
+
+            puts
+            puts Console.color(:yellow, location)
+            puts "  #{index + 1}) #{failure.description}"
             puts "     #{Console.color(:red, 'Failure:')} #{failure.failure_reason}"
 
             # Show source context in verbose mode
