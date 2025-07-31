@@ -58,17 +58,24 @@ class Tryouts
         @stdout.puts
 
         failure_collector.failures_by_file.each do |file_path, failures|
-          pretty_path = Console.pretty_path(file_path)
-          @stdout.puts "  #{pretty_path}:"
-
           failures.each do |failure|
-            line_info = failure.line_number > 0 ? ":#{failure.line_number}" : ''
-            @stdout.puts "    #{Console.color(:red, '✗')} #{failure.description}#{line_info}"
+            pretty_path = Console.pretty_path(file_path)
+
+            # Include line number with file path for easy copying/clicking
+            location = if failure.line_number > 0
+              "#{pretty_path}:#{failure.line_number}"
+            else
+              pretty_path
+                       end
+
+            @stdout.puts "  #{location}"
+            @stdout.puts "    #{Console.color(:red, '✗')} #{failure.description}"
             @stdout.puts "      #{failure.failure_reason}"
+            @stdout.puts
           end
-          @stdout.puts
         end
       end
+
 
       def file_result(_file_path, total_tests:, failed_count:, error_count:, elapsed_time: nil)
         issues_count = failed_count + error_count
