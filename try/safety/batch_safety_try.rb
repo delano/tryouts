@@ -16,11 +16,13 @@
 require_relative '../../lib/tryouts'
 
 ## TEST: Batch does not fail and the following test cases continue
+puts 'Example STDOUT Output for an intentionally failing test'
 raise SystemExit
 #=<> nil
 
 ## TEST: Calling exit with a non-zero status code, batch does not fail
 ## and the following test cases continue
+$stderr.puts 'Example STDERR Output for an intentionally failing test'
 exit 3
 #=<> nil
 

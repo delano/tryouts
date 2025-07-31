@@ -7,117 +7,119 @@ class Tryouts
       include FormatterInterface
 
       def initialize(options = {})
+        super
         @line_width     = options.fetch(:line_width, 70)
         @show_passed    = options.fetch(:show_passed, true)
         @show_debug     = options.fetch(:debug, false)
         @show_trace     = options.fetch(:trace, false)
-        @current_indent = 0
       end
 
       # Phase-level output
-      def phase_header(message, _file_count = nil, level = 0)
-        return if level.equal?(1)
+      def phase_header(message, file_count: nil)
+        return if message.include?('EXECUTING') # Skip execution phase headers
 
-        separators = [
-          { char: '=', width: @line_width },      # Major phases
-          { char: '-', width: @line_width - 10 }, # Sub-phases
-          { char: '.', width: @line_width - 20 }, # Details
-          { char: '~', width: @line_width - 30 }, # Minor items
-        ]
+        header_line = message.center(@line_width)
+        separator_line = '=' * @line_width
 
-        config = separators[level] || separators.last
-
-        separator_line = config[:char] * config[:width]
-        header_line    = message.center(config[:width])
-
-        output = case level
-        when 0, 1
-          [separator_line, header_line, separator_line]
-        else
-          [header_line, separator_line]
-        end
-
-        with_indent(level) do
-          puts output.join("\n")
-        end
+        puts(separator_line)
+        puts(header_line)
+        puts(separator_line)
       end
 
       # File-level operations
-      def file_start(file_path, _context_info = {})
-        puts file_header_visual(file_path)
+      def file_start(file_path, context_info: {})
+        puts(file_header_visual(file_path))
       end
 
-      def file_end(_file_path, _context_info = {})
-        # No output in verbose mode
-      end
-
-      def file_parsed(_file_path, _test_count, setup_present: false, teardown_present: false)
+      def file_parsed(_file_path, test_count:, setup_present: false, teardown_present: false)
         message = ''
 
-        extras   = []
+        extras = []
         extras << 'setup' if setup_present
         extras << 'teardown' if teardown_present
         message += " (#{extras.join(', ')})" unless extras.empty?
 
-        puts indent_text(message, 2)
+        puts(indent_text(message, 2))
       end
 
-      def file_execution_start(_file_path, test_count, context_mode)
+      def file_execution_start(_file_path, test_count:, context_mode:)
         message = "Running #{test_count} tests with #{context_mode} context"
-        puts indent_text(message, 1)
+        puts(indent_text(message, 1))
       end
 
-      # Summary operations
-      #
-      # Called right before file_result
-      def batch_summary(total_tests, failed_count, elapsed_time)
-        # No output in verbose mode
+      # Summary operations - show detailed failure summary
+      def batch_summary(failure_collector)
+        return unless failure_collector.any_failures?
+
+        puts
+        write '=' * 50
+        puts Console.color(:red, 'Failed Tests:')
+
+        failure_collector.failures_by_file.each do |file_path, failures|
+          failures.each_with_index do |failure, index|
+            pretty_path = Console.pretty_path(file_path)
+
+            # Include line number with file path for easy copying/clicking
+            if failure.line_number > 0
+              location = "#{pretty_path}:#{failure.line_number}"
+            else
+              location = pretty_path
+            end
+
+            puts
+            puts Console.color(:yellow, location)
+            puts "  #{index + 1}) #{failure.description}"
+            puts "     #{Console.color(:red, 'Failure:')} #{failure.failure_reason}"
+
+            # Show source context in verbose mode
+            if failure.source_context.any?
+              puts "     #{Console.color(:cyan, 'Source:')}"
+              failure.source_context.each do |line|
+                puts "       #{line.strip}"
+              end
+            end
+            puts
+          end
+        end
       end
 
-      def file_result(_file_path, total_tests, failed_count, error_count, elapsed_time)
+      def file_result(_file_path, total_tests:, failed_count:, error_count:, elapsed_time: nil)
         issues_count = failed_count + error_count
         passed_count = total_tests - issues_count
-        details      = [
-          "#{passed_count} passed",
-        ]
+        details = ["#{passed_count} passed"]
+
         puts
         if issues_count > 0
           details << "#{failed_count} failed" if failed_count > 0
           details << "#{error_count} errors" if error_count > 0
           details_str = details.join(', ')
-          color       = :red
+          color = :red
 
           time_str = elapsed_time ? " (#{elapsed_time.round(2)}s)" : ''
-          message  = "✗ Out of #{total_tests} tests: #{details_str}#{time_str}"
+          message = "✗ Out of #{total_tests} tests: #{details_str}#{time_str}"
           puts indent_text(Console.color(color, message), 2)
         else
           message = "#{total_tests} tests passed"
-          color   = :green
+          color = :green
           puts indent_text(Console.color(color, "✓ #{message}"), 2)
         end
 
         return unless elapsed_time
 
         time_msg = "Completed in #{format_timing(elapsed_time).strip.tr('()', '')}"
-
         puts indent_text(Console.color(:dim, time_msg), 2)
       end
 
       # Test-level operations
-      def test_start(test_case, index, total)
-        desc    = test_case.description.to_s
-        desc    = 'Unnamed test' if desc.empty?
+      def test_start(test_case:, index:, total:)
+        desc = test_case.description.to_s
+        desc = 'Unnamed test' if desc.empty?
         message = "Test #{index}/#{total}: #{desc}"
         puts indent_text(Console.color(:dim, message), 2)
       end
 
-      def test_end(_test_case, _index, _total)
-        # No output in verbose mode
-      end
-
       def test_result(result_packet)
         should_show = @show_passed || !result_packet.passed?
-
         return unless should_show
 
         status_line = case result_packet.status
@@ -134,7 +136,7 @@ class Tryouts
         end
 
         test_case = result_packet.test_case
-        location  = "#{Console.pretty_path(test_case.path)}:#{test_case.first_expectation_line + 1}"
+        location = "#{Console.pretty_path(test_case.path)}:#{test_case.first_expectation_line + 1}"
         puts
         puts indent_text("#{status_line} @ #{location}", 2)
 
@@ -150,7 +152,7 @@ class Tryouts
         end
       end
 
-      def test_output(_test_case, output_text)
+      def test_output(test_case:, output_text:, result_packet:)
         return if output_text.nil? || output_text.strip.empty?
 
         puts indent_text('Test Output:', 3)
@@ -165,7 +167,7 @@ class Tryouts
       end
 
       # Setup/teardown operations
-      def setup_start(line_range)
+      def setup_start(line_range:)
         message = "Executing global setup (lines #{line_range.first}..#{line_range.last})"
         puts indent_text(Console.color(:cyan, message), 2)
       end
@@ -178,7 +180,7 @@ class Tryouts
         end
       end
 
-      def teardown_start(line_range)
+      def teardown_start(line_range:)
         message = "Executing teardown (lines #{line_range.first}..#{line_range.last})"
         puts indent_text(Console.color(:cyan, message), 2)
         puts
@@ -192,21 +194,20 @@ class Tryouts
         end
       end
 
-      def grand_total(total_tests, failed_count, error_count, successful_files, total_files, elapsed_time)
+      def grand_total(total_tests:, failed_count:, error_count:, successful_files:, total_files:, elapsed_time:)
         puts
         puts '=' * @line_width
         puts 'Grand Total:'
 
         issues_count = failed_count + error_count
-        time_str     =
-          if elapsed_time < 2.0
-            " (#{(elapsed_time * 1000).round}ms)"
-          else
-            " (#{elapsed_time.round(2)}s)"
-          end
+        time_str = if elapsed_time < 2.0
+          " (#{(elapsed_time * 1000).round}ms)"
+        else
+          " (#{elapsed_time.round(2)}s)"
+        end
 
         if issues_count > 0
-          passed  = [total_tests - issues_count, 0].max  # Ensure passed never goes negative
+          passed = [total_tests - issues_count, 0].max  # Ensure passed never goes negative
           details = []
           details << "#{failed_count} failed" if failed_count > 0
           details << "#{error_count} errors" if error_count > 0
@@ -215,12 +216,12 @@ class Tryouts
           puts "#{total_tests} tests passed#{time_str}"
         end
 
-        puts "Files processed: #{successful_files} of #{total_files} successful"
+        puts "Files: #{successful_files} of #{total_files} successful"
         puts '=' * @line_width
       end
 
       # Debug and diagnostic output
-      def debug_info(message, level = 0)
+      def debug_info(message, level: 0)
         return unless @show_debug
 
         prefix = Console.color(:cyan, 'INFO ')
@@ -228,14 +229,14 @@ class Tryouts
         puts indent_text("#{prefix} #{message}", level + 1)
       end
 
-      def trace_info(message, level = 0)
+      def trace_info(message, level: 0)
         return unless @show_trace
 
         prefix = Console.color(:dim, 'TRACE')
         puts indent_text("#{prefix} #{message}", level + 1)
       end
 
-      def error_message(message, backtrace = nil)
+      def error_message(message, backtrace: nil)
         error_msg = Console.color(:red, "ERROR: #{message}")
         puts indent_text(error_msg, 1)
 
@@ -249,22 +250,12 @@ class Tryouts
         puts indent_text("... (#{backtrace.length - 10} more lines)", 3) if backtrace.length > 10
       end
 
-      # Utility methods
-      def raw_output(text)
-        puts text
-      end
-
-      def separator(style = :light)
-        case style
-        when :heavy
-          puts '=' * @line_width
-        when :light
-          puts '-' * @line_width
-        when :dotted
-          puts '.' * @line_width
-        else # rubocop:disable Lint/DuplicateBranch
-          puts '-' * @line_width
-        end
+      def live_status_capabilities
+        {
+          supports_coordination: true,     # Verbose can work with coordinated output
+          output_frequency: :high,         # Outputs frequently for each test
+          requires_tty: false,             # Works without TTY
+        }
       end
 
       private
@@ -279,7 +270,7 @@ class Tryouts
         puts indent_text('Exception Details:', 4)
 
         actual_results.each_with_index do |actual, idx|
-          expected    = expected_results[idx] if expected_results && idx < expected_results.length
+          expected = expected_results[idx] if expected_results && idx < expected_results.length
           expectation = test_case.expectations[idx] if test_case.expectations
 
           if expectation&.type == :exception
@@ -296,7 +287,7 @@ class Tryouts
         start_line = test_case.line_range.first
 
         test_case.source_lines.each_with_index do |line_content, index|
-          line_num     = start_line + index
+          line_num = start_line + index
           line_display = format('%3d: %s', line_num + 1, line_content)
 
           # Highlight expectation lines by checking if this line contains any expectation syntax
@@ -313,7 +304,7 @@ class Tryouts
         return if actual_results.empty?
 
         actual_results.each_with_index do |actual, idx|
-          expected      = expected_results[idx] if expected_results && idx < expected_results.length
+          expected = expected_results[idx] if expected_results && idx < expected_results.length
           expected_line = test_case.expectations[idx] if test_case.expectations
 
           if !expected.nil?
@@ -347,26 +338,16 @@ class Tryouts
       end
 
       def file_header_visual(file_path)
-        pretty_path    = Console.pretty_path(file_path)
+        pretty_path = Console.pretty_path(file_path)
         header_content = ">>>>>  #{pretty_path}  "
         padding_length = [@line_width - header_content.length, 0].max
-        padding        = '<' * padding_length
+        padding = '<' * padding_length
 
         [
           indent_text('-' * @line_width, 1),
           indent_text(header_content + padding, 1),
           indent_text('-' * @line_width, 1),
         ].join("\n")
-      end
-
-      def format_timing(elapsed_time)
-        if elapsed_time < 0.001
-          " (#{(elapsed_time * 1_000_000).round}μs)"
-        elsif elapsed_time < 1
-          " (#{(elapsed_time * 1000).round}ms)"
-        else
-          " (#{elapsed_time.round(2)}s)"
-        end
       end
     end
 
@@ -376,11 +357,26 @@ class Tryouts
         super(options.merge(show_passed: false))
       end
 
+      def test_output(test_case:, output_text:, result_packet:)
+        # Only show output for failed tests
+        return if result_packet.passed?
+
+        super
+      end
+
       def test_result(result_packet)
         # Only show failed/error tests, but with full source code
         return if result_packet.passed?
 
         super
+      end
+
+      def live_status_capabilities
+        {
+          supports_coordination: true,     # Verbose can work with coordinated output
+          output_frequency: :high,         # Outputs frequently for each test
+          requires_tty: false,             # Works without TTY
+        }
       end
     end
   end

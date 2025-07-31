@@ -39,36 +39,36 @@ Tryouts::Console::BGCOLOURS[:green]
 #=> 42
 
 ## TEST: Color formatting works
-Tryouts::Console.color(:red, "test")
+Tryouts::Console.color(:red, 'test')
 #=> "\e[31mtest\e[0;39;49m"
 
 ## TEST: Green color formatting works
-Tryouts::Console.color(:green, "success")
+Tryouts::Console.color(:green, 'success')
 #=> "\e[32msuccess\e[0;39;49m"
 
 ## TEST: Bright formatting works
-Tryouts::Console.bright("test")
+Tryouts::Console.bright('test')
 #=> "\e[1mtest\e[0;39;49m"
 
 ## TEST: Underline formatting works
-Tryouts::Console.underline("test")
+Tryouts::Console.underline('test')
 #=> "\e[4mtest\e[0;39;49m"
 
 ## TEST: Reverse formatting works
-Tryouts::Console.reverse("test")
+Tryouts::Console.reverse('test')
 #=> "\e[7mtest\e[0;39;49m"
 
 ## TEST: Attribute formatting works
-Tryouts::Console.att(:dim, "test")
+Tryouts::Console.att(:dim, 'test')
 #=> "\e[2mtest\e[0;39;49m"
 
 ## TEST: Instance methods work via extension
-result = Tryouts::Console.color(:blue, "test")
+result = Tryouts::Console.color(:blue, 'test')
 result.bright
 #=> "\e[1m\e[34mtest\e[0;39;49m\e[0;39;49m"
 
 ## TEST: Chaining instance methods
-result = Tryouts::Console.color(:red, "test")
+result = Tryouts::Console.color(:red, 'test')
 result.underline.bright
 #=> "\e[1m\e[4m\e[31mtest\e[0;39;49m\e[0;39;49m\e[0;39;49m"
 
@@ -89,22 +89,22 @@ Tryouts::Console.pretty_path(nil)
 #=> nil
 
 ## TEST: pretty_path with simple filename
-test_file = File.expand_path("test_file.rb")
-result = Tryouts::Console.pretty_path(test_file)
+test_file = File.expand_path('test_file.rb')
+result    = Tryouts::Console.pretty_path(test_file)
 result
 #=> "test_file.rb"
 
 ## TEST: pretty_path removes absolute path prefix
-test_file = "/some/absolute/path/file.rb"
-result = Tryouts::Console.pretty_path(test_file)
-result.end_with?("file.rb")
+test_file = '/some/absolute/path/file.rb'
+result    = Tryouts::Console.pretty_path(test_file)
+result.end_with?('file.rb')
 #=> true
 
 ## TEST: pretty_path handles nested paths
 # Test that it creates relative paths correctly
-test_file = File.expand_path("lib/tryouts/console.rb")
-result = Tryouts::Console.pretty_path(test_file)
-result.include?("console.rb")
+test_file = File.expand_path('lib/tryouts/console.rb')
+result    = Tryouts::Console.pretty_path(test_file)
+result.include?('console.rb')
 #=> true
 
 ## TEST: Random color generates valid color codes

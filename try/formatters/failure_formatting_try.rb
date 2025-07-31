@@ -13,7 +13,7 @@
 #=/=<> result.empty?
 
 ## TEST: Result type failure
-"hello"
+'hello'
 #=:<> Integer
 
 ## TEST: Performance timing failure

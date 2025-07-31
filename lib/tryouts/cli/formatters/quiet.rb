@@ -7,102 +7,50 @@ class Tryouts
       include FormatterInterface
 
       def initialize(options = {})
+        super
         @show_errors        = options.fetch(:show_errors, true)
         @show_final_summary = options.fetch(:show_final_summary, true)
         @current_file       = nil
       end
 
-      # Phase-level output - silent
-      def phase_header(message, file_count = nil, level = nil)
-        # Silent in quiet mode
-      end
-
-      # File-level operations - minimal
-      def file_start(file_path, context_info = {})
-        # Silent in quiet mode
-      end
-
-      def file_end(_file_path, _context_info = {}, io = $stderr)
-        io.puts # add newline after all dots
-      end
-
-      def file_parsed(file_path, test_count, setup_present: false, teardown_present: false)
-        # Silent in quiet mode
-      end
-
-      def file_execution_start(file_path, _test_count, _context_mode)
+      def file_execution_start(file_path, test_count:, context_mode:)
         @current_file = file_path
       end
 
-      def file_result(file_path, total_tests, failed_count, error_count, elapsed_time)
-        # Silent in quiet mode - results shown in batch_summary
+      def file_end(_file_path, context_info: {})
+        # Always use coordinated output through puts() method
+        # puts # add newline after all dots
       end
 
-      # Test-level operations - dot notation
-      def test_start(test_case, index, total)
-        # Silent in quiet mode
+      def test_result(result_packet)
+        char = case result_packet.status
+               when :passed
+                 Console.color(:green, '.')
+               when :failed
+                 Console.color(:red, 'F')
+               when :error
+                 Console.color(:red, 'E')
+               when :skipped
+                 Console.color(:yellow, 'S')
+               else
+                 '?'
+               end
+
+        # Always use coordinated output through write() method
+        write(char)
       end
 
-      def test_end(test_case, index, total, io = $stderr)
-        # Silent in quiet mode
+      # Summary operations - quiet mode skips failure summary
+      def batch_summary(failure_collector)
+        # Quiet formatter defaults to no failure summary
+        # Users can override with --failure-summary if needed
       end
 
-      def test_result(result_packet, io = $stderr)
-        case result_packet.status
-        when :passed
-          io.print Console.color(:green, '.')
-        when :failed
-          io.print Console.color(:red, 'F')
-        when :error
-          io.print Console.color(:red, 'E')
-        when :skipped
-          io.print Console.color(:yellow, 'S')
-        else
-          io.print '?'
-        end
-        io.flush
-      end
-
-      def test_output(test_case, output_text)
-        # Silent in quiet mode - could optionally show output for failed tests only
-        # For now, keeping it completely silent
-      end
-
-      # Setup/teardown operations - silent
-      def setup_start(line_range)
-        # Silent in quiet mode
-      end
-
-      def setup_output(output_text)
-        # Silent in quiet mode
-      end
-
-      def teardown_start(line_range)
-        # Silent in quiet mode
-      end
-
-      def teardown_output(output_text)
-        # Silent in quiet mode
-      end
-
-      # Summary operations - show results
-      def batch_summary(total_tests, failed_count, elapsed_time, io = $stderr)
-        return unless @show_final_summary
-
-        if failed_count > 0
-          passed   = total_tests - failed_count
-          time_str = elapsed_time ? " (#{elapsed_time.round(2)}s)" : ''
-          io.puts "#{failed_count} failed, #{passed} passed#{time_str}"
-        else
-          time_str = elapsed_time ? " (#{elapsed_time.round(2)}s)" : ''
-          io.puts "#{total_tests} passed#{time_str}"
-        end
-      end
-
-      def grand_total(total_tests, failed_count, error_count, successful_files, total_files, elapsed_time)
+      def grand_total(total_tests:, failed_count:, error_count:, successful_files:, total_files:, elapsed_time:)
         return unless @show_final_summary
 
         puts
+        puts # Add newline after dots
 
         time_str = if elapsed_time < 2
                      "#{(elapsed_time * 1000).to_i}ms"
@@ -126,29 +74,25 @@ class Tryouts
         end
       end
 
-      # Debug and diagnostic output - silent unless errors
-      def debug_info(message, level = 0)
-        # Silent in quiet mode
-      end
-
-      def trace_info(message, level = 0)
-        # Silent in quiet mode
-      end
-
-      def error_message(message, _details = nil)
+      def error_message(message, backtrace: nil)
         return unless @show_errors
 
-        puts
-        puts Console.color(:red, "ERROR: #{message}")
+        @stderr.puts
+        @stderr.puts Console.color(:red, "ERROR: #{message}")
+
+        return unless backtrace && @show_debug
+
+        backtrace.first(3).each do |line|
+          @stderr.puts "  #{line.chomp}"
+        end
       end
 
-      # Utility methods
-      def raw_output(text)
-        puts text if @show_final_summary
-      end
-
-      def separator(style = :light)
-        # Silent in quiet mode
+      def live_status_capabilities
+        {
+          supports_coordination: true,     # Quiet can work with coordinated output
+          output_frequency: :low,          # Very minimal output, mainly dots
+          requires_tty: false,             # Works without TTY
+        }
       end
     end
 
@@ -159,6 +103,14 @@ class Tryouts
         return if result_packet.passed?
 
         super
+      end
+
+      def live_status_capabilities
+        {
+          supports_coordination: true,     # QuietFails can work with coordinated output
+          output_frequency: :low,          # Very minimal output
+          requires_tty: false,             # Works without TTY
+        }
       end
     end
   end

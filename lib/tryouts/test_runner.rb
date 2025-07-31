@@ -5,6 +5,7 @@ require_relative 'test_batch'
 require_relative 'translators/rspec_translator'
 require_relative 'translators/minitest_translator'
 require_relative 'file_processor'
+require_relative 'failure_collector'
 
 class Tryouts
   class TestRunner
@@ -32,6 +33,7 @@ class Tryouts
       validate_framework
 
       result = process_files
+      show_failure_summary
       show_grand_total if @global_tally[:file_count] > 1
       result
     end
@@ -73,6 +75,7 @@ class Tryouts
         file_count: 0,
         start_time: Time.now,
         successful_files: 0,
+        failure_collector: FailureCollector.new,
       }
     end
 
@@ -104,8 +107,16 @@ class Tryouts
       1
     end
 
+    def show_failure_summary
+      # Show failure summary if any failures exist
+      if @global_tally[:failure_collector].any_failures?
+        @output_manager.batch_summary(@global_tally[:failure_collector])
+      end
+    end
+
     def show_grand_total
       elapsed_time = Time.now - @global_tally[:start_time]
+
       @output_manager.grand_total(
         @global_tally[:total_tests],
         @global_tally[:total_failed],

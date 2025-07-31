@@ -1,19 +1,22 @@
 # lib/tryouts/cli/formatters/factory.rb
 
+require_relative '../tty_detector'
+
 class Tryouts
   class CLI
     # Factory for creating formatters and output managers
     class FormatterFactory
       def self.create_output_manager(options = {})
         formatter = create_formatter(options)
-        OutputManager.new(formatter)
+        OutputManager.new(formatter, options)
       end
 
       def self.create_formatter(options = {})
         # Map boolean flags to format symbols if format not explicitly set
         format = options[:format]&.to_sym || determine_format_from_flags(options)
 
-        case format
+        # Create base formatter first
+        base_formatter = case format
         when :verbose
           if options[:fails_only]
             VerboseFailsFormatter.new(options)
@@ -35,6 +38,9 @@ class Tryouts
         else
           CompactFormatter.new(options) # Default to compact
         end
+
+        # Return base formatter - live status is now handled by OutputManager/LiveStatusManager
+        base_formatter
       end
 
       class << self
