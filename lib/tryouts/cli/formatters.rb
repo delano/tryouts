@@ -2,6 +2,7 @@
 
 require_relative 'formatters/base'
 require_relative 'formatters/compact'
+require_relative 'formatters/live'
 require_relative 'formatters/quiet'
 require_relative 'formatters/verbose'
 require_relative 'formatters/factory'

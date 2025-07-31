@@ -291,7 +291,7 @@ class Tryouts
         io.puts
       end
 
-      def show_test_source_code(test_case, io)
+      def show_test_source_code(test_case, io = $stdout)
         # Use pre-captured source lines from parsing
         start_line = test_case.line_range.first
 

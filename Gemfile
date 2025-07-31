@@ -6,6 +6,11 @@ gemspec
 
 gem 'prism', '~> 1.0'
 
+# TTY ecosystem for live terminal formatting
+gem 'tty-cursor', '~> 0.7'
+gem 'tty-screen', '~> 0.8'
+gem 'pastel', '~> 0.8'
+
 group :development do
   gem 'byebug', require: false
   # Enable for Debug Adapter Protocol. Not included with the development group

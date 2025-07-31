@@ -64,6 +64,8 @@ GEM
     parser (3.3.8.0)
       ast (~> 2.4.1)
       racc
+    pastel (0.8.0)
+      tty-color (~> 0.5)
     prettier_print (1.2.1)
     prism (1.4.0)
     pry (0.15.2)
@@ -117,6 +119,9 @@ GEM
     syntax_tree (6.2.0)
       prettier_print (>= 1.2.0)
     tsort (0.2.0)
+    tty-color (0.6.0)
+    tty-cursor (0.7.1)
+    tty-screen (0.8.2)
     unicode-display_width (3.1.4)
       unicode-emoji (~> 4.0, >= 4.0.4)
     unicode-emoji (4.0.4)
@@ -127,6 +132,7 @@ PLATFORMS
 
 DEPENDENCIES
   byebug
+  pastel (~> 0.8)
   prism (~> 1.0)
   pry
   pry-byebug
@@ -145,6 +151,8 @@ DEPENDENCIES
   stackprof
   syntax_tree
   tryouts!
+  tty-cursor (~> 0.7)
+  tty-screen (~> 0.8)
 
 BUNDLED WITH
    2.6.9

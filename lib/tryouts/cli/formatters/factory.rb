@@ -32,6 +32,8 @@ class Tryouts
           else
             QuietFormatter.new(options)
           end
+        when :live
+          LiveFormatter.new(options)
         else
           CompactFormatter.new(options) # Default to compact
         end
@@ -43,6 +45,7 @@ class Tryouts
         def determine_format_from_flags(options)
           return :quiet if options[:quiet]
           return :verbose if options[:verbose]
+          return :live if options[:live]
 
           :compact # Default
         end

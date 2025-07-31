@@ -67,9 +67,9 @@ class Tryouts
         end
       end
 
-      def test_end(test_case, index, total)
+      def test_end(test_case, index, total, io = $stdout)
         with_indent(2) do
-          @formatter.test_end(test_case, index, total)
+          @formatter.test_end(test_case, index, total, io)
         end
       end
 
