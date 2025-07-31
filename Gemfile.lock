@@ -46,7 +46,11 @@ PATH
     tryouts (3.2.0)
       irb
       minitest (~> 5.0)
+      pastel (~> 0.8)
+      prism (~> 1.0)
       rspec (~> 3.0)
+      tty-cursor (~> 0.7)
+      tty-screen (~> 0.8)
 
 GEM
   remote: https://rubygems.org/
@@ -152,8 +156,6 @@ PLATFORMS
 
 DEPENDENCIES
   byebug
-  pastel (~> 0.8)
-  prism (~> 1.0)
   pry
   pry-byebug
   rack-proxy
@@ -171,8 +173,6 @@ DEPENDENCIES
   stackprof
   syntax_tree
   tryouts!
-  tty-cursor (~> 0.7)
-  tty-screen (~> 0.8)
 
 BUNDLED WITH
    2.6.9
