@@ -18,7 +18,13 @@ Gem::Specification.new do |spec|
   spec.executables = Dir['exe/*'].select { |f| File.file?(f) }.map { |f| File.basename(f) }
 
   spec.add_dependency 'irb'
+  spec.add_dependency 'prism', '~> 1.0'
+
+  # TTY ecosystem for live terminal formatting
   spec.add_dependency 'minitest', '~> 5.0'
   spec.add_dependency 'rspec', '~> 3.0'
+  spec.add_dependency 'pastel', '~> 0.8'
+  spec.add_dependency 'tty-cursor', '~> 0.7'
+  spec.add_dependency 'tty-screen', '~> 0.8'
   spec.metadata['rubygems_mfa_required'] = 'true'
 end
