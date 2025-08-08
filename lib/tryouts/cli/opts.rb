@@ -87,7 +87,6 @@ class Tryouts
         Tryouts.trace "Parsed files: #{files.inspect}, options: #{options.inspect}"
         [files, options]
       rescue OptionParser::InvalidOption => ex
-        Tryouts.info Console.color(:red, "Invalid option error: #{ex.message}")
         warn "Error: #{ex.message}"
         warn "Try 'try --help' for more information."
         exit 1
