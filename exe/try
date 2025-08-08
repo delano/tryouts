@@ -75,6 +75,6 @@ begin
   exit cli.run(files, **options)
 rescue StandardError => ex
   warn "Error: #{ex.message}"
-  warn ex.backtrace.join("\n") if options&.[](:debug)
+  warn ex.backtrace.join("\n") if options&.dig(:debug)
   exit 1
 end
