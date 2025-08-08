@@ -38,9 +38,11 @@ Tryouts.respond_to?(:cases)
 Tryouts.respond_to?(:testcase_io)
 #=> true
 
-## TEST: Default values are set correctly
-Tryouts.debug?
-#=> false
+## TEST: Default values are set correctly. We check for either boolean value
+## b/c Tryouts.debug? returns the actual value not a mock. If the test suite
+# is run with --debug, this would fail otherwise.
+Tryouts
+#=|> _.debug?
 
 ## TEST: Quiet mode defaults to false
 Tryouts.quiet

@@ -1,4 +1,4 @@
-# try/core/test_batch_safety_try.rb
+# try/continue-on-error/batch_safety_run_individually.rb
 #
 # Tests for extenuating circumstances
 
