@@ -62,7 +62,7 @@ class Tryouts
 
             # Include line number with file path for easy copying/clicking
             if failure.line_number > 0
-              location = "#{pretty_path}:#{failure.line_number}"
+              location = "#{pretty_path}:#{failure.line_number + 1}"
             else
               location = pretty_path
             end

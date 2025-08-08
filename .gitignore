@@ -21,3 +21,5 @@ vendor
 node_modules/
 .pnpm/
 *gem
+.claude
+.mcp.json
