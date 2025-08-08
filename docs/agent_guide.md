@@ -9,6 +9,7 @@ A concise guide for agentic LLMs on writing Tryouts tests:
 - Multiple expectation types available (`#==>` for booleans, `#=:>` for types, `#=!>` for rescuing errors etc.)
 - Instance variables persist across setup, tests, and teardown
 - Helper methods allowed in setup
+- Use a single `# ` prefix for actual comments. DO NOT LABEL SECTIONS.
 
 **Philosophy**: Code should be plain and realistic, avoiding test-specific patterns like mocks, asserts DSL.
 
