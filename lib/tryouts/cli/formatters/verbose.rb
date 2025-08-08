@@ -53,6 +53,7 @@ class Tryouts
 
         puts
         write '=' * 50
+        puts
         puts Console.color(:red, 'Failed Tests:')
 
         failure_collector.failures_by_file.each do |file_path, failures|
@@ -61,7 +62,7 @@ class Tryouts
 
             # Include line number with file path for easy copying/clicking
             if failure.line_number > 0
-              location = "#{pretty_path}:#{failure.line_number}"
+              location = "#{pretty_path}:#{failure.line_number + 1}"
             else
               location = pretty_path
             end

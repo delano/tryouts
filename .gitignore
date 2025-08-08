@@ -9,6 +9,8 @@
 *.log
 *.md
 *.txt
+docs/*
+!docs/agent_guide.md
 !LICENSE.txt
 !README.md
 .ruby-version
@@ -21,3 +23,5 @@ vendor
 node_modules/
 .pnpm/
 *gem
+.claude
+.mcp.json
