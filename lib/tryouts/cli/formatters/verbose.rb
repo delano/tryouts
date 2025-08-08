@@ -53,6 +53,7 @@ class Tryouts
 
         puts
         write '=' * 50
+        puts
         puts Console.color(:red, 'Failed Tests:')
 
         failure_collector.failures_by_file.each do |file_path, failures|
