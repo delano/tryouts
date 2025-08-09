@@ -1,6 +1,7 @@
 # lib/tryouts/file_processor.rb
 
 require_relative 'prism_parser'
+require_relative 'ast_prism_parser'
 require_relative 'test_executor'
 require_relative 'cli/modes/inspect'
 require_relative 'cli/modes/generate'
@@ -16,7 +17,9 @@ class Tryouts
     end
 
     def process
-      testrun                     = PrismParser.new(@file).parse
+      # Choose parser based on options
+      parser = @options[:ast_parser] ? AstPrismParser.new(@file) : PrismParser.new(@file)
+      testrun = parser.parse
       @global_tally[:file_count] += 1
       @output_manager.file_parsed(@file, testrun.total_tests)
 

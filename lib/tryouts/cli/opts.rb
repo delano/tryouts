@@ -68,6 +68,7 @@ class Tryouts
 
           opts.separator "\nInspection Options:"
           opts.on('-i', '--inspect', 'Inspect file structure without running tests') { options[:inspect] = true }
+          opts.on('--ast-parser', 'Use experimental AST-based parser (learning/evaluation mode)') { options[:ast_parser] = true }
 
           opts.separator "\nGeneral Options:"
           opts.on('-V', '--version', 'Show version') { options[:version] = true }
