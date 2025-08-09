@@ -25,3 +25,4 @@ node_modules/
 *gem
 .claude
 .mcp.json
+!LEARNING_SUMMARY.md
