@@ -8,6 +8,8 @@ require_relative 'cli/modes/generate'
 
 class Tryouts
   class FileProcessor
+    # Supported parser types for validation and documentation
+    PARSER_TYPES = [:enhanced, :prism].freeze
     def initialize(file:, options:, output_manager:, translator:, global_tally:)
       @file           = file
       @options        = options
@@ -39,13 +41,15 @@ class Tryouts
     def create_parser(file, options)
       parser_type = options[:parser] || :prism  # default to legacy for safe rollout
 
+      unless PARSER_TYPES.include?(parser_type)
+        raise ArgumentError, "Unknown parser: #{parser_type}. Allowed types: #{PARSER_TYPES.join(', ')}"
+      end
+
       case parser_type
       when :enhanced
         EnhancedParser.new(file)
       when :prism
         PrismParser.new(file)
-      else
-        raise ArgumentError, "Unknown parser: #{parser_type}"
       end
     end
 
