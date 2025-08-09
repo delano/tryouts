@@ -36,34 +36,42 @@ class Tryouts
       # Get all comments using inhouse Prism extraction
       comments = Prism.parse_comments(@source)
       comment_by_line = {}
-      comments.each { |comment| comment_by_line[comment.location.start_line] = comment }
+      comments.each do |comment|
+        line_number = comment.location.start_line
+        comment_by_line[line_number] ||= []
+        comment_by_line[line_number] << comment
+      end
 
-      # Process each line, using inhouse comment extraction where available
+      # Process each line, handling multiple comments per line
       @lines.each_with_index do |line, index|
         line_number = index + 1
 
-        if comment_by_line[line_number]
-          comment = comment_by_line[line_number]
-          comment_content = comment.slice.strip
-
-          # Check if this is an inline comment (comment doesn't start at beginning of line)
-          if comment.location.start_column > 0
-            # Inline comment - treat the whole line as code to preserve formatting
-            token = { type: :code, content: line, line: index, ast: parse_ruby_line(line) }
-          else
-            # Standalone comment line - process as comment
-            token = classify_comment_inhousely(comment_content, line_number)
+        if (comments_for_line = comment_by_line[line_number]) && !comments_for_line.empty?
+          emitted_code = false
+          comments_for_line.sort_by! { |c| c.location.start_column }
+          comments_for_line.each do |comment|
+            comment_content = comment.slice.strip
+            if comment.location.start_column > 0
+              unless emitted_code
+                tokens << { type: :code, content: line, line: index, ast: parse_ruby_line(line) }
+                emitted_code = true
+              end
+              # Inline comment may carry expectations; classify it too
+              tokens << classify_comment_inhousely(comment_content, line_number)
+            else
+              tokens << classify_comment_inhousely(comment_content, line_number)
+            end
           end
-        else
-          # Handle non-comment lines (blank lines and code)
-          token = case line
-                  when /^\s*$/
-                    { type: :blank, line: index }
-                  else
-                    { type: :code, content: line, line: index, ast: parse_ruby_line(line) }
-                  end
+          next
         end
 
+        # Handle non-comment lines (blank lines and code)
+        token = case line
+                when /^\s*$/
+                  { type: :blank, line: index }
+                else
+                  { type: :code, content: line, line: index, ast: parse_ruby_line(line) }
+                end
         tokens << token
       end
 
