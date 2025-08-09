@@ -11,6 +11,7 @@ class Tryouts
       @source       = File.read(source_path)
       @lines        = @source.lines.map(&:chomp)
       @prism_result = Prism.parse(@source)
+      @parsed_at    = Time.now
     end
 
     def parse
@@ -308,7 +309,7 @@ class Tryouts
         test_cases: test_blocks.map { |block| build_test_case(block) },
         teardown: build_teardown(teardown_blocks),
         source_file: @source_path,
-        metadata: { parsed_at: Time.now, parser: :prism_v2_fixed },
+        metadata: { parsed_at: @parsed_at, parser: :prism_v2_fixed },
       )
     end
 
