@@ -43,7 +43,7 @@ GIT
 PATH
   remote: .
   specs:
-    tryouts (3.2.2)
+    tryouts (3.3.0)
       irb
       minitest (~> 5.0)
       pastel (~> 0.8)
