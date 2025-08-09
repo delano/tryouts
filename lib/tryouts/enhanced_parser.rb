@@ -36,12 +36,7 @@ class Tryouts
 
       # Get all comments using inhouse Prism extraction
       comments = Prism.parse_comments(@source)
-      comment_by_line = {}
-      comments.each do |comment|
-        line_number = comment.location.start_line
-        comment_by_line[line_number] ||= []
-        comment_by_line[line_number] << comment
-      end
+      comment_by_line = comments.group_by { |comment| comment.location.start_line }
 
       # Process each line, handling multiple comments per line
       @lines.each_with_index do |line, index|
