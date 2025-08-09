@@ -6,7 +6,7 @@ require_relative 'tty_status_display'
 class Tryouts
   class CLI
     # Centralized manager for live status display across all formatters
-    # Replaces the decorator pattern with native integration
+    # Replaces the decorator pattern with inhouse integration
     class LiveStatusManager
       def initialize(formatter, options = {})
         @formatter  = formatter
@@ -20,7 +20,7 @@ class Tryouts
         @display         = TTYStatusDisplay.new(@formatter.stdout, options)
         @status_reserved = false
 
-        debug_log('LiveStatusManager: Enabled with native integration')
+        debug_log('LiveStatusManager: Enabled with inhouse integration')
       end
 
       def enabled?

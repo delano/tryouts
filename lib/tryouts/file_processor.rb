@@ -1,6 +1,7 @@
 # lib/tryouts/file_processor.rb
 
 require_relative 'prism_parser'
+require_relative 'enhanced_parser'
 require_relative 'test_executor'
 require_relative 'cli/modes/inspect'
 require_relative 'cli/modes/generate'
@@ -16,7 +17,7 @@ class Tryouts
     end
 
     def process
-      testrun                     = PrismParser.new(@file).parse
+      testrun                     = create_parser(@file, @options).parse
       @global_tally[:file_count] += 1
       @output_manager.file_parsed(@file, testrun.total_tests)
 
@@ -34,6 +35,19 @@ class Tryouts
     end
 
     private
+
+    def create_parser(file, options)
+      parser_type = options[:parser] || :prism  # default to legacy for safe rollout
+
+      case parser_type
+      when :enhanced
+        EnhancedParser.new(file)
+      when :prism
+        PrismParser.new(file)
+      else
+        raise ArgumentError, "Unknown parser: #{parser_type}"
+      end
+    end
 
     def handle_inspect_mode(testrun)
       mode = Tryouts::CLI::InspectMode.new(@file, testrun, @options, @output_manager, @translator)

@@ -134,7 +134,7 @@ try -D    # debug mode
 
 ### Core Components
 
-- **Prism Parser**: Native Ruby parsing with pattern matching for line classification
+- **Prism Parser**: Inhouse Ruby parsing with pattern matching for line classification
 - **Data Structures**: Immutable `Data.define` classes for test representation
 - **Framework Translators**: Convert tryouts to RSpec/Minitest format
 - **CLI**: Modern command-line interface with framework selection
