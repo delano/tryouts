@@ -168,7 +168,10 @@ class ParserComparison
 
     puts "\n" + "="*60
 
-    if @results[:identical_outputs] == @results[:total_files]
+    if @results[:parser_errors] > 0
+      puts "❗ Parser errors encountered on #{@results[:parser_errors]} files"
+      exit 2
+    elsif @results[:identical_outputs] == @results[:total_files]
       puts "🎉 SUCCESS: All parsers produce identical results!"
       exit 0
     else
