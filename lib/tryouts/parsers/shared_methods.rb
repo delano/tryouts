@@ -128,6 +128,285 @@ class Tryouts
         last_expectation_line
       end
 
+      # Find actual test case boundaries by looking for ## descriptions or # TEST: patterns
+      # followed by code and expectations
+      def find_test_case_boundaries(tokens)
+        boundaries = []
+
+        tokens.each_with_index do |token, index|
+          if token[:type] == :description
+            start_line = token[:line]
+            end_line   = find_test_case_end(tokens, index)
+            boundaries << { start: start_line, end: end_line } if end_line
+          end
+        end
+
+        boundaries
+      end
+
+      # Convert potential_descriptions to descriptions or comments using test case boundaries
+      def classify_potential_descriptions_with_boundaries(tokens, test_boundaries)
+        tokens.map.with_index do |token, index|
+          if token[:type] == :potential_description
+            line_num         = token[:line]
+            within_test_case = test_boundaries.any? do |boundary|
+              line_num >= boundary[:start] && line_num <= boundary[:end]
+            end
+
+            if within_test_case
+              token.merge(type: :comment)
+            else
+              content = token[:content].strip
+
+              looks_like_test_description = content.match?(/test|example|demonstrate|show|should|when|given/i) &&
+                                            content.length > 10
+
+              prev_token      = index > 0 ? tokens[index - 1] : nil
+              has_code_before = prev_token && prev_token[:type] == :code
+
+              if has_code_before || !looks_like_test_description
+                token.merge(type: :comment)
+              else
+                following_tokens     = tokens[(index + 1)..]
+                meaningful_following = following_tokens.reject { |t| [:blank, :comment].include?(t[:type]) }
+                test_window          = meaningful_following.first(5)
+                has_code             = test_window.any? { |t| t[:type] == :code }
+                has_expectation      = test_window.any? { |t| is_expectation_type?(t[:type]) }
+
+                if has_code && has_expectation && looks_like_test_description
+                  token.merge(type: :description)
+                else
+                  token.merge(type: :comment)
+                end
+              end
+            end
+          else
+            token
+          end
+        end
+      end
+
+      # Check if token type represents any kind of expectation
+      def is_expectation_type?(type)
+        [
+          :expectation, :exception_expectation, :intentional_failure_expectation,
+          :true_expectation, :false_expectation, :boolean_expectation,
+          :result_type_expectation, :regex_match_expectation,
+          :performance_time_expectation, :output_expectation
+        ].include?(type)
+      end
+
+      # Process classified test blocks into domain objects
+      def process_test_blocks(classified_blocks)
+        setup_blocks    = classified_blocks.filter { |block| block[:type] == :setup }
+        test_blocks     = classified_blocks.filter { |block| block[:type] == :test }
+        teardown_blocks = classified_blocks.filter { |block| block[:type] == :teardown }
+
+        Testrun.new(
+          setup: build_setup(setup_blocks),
+          test_cases: test_blocks.map { |block| build_test_case(block) },
+          teardown: build_teardown(teardown_blocks),
+          source_file: @source_path,
+          metadata: { parsed_at: @parsed_at, parser: parser_type },
+        )
+      end
+
+      def build_setup(setup_blocks)
+        return Setup.new(code: '', line_range: 0..0, path: @source_path) if setup_blocks.empty?
+
+        Setup.new(
+          code: extract_pure_code_from_blocks(setup_blocks),
+          line_range: calculate_block_range(setup_blocks),
+          path: @source_path,
+        )
+      end
+
+      def build_teardown(teardown_blocks)
+        return Teardown.new(code: '', line_range: 0..0, path: @source_path) if teardown_blocks.empty?
+
+        Teardown.new(
+          code: extract_pure_code_from_blocks(teardown_blocks),
+          line_range: calculate_block_range(teardown_blocks),
+          path: @source_path,
+        )
+      end
+
+      # Modern Ruby 3.4+ pattern matching for robust code extraction
+      def extract_pure_code_from_blocks(blocks)
+        blocks
+          .flat_map { |block| block[:code] }
+          .filter_map do |token|
+            case token
+            in { type: :code, content: String => content }
+              content
+            else
+              nil
+            end
+          end
+          .join("\n")
+      end
+
+      def calculate_block_range(blocks)
+        return 0..0 if blocks.empty?
+
+        valid_blocks = blocks.filter { |block| block[:start_line] && block[:end_line] }
+        return 0..0 if valid_blocks.empty?
+
+        line_ranges = valid_blocks.map { |block| block[:start_line]..block[:end_line] }
+        line_ranges.first.first..line_ranges.last.last
+      end
+
+      def extract_code_content(code_tokens)
+        code_tokens
+          .filter_map do |token|
+            case token
+            in { type: :code, content: String => content }
+              content
+            else
+              nil
+            end
+          end
+          .join("\n")
+      end
+
+      def parse_ruby_line(line)
+        return nil if line.strip.empty?
+
+        result = Prism.parse(line.strip)
+        case result
+        in { errors: [] => errors, value: { body: { body: [ast] } } }
+          ast
+        in { errors: Array => errors } if errors.any?
+          { type: :parse_error, errors: errors, raw: line }
+        else
+          nil
+        end
+      end
+
+      def parse_expectation(expr)
+        parse_ruby_line(expr)
+      end
+
+      def new_test_block
+        {
+          description: '',
+          code: [],
+          expectations: [],
+          comments: [],
+          start_line: nil,
+          end_line: nil,
+        }
+      end
+
+      def block_has_content?(block)
+        case block
+        in { description: String => desc, code: Array => code, expectations: Array => exps }
+          !desc.empty? || !code.empty? || !exps.empty?
+        else
+          false
+        end
+      end
+
+      def add_context_to_block(block, token)
+        case [block[:expectations].empty?, token]
+        in [true, { type: :comment | :blank }]
+          block[:code] << token
+        in [false, { type: :comment | :blank }]
+          block[:comments] << token
+        end
+      end
+
+      # Classify blocks as setup, test, or teardown based on content
+      def classify_blocks(blocks)
+        blocks.map.with_index do |block, index|
+          block_type = case block
+                       in { expectations: [] } if index == 0
+                         :setup
+                       in { expectations: [] } if index == blocks.size - 1
+                         :teardown
+                       in { expectations: Array => exps } if !exps.empty?
+                         :test
+                       else
+                         :preamble
+                       end
+
+          block.merge(type: block_type, end_line: calculate_end_line(block))
+        end
+      end
+
+      def calculate_end_line(block)
+        content_tokens = [*block[:code], *block[:expectations]]
+        return block[:start_line] if content_tokens.empty?
+
+        content_tokens.map { |token| token[:line] }.max || block[:start_line]
+      end
+
+      def build_test_case(block)
+        case block
+        in {
+          type: :test,
+          description: String => desc,
+          code: Array => code_tokens,
+          expectations: Array => exp_tokens,
+          start_line: Integer => start_line,
+          end_line: Integer => end_line
+        }
+          source_lines           = @lines[start_line..end_line]
+          first_expectation_line = exp_tokens.empty? ? start_line : exp_tokens.first[:line]
+
+          TestCase.new(
+            description: desc,
+            code: extract_code_content(code_tokens),
+            expectations: exp_tokens.map do |token|
+              type = case token[:type]
+                     when :exception_expectation then :exception
+                     when :intentional_failure_expectation then :intentional_failure
+                     when :true_expectation then :true # rubocop:disable Lint/BooleanSymbol
+                     when :false_expectation then :false # rubocop:disable Lint/BooleanSymbol
+                     when :boolean_expectation then :boolean
+                     when :result_type_expectation then :result_type
+                     when :regex_match_expectation then :regex_match
+                     when :performance_time_expectation then :performance_time
+                     when :output_expectation then :output
+                     else :regular
+                     end
+
+              if token[:type] == :output_expectation
+                OutputExpectation.new(content: token[:content], type: type, pipe: token[:pipe])
+              else
+                Expectation.new(content: token[:content], type: type)
+              end
+            end,
+            line_range: start_line..end_line,
+            path: @source_path,
+            source_lines: source_lines,
+            first_expectation_line: first_expectation_line,
+          )
+        else
+          raise "Invalid test block structure: #{block}"
+        end
+      end
+
+      def handle_syntax_errors
+        errors = @prism_result.errors.map do |error|
+          line_context = @lines[error.location.start_line - 1] || ''
+
+          TryoutSyntaxError.new(
+            error.message,
+            line_number: error.location.start_line,
+            context: line_context,
+            source_file: @source_path,
+          )
+        end
+
+        raise errors.first if errors.any?
+      end
+
+      # Parser type identification for metadata - to be overridden by subclasses
+      def parser_type
+        :shared
+      end
+
     end
   end
 end
