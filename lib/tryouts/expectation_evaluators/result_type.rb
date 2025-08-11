@@ -36,7 +36,15 @@ class Tryouts
 
       def evaluate(actual_result = nil)
         expectation_result = ExpectationResult.from_result(actual_result)
-        expected_class     = eval_expectation_content(@expectation.content, expectation_result)
+
+        # Try to evaluate in test context first, then fallback to global context for constants
+        begin
+          expected_class = eval_expectation_content(@expectation.content, expectation_result)
+        rescue NameError => e
+          # If we can't find the constant in test context, try global context
+          # This is common for exception classes like ArgumentError, StandardError, etc.
+          expected_class = Object.const_get(@expectation.content.strip)
+        end
 
         build_result(
           passed: actual_result.is_a?(expected_class),

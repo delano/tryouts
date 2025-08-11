@@ -115,16 +115,14 @@ teardown_testrun = Tryouts::Testrun.new(
 )
 
 teardown_generated = translator.generate_code(teardown_testrun)
-teardown_generated.include?("after(:all)")
-#=> true
+#=~> /after\(:all\)/
+#=~> /puts 'after all cleanup'/
 
-teardown_generated.include?("puts 'after all cleanup'")
-##=> true
 
 ## TEST: Multiple test cases generate multiple it blocks
 translator = Tryouts::Translators::RSpecTranslator.new
 
-test_case_1 = Tryouts::TestCase.new(
+@test_case_1 = Tryouts::TestCase.new(
   description: "string concatenation",
   code: "'hello' + ' world'",
   expectations: [Tryouts::Expectation.new(content: "'hello world'", type: :regular)],
@@ -146,30 +144,28 @@ test_case_2 = Tryouts::TestCase.new(
 
 multi_testrun = Tryouts::Testrun.new(
   setup: nil,
-  test_cases: [test_case_1, test_case_2],
+  test_cases: [@test_case_1, test_case_2],
   teardown: nil,
   source_file: 'string_test.rb',
   metadata: {}
 )
 
-multi_code = translator.generate_code(multi_testrun)
-it_blocks_count = multi_code.scan(/it '/).length
+@multi_code = translator.generate_code(multi_testrun)
+it_blocks_count = @multi_code.scan(/it '/).length
 it_blocks_count
 #=> 2
 
 ## TEST: Multiple it blocks have correct descriptions
-multi_code.include?("it 'string concatenation'")
-##=> true
-
-multi_code.include?("it 'string length'")
-##=> true
+@multi_code
+#=~> /it 'string concatenation'/
+#=~> /it 'string length'/
 
 ## TEST: File basename is used in describe block
 translator = Tryouts::Translators::RSpecTranslator.new
 
 filename_testrun = Tryouts::Testrun.new(
   setup: nil,
-  test_cases: [test_case_1],
+  test_cases: [@test_case_1],
   teardown: nil,
   source_file: 'custom_filename.rb',
   metadata: {}
@@ -182,7 +178,7 @@ filename_code.include?("RSpec.describe 'custom_filename.rb'")
 ## TEST: Complex file paths are handled correctly
 complex_filename_testrun = Tryouts::Testrun.new(
   setup: nil,
-  test_cases: [test_case_1],
+  test_cases: [@test_case_1],
   teardown: nil,
   source_file: '/some/path/complex-test_file.spec.rb',
   metadata: {}
@@ -223,7 +219,7 @@ translator = Tryouts::Translators::RSpecTranslator.new
 
 simple_testrun = Tryouts::Testrun.new(
   setup: nil,
-  test_cases: [test_case_1],
+  test_cases: [@test_case_1],
   teardown: nil,
   source_file: 'simple.rb',
   metadata: {}
@@ -280,7 +276,7 @@ full_teardown_code = Tryouts::Teardown.new(
 
 full_testrun = Tryouts::Testrun.new(
   setup: full_setup_code,
-  test_cases: [test_case_1],
+  test_cases: [@test_case_1],
   teardown: full_teardown_code,
   source_file: 'full_test.rb',
   metadata: {}

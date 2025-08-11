@@ -67,8 +67,8 @@ class Tryouts
           opts.on('-l', '--live', 'Live status display') { options[:live_status]                          = true }
 
           opts.separator "\nParser Options:"
-          opts.on('--enhanced-parser', 'Use enhanced parser with inhouse comment extraction') { options[:parser] = :enhanced }
-          opts.on('--legacy-parser', 'Use legacy parser (current default)') { options[:parser] = :prism }
+          opts.on('--enhanced-parser', 'Use enhanced parser with inhouse comment extraction (default)') { options[:parser] = :enhanced }
+          opts.on('--legacy-parser', 'Use legacy prism parser') { options[:parser] = :prism }
 
           opts.separator "\nInspection Options:"
           opts.on('-i', '--inspect', 'Inspect file structure without running tests') { options[:inspect] = true }

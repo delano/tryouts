@@ -2,8 +2,8 @@
 # Parser comparison testing script
 # Compares outputs of PrismParser vs EnhancedParser
 
-require_relative '../../lib/tryouts/prism_parser'
-require_relative '../../lib/tryouts/enhanced_parser'
+require_relative '../../lib/tryouts/parsers/prism_parser'
+require_relative '../../lib/tryouts/parsers/enhanced_parser'
 
 class ParserComparison
   def initialize

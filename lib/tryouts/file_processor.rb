@@ -1,7 +1,7 @@
 # lib/tryouts/file_processor.rb
 
-require_relative 'prism_parser'
-require_relative 'enhanced_parser'
+require_relative 'parsers/prism_parser'
+require_relative 'parsers/enhanced_parser'
 require_relative 'test_executor'
 require_relative 'cli/modes/inspect'
 require_relative 'cli/modes/generate'
@@ -39,7 +39,7 @@ class Tryouts
     private
 
     def create_parser(file, options)
-      parser_type = options[:parser] || :prism  # default to legacy for safe rollout
+      parser_type = options[:parser] || :enhanced  # enhanced parser is now the default
 
       unless PARSER_TYPES.include?(parser_type)
         raise ArgumentError, "Unknown parser: #{parser_type}. Allowed types: #{PARSER_TYPES.join(', ')}"
