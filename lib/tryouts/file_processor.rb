@@ -39,7 +39,7 @@ class Tryouts
     private
 
     def create_parser(file, options)
-      parser_type = options[:parser] || :prism  # default to legacy for safe rollout
+      parser_type = options[:parser] || :enhanced  # enhanced parser is now the default
 
       unless PARSER_TYPES.include?(parser_type)
         raise ArgumentError, "Unknown parser: #{parser_type}. Allowed types: #{PARSER_TYPES.join(', ')}"
