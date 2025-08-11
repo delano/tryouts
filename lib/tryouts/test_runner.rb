@@ -1,6 +1,7 @@
 # lib/tryouts/test_runner.rb
 
-require_relative 'prism_parser'
+require_relative 'parsers/prism_parser'
+require_relative 'parsers/enhanced_parser'
 require_relative 'test_batch'
 require_relative 'translators/rspec_translator'
 require_relative 'translators/minitest_translator'

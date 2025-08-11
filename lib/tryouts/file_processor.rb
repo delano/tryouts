@@ -1,7 +1,7 @@
 # lib/tryouts/file_processor.rb
 
-require_relative 'prism_parser'
-require_relative 'enhanced_parser'
+require_relative 'parsers/prism_parser'
+require_relative 'parsers/enhanced_parser'
 require_relative 'test_executor'
 require_relative 'cli/modes/inspect'
 require_relative 'cli/modes/generate'

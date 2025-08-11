@@ -2,7 +2,8 @@
 # Debug script to analyze line number behavior in the tryouts parser
 # This file helps identify the source of the off-by-one line number bug
 
-require_relative '../../lib/tryouts/prism_parser'
+require_relative '../../lib/tryouts/parsers/prism_parser'
+require_relative '../../lib/tryouts/parsers/enhacned_parser'
 
 puts "=== Line Number Debug Analysis ==="
 puts

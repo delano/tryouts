@@ -8,7 +8,8 @@ TRYOUTS_LIB_HOME = __dir__ unless defined?(TRYOUTS_LIB_HOME)
 require_relative 'tryouts/console'
 require_relative 'tryouts/test_batch'
 require_relative 'tryouts/version'
-require_relative 'tryouts/prism_parser'
+require_relative 'tryouts/parsers/prism_parser'
+require_relative 'tryouts/parsers/enhanced_parser'
 require_relative 'tryouts/cli'
 
 class Tryouts
