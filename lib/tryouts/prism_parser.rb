@@ -232,7 +232,7 @@ class Tryouts
       return false if desc_index >= tokens.length - 1
 
       # Look ahead for code and expectation tokens after this description
-      has_code = false
+      has_code        = false
       has_expectation = false
 
       (desc_index + 1...tokens.length).each do |i|

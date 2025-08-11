@@ -35,7 +35,7 @@ class Tryouts
       tokens = []
 
       # Get all comments using inhouse Prism extraction
-      comments = Prism.parse_comments(@source)
+      comments        = Prism.parse_comments(@source)
       comment_by_line = comments.group_by { |comment| comment.location.start_line }
 
       # Process each line, handling multiple comments per line
@@ -163,11 +163,11 @@ class Tryouts
             if has_code_before || !looks_like_test_description
               token.merge(type: :comment)
             else
-              following_tokens = tokens[(index + 1)..]
+              following_tokens     = tokens[(index + 1)..]
               meaningful_following = following_tokens.reject { |t| [:blank, :comment].include?(t[:type]) }
-              test_window     = meaningful_following.first(5)
-              has_code        = test_window.any? { |t| t[:type] == :code }
-              has_expectation = test_window.any? { |t| is_expectation_type?(t[:type]) }
+              test_window          = meaningful_following.first(5)
+              has_code             = test_window.any? { |t| t[:type] == :code }
+              has_expectation      = test_window.any? { |t| is_expectation_type?(t[:type]) }
 
               if has_code && has_expectation && looks_like_test_description
                 token.merge(type: :description)
@@ -197,7 +197,7 @@ class Tryouts
       return false if desc_index >= tokens.length - 1
 
       # Look ahead for code and expectation tokens after this description
-      has_code = false
+      has_code        = false
       has_expectation = false
 
       (desc_index + 1...tokens.length).each do |i|
@@ -228,7 +228,10 @@ class Tryouts
       tokens.each_with_index do |token, index|
         case [current_block, token]
         in [_, { type: :description, content: String => desc, line: Integer => line_num }]
+          # Only combine descriptions if current block has a description but no code/expectations yet
+          # Allow blank lines between multi-line descriptions
           if !current_block[:description].empty? && current_block[:code].empty? && current_block[:expectations].empty?
+            # Multi-line description continuation
             current_block[:description] = [current_block[:description], desc].join(' ').strip
           elsif has_following_test_pattern?(tokens, index)
             # Only create new block if description is followed by actual test pattern
@@ -240,13 +243,16 @@ class Tryouts
           end
 
         in [{ expectations: [], start_line: nil }, { type: :code, content: String => code, line: Integer => line_num }]
+          # First code in a new block - set start_line
           current_block[:code] << token
           current_block[:start_line] = line_num
 
         in [{ expectations: [] }, { type: :code, content: String => code }]
+          # Code before expectations - add to current block
           current_block[:code] << token
 
         in [{ expectations: Array => exps }, { type: :code }] if !exps.empty?
+          # Code after expectations - finalize current block and start new one
           blocks << current_block
           current_block = new_test_block.merge(code: [token], start_line: token[:line])
 
@@ -441,7 +447,7 @@ class Tryouts
         start_line: Integer => start_line,
         end_line: Integer => end_line
       }
-        source_lines = @lines[start_line..end_line]
+        source_lines           = @lines[start_line..end_line]
         first_expectation_line = exp_tokens.empty? ? start_line : exp_tokens.first[:line]
 
         TestCase.new(
