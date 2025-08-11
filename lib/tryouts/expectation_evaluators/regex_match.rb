@@ -40,9 +40,17 @@ class Tryouts
         expectation_result = ExpectationResult.from_result(actual_result)
         pattern            = eval_expectation_content(@expectation.content, expectation_result)
 
-        # Convert actual_result to string for regex matching
-        string_result = actual_result.to_s
-        match_result  = string_result =~ pattern
+        # Auto-detect exceptions and use message for regex matching
+        # This allows #=~> /pattern/ to work naturally with exception messages
+        string_result = if actual_result.is_a?(Exception)
+                          # Make error available in context for manual access if needed
+                          @context.define_singleton_method(:error) { actual_result }
+                          actual_result.message  # Match against error message
+                        else
+                          actual_result.to_s     # Normal case: convert to string
+                        end
+
+        match_result = string_result =~ pattern
 
         build_result(
           passed: !match_result.nil?,

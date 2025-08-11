@@ -228,11 +228,21 @@ class Tryouts
       test_timeout = @options[:test_timeout] || 30 # 30 second default
 
       if test_case.exception_expectations?
-        # For exception tests, don't execute code here - let evaluate_expectations handle it
-        expectations_result = execute_with_timeout(test_timeout, test_case) do
-          evaluate_expectations(test_case, nil, container)
+        # Execute test code and catch exception to pass to evaluators
+        caught_exception = nil
+        begin
+          code  = test_case.code
+          path  = test_case.path
+          range = test_case.line_range
+          container.instance_eval(code, path, range.first + 1)
+        rescue StandardError => ex
+          caught_exception = ex
         end
-        build_test_result(test_case, nil, expectations_result)
+
+        expectations_result = execute_with_timeout(test_timeout, test_case) do
+          evaluate_expectations(test_case, caught_exception, container)
+        end
+        build_test_result(test_case, caught_exception, expectations_result)
       else
         # Regular execution for non-exception tests with timing and output capture
         code  = test_case.code
@@ -268,7 +278,13 @@ class Tryouts
         build_test_result(test_case, result_value, expectations_result)
       end
     rescue StandardError => ex
-      build_error_result(test_case, ex)
+      # Check if this exception can be handled by result_type or regex_match expectations
+      if can_handle_exception?(test_case, ex)
+        expectations_result = evaluate_expectations(test_case, ex, container)
+        build_test_result(test_case, ex, expectations_result)
+      else
+        build_error_result(test_case, ex)
+      end
     rescue SystemExit, SignalException => ex
       # Handle process control exceptions gracefully
       Tryouts.debug "Test received #{ex.class}: #{ex.message}"
@@ -507,6 +523,11 @@ class Tryouts
 
     def shared_context?
       @options[:shared_context] == true
+    end
+
+    # Check if test case has expectations that can handle exceptions gracefully
+    def can_handle_exception?(test_case, _exception)
+      test_case.expectations.any? { |exp| exp.result_type? || exp.regex_match? }
     end
 
     def capture_output
