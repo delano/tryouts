@@ -57,6 +57,8 @@ class Tryouts
         puts Console.color(:red, 'Failed Tests:')
         puts
 
+        # Number failures sequentially across all files instead of per-file
+        failure_number = 1
         failure_collector.failures_by_file.each do |file_path, failures|
           failures.each do |failure|
             pretty_path = Console.pretty_path(file_path)
@@ -68,10 +70,11 @@ class Tryouts
               pretty_path
             end
 
-            puts "  #{location}"
+            puts "  #{failure_number}) #{location}"
             puts "    #{Console.color(:red, '✗')} #{failure.description}"
             puts "      #{failure.failure_reason}"
             puts
+            failure_number += 1
           end
         end
       end

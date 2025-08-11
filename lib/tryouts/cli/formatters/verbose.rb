@@ -56,8 +56,10 @@ class Tryouts
         puts
         puts Console.color(:red, 'Failed Tests:')
 
+        # Number failures sequentially across all files instead of per-file
+        failure_number = 1
         failure_collector.failures_by_file.each do |file_path, failures|
-          failures.each_with_index do |failure, index|
+          failures.each do |failure|
             pretty_path = Console.pretty_path(file_path)
 
             # Include line number with file path for easy copying/clicking
@@ -69,7 +71,7 @@ class Tryouts
 
             puts
             puts Console.color(:yellow, location)
-            puts "  #{index + 1}) #{failure.description}"
+            puts "  #{failure_number}) #{failure.description}"
             puts "     #{Console.color(:red, 'Failure:')} #{failure.failure_reason}"
 
             # Show source context in verbose mode
@@ -80,6 +82,7 @@ class Tryouts
               end
             end
             puts
+            failure_number += 1
           end
         end
       end
