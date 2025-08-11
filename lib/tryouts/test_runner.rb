@@ -7,6 +7,7 @@ require_relative 'translators/rspec_translator'
 require_relative 'translators/minitest_translator'
 require_relative 'file_processor'
 require_relative 'failure_collector'
+require_relative 'test_result_aggregator'
 
 class Tryouts
   class TestRunner
@@ -35,7 +36,7 @@ class Tryouts
 
       result = process_files
       show_failure_summary
-      show_grand_total if @global_tally[:file_count] > 1
+      show_grand_total if @global_tally[:aggregator].get_file_counts[:total] > 1
       result
     end
 
@@ -70,13 +71,8 @@ class Tryouts
 
     def initialize_global_tally
       {
-        total_tests: 0,
-        total_failed: 0,
-        total_errors: 0,
-        file_count: 0,
         start_time: Time.now,
-        successful_files: 0,
-        failure_collector: FailureCollector.new,
+        aggregator: TestResultAggregator.new,
       }
     end
 
@@ -93,37 +89,43 @@ class Tryouts
       failure_count
     end
 
-    def process_file(file)
-      file = FileProcessor.new(
-        file: file,
+    def process_file(file_path)
+      processor = FileProcessor.new(
+        file: file_path,
         options: @options,
         output_manager: @output_manager,
         translator: @translator,
         global_tally: @global_tally,
       )
-      file.process
+      processor.process
     rescue StandardError => ex
       handle_file_error(ex)
-      @global_tally[:total_errors] += 1
+      @global_tally[:aggregator].add_infrastructure_failure(
+        :file_processing, file_path, ex.message, ex
+      )
       1
     end
 
     def show_failure_summary
       # Show failure summary if any failures exist
-      if @global_tally[:failure_collector].any_failures?
-        @output_manager.batch_summary(@global_tally[:failure_collector])
+      aggregator = @global_tally[:aggregator]
+      if aggregator.any_display_failures?
+        @output_manager.batch_summary(aggregator.failure_collector)
       end
     end
 
     def show_grand_total
       elapsed_time = Time.now - @global_tally[:start_time]
+      aggregator = @global_tally[:aggregator]
+      display_counts = aggregator.get_display_counts
+      file_counts = aggregator.get_file_counts
 
       @output_manager.grand_total(
-        @global_tally[:total_tests],
-        @global_tally[:total_failed],
-        @global_tally[:total_errors],
-        @global_tally[:successful_files],
-        @global_tally[:file_count],
+        display_counts[:total_tests],
+        display_counts[:failed],
+        display_counts[:errors],
+        file_counts[:successful],
+        file_counts[:total],
         elapsed_time,
       )
     end

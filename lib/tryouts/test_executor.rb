@@ -53,10 +53,13 @@ class Tryouts
       file_failed_count                 = test_results.count { |r| r.failed? }
       file_error_count                  = test_results.count { |r| r.error? }
       executed_test_count               = test_results.size
-      @global_tally[:total_tests]      += executed_test_count
-      @global_tally[:total_failed]     += file_failed_count
-      @global_tally[:total_errors]     += file_error_count
-      @global_tally[:successful_files] += 1 if success
+      
+      # Note: Individual test results are added to the aggregator in TestBatch
+      # Here we just update the file success count
+      if success
+        current_successful = @global_tally[:aggregator].get_file_counts[:successful]
+        @global_tally[:aggregator].add_file_result(successful: current_successful + 1)
+      end
 
       duration = Time.now.to_f - @file_start.to_f
       @output_manager.file_success(@file, executed_test_count, file_failed_count, file_error_count, duration)

@@ -244,7 +244,7 @@ class Tryouts
         end
 
         expectations_result = execute_with_timeout(test_timeout, test_case) do
-          evaluate_expectations(test_case, caught_exception, container)
+          evaluate_expectations(test_case, caught_exception, container, nil, nil, nil, caught_exception)
         end
         build_test_result(test_case, caught_exception, expectations_result)
       else
@@ -330,7 +330,7 @@ class Tryouts
     end
 
     # Evaluate expectations using new object-oriented evaluation system
-    def evaluate_expectations(test_case, actual_result, context, execution_time_ns = nil, stdout_content = nil, stderr_content = nil)
+    def evaluate_expectations(test_case, actual_result, context, execution_time_ns = nil, stdout_content = nil, stderr_content = nil, caught_exception = nil)
       return { passed: true, actual_results: [], expected_results: [] } if test_case.expectations.empty?
 
       evaluation_results = test_case.expectations.map do |expectation|
@@ -341,6 +341,9 @@ class Tryouts
           evaluator.evaluate(actual_result, execution_time_ns)
         elsif expectation.output? && (stdout_content || stderr_content)
           evaluator.evaluate(actual_result, stdout_content, stderr_content)
+        elsif expectation.exception? && caught_exception
+          # Pass caught exception to avoid double execution
+          evaluator.evaluate(actual_result, caught_exception: caught_exception)
         else
           evaluator.evaluate(actual_result)
         end
@@ -385,13 +388,14 @@ class Tryouts
     def process_test_result(result)
       @results << result
 
+      # Add all test results to the aggregator for centralized counting
+      if @global_tally && @global_tally[:aggregator]
+        @global_tally[:aggregator].add_test_result(@testrun.source_file, result)
+      end
+
+      # Update local batch counters for batch-level logic
       if result.failed? || result.error?
         @failed_count += 1
-
-        # Collect failure details for end-of-run summary
-        if @global_tally && @global_tally[:failure_collector]
-          @global_tally[:failure_collector].add_failure(@testrun.source_file, result)
-        end
       end
 
       show_test_result(result)
@@ -418,7 +422,11 @@ class Tryouts
       end
     rescue StandardError => ex
       @setup_failed                 = true
-      @global_tally[:total_errors] += 1 if @global_tally
+      if @global_tally && @global_tally[:aggregator]
+        @global_tally[:aggregator].add_infrastructure_failure(
+          :setup, @testrun.source_file, ex.message, ex
+        )
+      end
 
       # Classify error and handle appropriately
       error_type = Tryouts.classify_error(ex)
@@ -455,7 +463,11 @@ class Tryouts
       end
     rescue StandardError => ex
       @setup_failed                 = true
-      @global_tally[:total_errors] += 1 if @global_tally
+      if @global_tally && @global_tally[:aggregator]
+        @global_tally[:aggregator].add_infrastructure_failure(
+          :setup, @testrun.source_file, ex.message, ex
+        )
+      end
 
       # Classify error and handle appropriately
       error_type = Tryouts.classify_error(ex)
@@ -488,7 +500,11 @@ class Tryouts
         @output_manager&.teardown_output(captured_output) if captured_output && !captured_output.empty?
       end
     rescue StandardError => ex
-      @global_tally[:total_errors] += 1 if @global_tally
+      if @global_tally && @global_tally[:aggregator]
+        @global_tally[:aggregator].add_infrastructure_failure(
+          :teardown, @testrun.source_file, ex.message, ex
+        )
+      end
 
       # Classify error and handle appropriately
       error_type = Tryouts.classify_error(ex)
