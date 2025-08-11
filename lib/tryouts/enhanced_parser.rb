@@ -191,18 +191,52 @@ class Tryouts
       ].include?(type)
     end
 
+    # Check if a description token at given index is followed by actual test content
+    # (code + expectations), indicating it's a real test case vs just a comment
+    def has_following_test_pattern?(tokens, desc_index)
+      return false if desc_index >= tokens.length - 1
+
+      # Look ahead for code and expectation tokens after this description
+      has_code = false
+      has_expectation = false
+
+      (desc_index + 1...tokens.length).each do |i|
+        token = tokens[i]
+
+        case token[:type]
+        when :code
+          has_code = true
+        when :description
+          # If we hit another description before finding expectations,
+          # this description doesn't have a complete test pattern
+          break
+        else
+          if is_expectation_type?(token[:type])
+            has_expectation = true
+            break if has_code # Found both code and expectation
+          end
+        end
+      end
+
+      has_code && has_expectation
+    end
+
     def group_into_test_blocks(tokens)
       blocks        = []
       current_block = new_test_block
 
-      tokens.each do |token|
+      tokens.each_with_index do |token, index|
         case [current_block, token]
         in [_, { type: :description, content: String => desc, line: Integer => line_num }]
           if !current_block[:description].empty? && current_block[:code].empty? && current_block[:expectations].empty?
             current_block[:description] = [current_block[:description], desc].join(' ').strip
-          else
+          elsif has_following_test_pattern?(tokens, index)
+            # Only create new block if description is followed by actual test pattern
             blocks << current_block if block_has_content?(current_block)
             current_block = new_test_block.merge(description: desc, start_line: line_num)
+          else
+            # Treat as regular comment - don't create new block
+            current_block[:comments] << token
           end
 
         in [{ expectations: [], start_line: nil }, { type: :code, content: String => code, line: Integer => line_num }]

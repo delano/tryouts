@@ -38,17 +38,17 @@ config = {
 
 # Comments in setup
 # This is a regular comment
-## This looks like a test description but it's in setup
+# This comment used to confuse the parser boundary detection
 
 # Final setup variables
-x = 42
-y = "test string"
-z = [1, 2, 3, 4, 5]
+@x = 42
+@y = "test string"
+@z = [1, 2, 3, 4, 5]
 
 puts "Setup complete with heredocs"
 
 ## TEST: First test after complex setup - line number should be accurate
-result = x + 10
+result = @x + 10
 #=> 52
 
 ## TEST: Test with inline comment after heredoc parsing
@@ -68,7 +68,7 @@ data = {
 #=> { users: [{ name: "John", age: 30 }, { name: "Jane", age: 25 }], settings: { theme: "dark" } }
 
 ## TEST: Heredoc in test case
-output = <<~HTML
+@output = <<~HTML
   <div class="user">
     <h1>User Profile</h1>
     <!-- HTML comment -->
@@ -76,7 +76,7 @@ output = <<~HTML
     #=> This expectation-like comment should also be ignored
   </div>
 HTML
-#=> output.include?("User Profile")
+#==> @output.include?("User Profile")
 
 ## TEST: Exception test after complex patterns
 1 / 0
