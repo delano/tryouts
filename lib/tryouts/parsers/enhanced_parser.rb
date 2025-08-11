@@ -3,8 +3,6 @@
 # Enhanced parser using Prism's inhouse comment extraction capabilities
 # Drop-in replacement for PrismParser that eliminates HEREDOC parsing issues
 
-require 'prism'
-
 require_relative '../test_case'
 require_relative 'base_parser'
 

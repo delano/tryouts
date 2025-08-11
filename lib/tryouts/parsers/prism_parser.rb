@@ -1,7 +1,5 @@
 # lib/tryouts/parsers/prism_parser.rb
 
-require 'prism'
-
 require_relative '../test_case'
 require_relative 'base_parser'
 

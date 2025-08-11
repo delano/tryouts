@@ -15,7 +15,7 @@
 
 ## Manually raise a stack level too deep
 raise SystemStackError.new('Manually created this SystemStackError for testing')
-#=!> error.is_a?(SystemStackError)
+#=!> SystemStackError
 
 ## Raise a load error
 raise LoadError.new('Manually created this LoadError for testing')

@@ -3,7 +3,7 @@
 # This tests scenarios that could cause inconsistencies in line number tracking
 
 require_relative '../../lib/tryouts/parsers/prism_parser'
-require_relative '../../lib/tryouts/parsers/enhacned_parser'
+require_relative '../../lib/tryouts/parsers/enhanced_parser'
 
 puts "=== Line Number Edge Cases Debug ==="
 puts

@@ -235,6 +235,10 @@ class Tryouts
           path  = test_case.path
           range = test_case.line_range
           container.instance_eval(code, path, range.first + 1)
+        rescue SystemStackError, NoMemoryError, SecurityError, ScriptError => ex
+          # Handle system-level exceptions that don't inherit from StandardError
+          # ScriptError includes: LoadError, SyntaxError, NotImplementedError
+          caught_exception = ex
         rescue StandardError => ex
           caught_exception = ex
         end
