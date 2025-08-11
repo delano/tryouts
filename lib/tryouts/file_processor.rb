@@ -2,6 +2,7 @@
 
 require_relative 'parsers/prism_parser'
 require_relative 'parsers/enhanced_parser'
+require_relative 'parsers/execution_parser'
 require_relative 'test_executor'
 require_relative 'cli/modes/inspect'
 require_relative 'cli/modes/generate'
@@ -9,7 +10,7 @@ require_relative 'cli/modes/generate'
 class Tryouts
   class FileProcessor
     # Supported parser types for validation and documentation
-    PARSER_TYPES = [:enhanced, :prism].freeze
+    PARSER_TYPES = [:enhanced, :prism, :execution].freeze
     def initialize(file:, options:, output_manager:, translator:, global_tally:)
       @file           = file
       @options        = options
@@ -50,6 +51,8 @@ class Tryouts
         EnhancedParser.new(file)
       when :prism
         PrismParser.new(file)
+      when :execution
+        ExecutionParser.new(file)
       end
     end
 
