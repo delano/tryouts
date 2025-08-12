@@ -112,13 +112,13 @@ class Tryouts
     # Reset for testing purposes
     def clear
       @failure_collector.clear
-      @test_counts[:total_tests].value = 0
-      @test_counts[:passed].value = 0
-      @test_counts[:failed].value = 0
-      @test_counts[:errors].value = 0
+      @test_counts[:total_tests].update { |_| 0 }
+      @test_counts[:passed].update { |_| 0 }
+      @test_counts[:failed].update { |_| 0 }
+      @test_counts[:errors].update { |_| 0 }
       @infrastructure_failures.clear
-      @file_counts[:total].value = 0
-      @file_counts[:successful].value = 0
+      @file_counts[:total].update { |_| 0 }
+      @file_counts[:successful].update { |_| 0 }
     end
 
     # Provide a summary string for debugging
