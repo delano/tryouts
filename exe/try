@@ -20,7 +20,6 @@ if ENV['COVERAGE'] || ENV['SIMPLECOV']
     add_group 'Parsers', 'lib/tryouts/parsers'
     add_group 'Data Structures', ['lib/tryouts/testcase.rb', 'lib/tryouts/testbatch.rb']
     add_group 'Translators', 'lib/tryouts/translators'
-    add_group 'Execution', ['lib/tryouts/test_executor.rb', 'lib/tryouts/test_runner.rb', 'lib/tryouts/file_processor.rb']
 
     coverage_dir 'coverage'
 

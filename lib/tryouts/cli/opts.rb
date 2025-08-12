@@ -69,7 +69,6 @@ class Tryouts
           opts.separator "\nParser Options:"
           opts.on('--enhanced-parser', 'Use enhanced parser with inhouse comment extraction (default)') { options[:parser] = :enhanced }
           opts.on('--legacy-parser', 'Use legacy prism parser') { options[:parser] = :prism }
-          opts.on('--execution-parser', 'Use experimental execution-first parser (Purple Plan)') { options[:parser] = :execution }
 
           opts.separator "\nInspection Options:"
           opts.on('-i', '--inspect', 'Inspect file structure without running tests') { options[:inspect] = true }
