@@ -141,3 +141,20 @@ try -vfD path/to/file_try.rb path/to/dir
 - Test-specific data structures
 
 Focus on readable, realistic Ruby code that demonstrates actual usage.
+
+## Tryouts Execution Context Modes
+
+Shared Context (--shared-context or default in some modes)
+
+- Setup runs once at file start
+- All tests share the same container object
+- Instance variables persist across all test cases
+- State accumulates - changes in test 1 affect test 2, etc.
+
+Fresh Context (default for most modes)
+
+- Setup runs once at file start in a setup container
+- Each test gets a new container object
+- Instance variables from setup are copied to each fresh container
+- Test isolation - changes in test 1 don't affect test 2
+- BUT: Setup instance variables are inherited by all tests

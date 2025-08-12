@@ -9,8 +9,14 @@ class Tryouts
         expectation_type == :exception
       end
 
-      def evaluate(_actual_result = nil)
-        execute_test_code_and_evaluate_exception
+      def evaluate(_actual_result = nil, caught_exception: nil)
+        if caught_exception
+          # Use the pre-caught exception to avoid double execution
+          evaluate_exception_condition(caught_exception)
+        else
+          # Fallback for direct calls - shouldn't happen in normal flow
+          execute_test_code_and_evaluate_exception
+        end
       end
 
       private

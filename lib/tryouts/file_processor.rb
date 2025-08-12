@@ -20,7 +20,7 @@ class Tryouts
 
     def process
       testrun                     = create_parser(@file, @options).parse
-      @global_tally[:file_count] += 1
+      @global_tally[:aggregator].increment_total_files
       @output_manager.file_parsed(@file, testrun.total_tests)
 
       if @options[:inspect]
@@ -76,7 +76,11 @@ class Tryouts
     end
 
     def handle_general_error(ex)
-      @global_tally[:total_errors] += 1 if @global_tally
+      if @global_tally
+        @global_tally[:aggregator].add_infrastructure_failure(
+          :file_processing, @file, ex.message, ex
+        )
+      end
       @output_manager.file_failure(@file, ex.message, ex.backtrace)
       1
     end

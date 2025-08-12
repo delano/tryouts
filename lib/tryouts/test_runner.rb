@@ -1,5 +1,6 @@
 # lib/tryouts/test_runner.rb
 
+require 'concurrent'
 require_relative 'parsers/prism_parser'
 require_relative 'parsers/enhanced_parser'
 require_relative 'test_batch'
@@ -7,6 +8,7 @@ require_relative 'translators/rspec_translator'
 require_relative 'translators/minitest_translator'
 require_relative 'file_processor'
 require_relative 'failure_collector'
+require_relative 'test_result_aggregator'
 
 class Tryouts
   class TestRunner
@@ -35,7 +37,7 @@ class Tryouts
 
       result = process_files
       show_failure_summary
-      show_grand_total if @global_tally[:file_count] > 1
+      show_grand_total if @global_tally[:aggregator].get_file_counts[:total] > 1
       result
     end
 
@@ -70,17 +72,20 @@ class Tryouts
 
     def initialize_global_tally
       {
-        total_tests: 0,
-        total_failed: 0,
-        total_errors: 0,
-        file_count: 0,
         start_time: Time.now,
-        successful_files: 0,
-        failure_collector: FailureCollector.new,
+        aggregator: TestResultAggregator.new,
       }
     end
 
     def process_files
+      if @options[:parallel] && @files.length > 1
+        process_files_parallel
+      else
+        process_files_sequential
+      end
+    end
+
+    def process_files_sequential
       failure_count = 0
 
       @files.each_with_index do |file, _idx|
@@ -93,37 +98,87 @@ class Tryouts
       failure_count
     end
 
-    def process_file(file)
-      file = FileProcessor.new(
-        file: file,
+    def process_files_parallel
+      # Determine thread pool size
+      pool_size = @options[:parallel_threads] || Concurrent.processor_count
+      @output_manager.info "Running #{@files.length} files in parallel (#{pool_size} threads)", 1
+
+      # Create thread pool executor
+      executor = Concurrent::ThreadPoolExecutor.new(
+        min_threads: 1,
+        max_threads: pool_size,
+        max_queue: pool_size * 2, # Reasonable queue size
+        fallback_policy: :abort # Raise exception if pool and queue are exhausted
+      )
+
+      # Submit all file processing tasks to the thread pool
+      futures = @files.map do |file|
+        Concurrent::Future.execute(executor: executor) do
+          process_file(file)
+        end
+      end
+
+      # Wait for all tasks to complete and collect results
+      failure_count = 0
+      futures.each_with_index do |future, idx|
+        begin
+          result = future.value # This blocks until the future completes
+          failure_count += result unless result.zero?
+
+          status = result.zero? ? Console.color(:green, 'PASS') : Console.color(:red, 'FAIL')
+          file = @files[idx]
+          @output_manager.info "#{status} #{Console.pretty_path(file)} (#{result} failures)", 1
+        rescue StandardError => ex
+          failure_count += 1
+          file = @files[idx]
+          @output_manager.info "#{Console.color(:red, 'ERROR')} #{Console.pretty_path(file)} (#{ex.message})", 1
+        end
+      end
+
+      # Shutdown the thread pool
+      executor.shutdown
+      executor.wait_for_termination(10) # Wait up to 10 seconds for clean shutdown
+
+      failure_count
+    end
+
+    def process_file(file_path)
+      processor = FileProcessor.new(
+        file: file_path,
         options: @options,
         output_manager: @output_manager,
         translator: @translator,
         global_tally: @global_tally,
       )
-      file.process
+      processor.process
     rescue StandardError => ex
       handle_file_error(ex)
-      @global_tally[:total_errors] += 1
+      @global_tally[:aggregator].add_infrastructure_failure(
+        :file_processing, file_path, ex.message, ex
+      )
       1
     end
 
     def show_failure_summary
       # Show failure summary if any failures exist
-      if @global_tally[:failure_collector].any_failures?
-        @output_manager.batch_summary(@global_tally[:failure_collector])
+      aggregator = @global_tally[:aggregator]
+      if aggregator.any_display_failures?
+        @output_manager.batch_summary(aggregator.failure_collector)
       end
     end
 
     def show_grand_total
       elapsed_time = Time.now - @global_tally[:start_time]
+      aggregator = @global_tally[:aggregator]
+      display_counts = aggregator.get_display_counts
+      file_counts = aggregator.get_file_counts
 
       @output_manager.grand_total(
-        @global_tally[:total_tests],
-        @global_tally[:total_failed],
-        @global_tally[:total_errors],
-        @global_tally[:successful_files],
-        @global_tally[:file_count],
+        display_counts[:total_tests],
+        display_counts[:failed],
+        display_counts[:errors],
+        file_counts[:successful],
+        file_counts[:total],
         elapsed_time,
       )
     end

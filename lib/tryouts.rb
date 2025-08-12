@@ -23,11 +23,15 @@ class Tryouts
 
   module ClassMethods
     attr_accessor :container, :quiet, :noisy, :fails
-    attr_writer :debug
+    attr_writer :debug, :stack_traces
     attr_reader :cases, :testcase_io
 
     def debug?
       @debug == true
+    end
+
+    def stack_traces?
+      @stack_traces == true || debug?  # Debug mode auto-enables stack traces
     end
 
     def update_load_path(lib_glob)

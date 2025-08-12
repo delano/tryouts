@@ -26,8 +26,8 @@ class Tryouts
 
         #=>   Value equality        #==> Must be true         #=/=> Must be false
         #=|>  True OR false         #=!>  Must raise error    #=:>  Type matching
-        #=~>  Regex matching        #=%>  Time constraints    #=1>  STDOUT content
-        #=2>  STDERR content        #=<>  Intentional failure
+        #=~>  Regex matching        #=%>  Time constraints    #=*>  Non-nil result
+        #=1>  STDOUT content        #=2>  STDERR content      #=<>  Intentional failure
     HELP
 
     class << self
@@ -65,6 +65,10 @@ class Tryouts
           opts.on('-q', '--quiet', 'Minimal output (dots and summary only)') { options[:quiet]            = true }
           opts.on('-c', '--compact', 'Compact single-line output') { options[:compact]                    = true }
           opts.on('-l', '--live', 'Live status display') { options[:live_status]                          = true }
+          opts.on('-j', '--parallel [THREADS]', 'Run test files in parallel (optional thread count)') do |threads|
+            options[:parallel] = true
+            options[:parallel_threads] = threads.to_i if threads && threads.to_i > 0
+          end
 
           opts.separator "\nParser Options:"
           opts.on('--enhanced-parser', 'Use enhanced parser with inhouse comment extraction (default)') { options[:parser] = :enhanced }
@@ -74,10 +78,16 @@ class Tryouts
           opts.on('-i', '--inspect', 'Inspect file structure without running tests') { options[:inspect] = true }
 
           opts.separator "\nGeneral Options:"
+          opts.on('-s', '--stack-traces', 'Show stack traces for exceptions') do
+            options[:stack_traces] = true
+            Tryouts.stack_traces = true
+          end
           opts.on('-V', '--version', 'Show version') { options[:version] = true }
           opts.on('-D', '--debug', 'Enable debug mode') do
             options[:debug] = true
+            options[:stack_traces] = true  # Debug mode auto-enables stack traces
             Tryouts.debug   = true
+            Tryouts.stack_traces = true
           end
           opts.on('-h', '--help', 'Show this help') do
             puts opts

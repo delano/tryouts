@@ -10,6 +10,7 @@ class Tryouts
         super
         @show_errors        = options.fetch(:show_errors, true)
         @show_final_summary = options.fetch(:show_final_summary, true)
+        @show_stack_traces  = options.fetch(:stack_traces, false) || options.fetch(:debug, false)
         @current_file       = nil
       end
 
@@ -80,10 +81,10 @@ class Tryouts
         @stderr.puts
         @stderr.puts Console.color(:red, "ERROR: #{message}")
 
-        return unless backtrace && @show_debug
+        return unless backtrace && @show_stack_traces
 
-        backtrace.first(3).each do |line|
-          @stderr.puts "  #{line.chomp}"
+        Console.pretty_backtrace(backtrace, limit: 3).each do |line|
+          @stderr.puts "  #{line}"
         end
       end
 
