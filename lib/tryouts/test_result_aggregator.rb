@@ -59,11 +59,6 @@ class Tryouts
       @file_counts[:successful].increment
     end
 
-    # Update file-level counts (deprecated - use atomic increment methods)
-    def add_file_result(total_files: nil, successful: nil)
-      @file_counts[:total].value = total_files if total_files
-      @file_counts[:successful].value = successful if successful
-    end
 
     # Get counts that should be displayed in numbered failure lists
     # These match what actually appears in the failure summary
