@@ -107,7 +107,7 @@ class Tryouts
       executor = Concurrent::ThreadPoolExecutor.new(
         min_threads: 1,
         max_threads: pool_size,
-        max_queue: pool_size * 2, # Reasonable queue size
+        max_queue: @files.length, # Queue size must accommodate all files
         fallback_policy: :abort # Raise exception if pool and queue are exhausted
       )
 
