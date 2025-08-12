@@ -12,6 +12,7 @@ class Tryouts
         @show_passed    = options.fetch(:show_passed, true)
         @show_debug     = options.fetch(:debug, false)
         @show_trace     = options.fetch(:trace, false)
+        @show_stack_traces = options.fetch(:stack_traces, false) || options.fetch(:debug, false)
       end
 
       # Phase-level output
@@ -244,11 +245,11 @@ class Tryouts
         error_msg = Console.color(:red, "ERROR: #{message}")
         puts indent_text(error_msg, 1)
 
-        return unless backtrace && @show_debug
+        return unless backtrace && @show_stack_traces
 
         puts indent_text('Details:', 2)
         # Show first 10 lines of backtrace to avoid overwhelming output
-        backtrace.first(10).each do |line|
+        Console.pretty_backtrace(backtrace, limit: 10).each do |line|
           puts indent_text(line, 3)
         end
         puts indent_text("... (#{backtrace.length - 10} more lines)", 3) if backtrace.length > 10

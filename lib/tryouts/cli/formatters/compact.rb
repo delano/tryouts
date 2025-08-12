@@ -11,6 +11,7 @@ class Tryouts
         @show_debug  = options.fetch(:debug, false)
         @show_trace  = options.fetch(:trace, false)
         @show_passed = options.fetch(:show_passed, true)
+        @show_stack_traces = options.fetch(:stack_traces, false) || options.fetch(:debug, false)
       end
 
       # Phase-level output - minimal for compact mode
@@ -238,10 +239,10 @@ class Tryouts
       def error_message(message, backtrace: nil)
         @stderr.puts Console.color(:red, "ERROR: #{message}")
 
-        return unless backtrace && @show_debug
+        return unless backtrace && @show_stack_traces
 
-        backtrace.first(3).each do |line|
-          @stderr.puts indent_text(line.chomp, 1)
+        Console.pretty_backtrace(backtrace, limit: 3).each do |line|
+          @stderr.puts indent_text(line, 1)
         end
       end
 

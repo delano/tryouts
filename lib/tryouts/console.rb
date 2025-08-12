@@ -161,12 +161,34 @@ class Tryouts
       # directory. This simplifies logging and error reporting by showing
       # only the relevant parts of file paths instead of lengthy absolute paths.
       #
-      def pretty_path(file)
-        return nil if file.nil?
+      def pretty_path(filepath)
+        return nil if filepath.nil?
 
-        file     = File.expand_path(file) # be absolutely sure
         basepath = Dir.pwd
-        Pathname.new(file).relative_path_from(basepath).to_s
+        relative_path = Pathname.new(filepath).relative_path_from(basepath)
+        if relative_path.to_s.start_with?('..')
+          File.basename(filepath)
+        else
+          relative_path
+        end
+      end
+
+      # Format backtrace entries with pretty file paths
+      def pretty_backtrace(backtrace, limit: 10)
+        return [] unless backtrace&.any?
+
+        backtrace.first(limit).map do |frame|
+          # Split the frame to get file path and line info
+          if frame.match(/^(.+):(\d+):(.*)$/)
+            file_part = $1
+            line_part = $2
+            method_part = $3
+            pretty_file = pretty_path(file_part) || File.basename(file_part)
+            "#{pretty_file}:#{line_part}#{method_part}"
+          else
+            frame
+          end
+        end
       end
     end
   end
