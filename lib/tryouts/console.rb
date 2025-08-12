@@ -184,7 +184,8 @@ class Tryouts
 
         backtrace.first(limit).map do |frame|
           # Split the frame to get file path and line info
-          if frame.match(/^(.+):(\d+):(.*)$/)
+          # Use non-greedy match and more specific pattern to prevent ReDoS
+          if frame.match(/^([^:]+(?::[^:0-9][^:]*)*):(\d+):(.*)$/)
             file_part = $1
             line_part = $2
             method_part = $3
