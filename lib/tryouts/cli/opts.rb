@@ -74,10 +74,16 @@ class Tryouts
           opts.on('-i', '--inspect', 'Inspect file structure without running tests') { options[:inspect] = true }
 
           opts.separator "\nGeneral Options:"
+          opts.on('-s', '--stack-traces', 'Show stack traces for exceptions') do
+            options[:stack_traces] = true
+            Tryouts.stack_traces = true
+          end
           opts.on('-V', '--version', 'Show version') { options[:version] = true }
           opts.on('-D', '--debug', 'Enable debug mode') do
             options[:debug] = true
+            options[:stack_traces] = true  # Debug mode auto-enables stack traces
             Tryouts.debug   = true
+            Tryouts.stack_traces = true
           end
           opts.on('-h', '--help', 'Show this help') do
             puts opts

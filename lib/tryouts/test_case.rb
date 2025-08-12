@@ -154,9 +154,9 @@ class Tryouts
     def self.from_error(test_case, error, captured_output: nil, elapsed_time: nil, metadata: {})
       error_message = error ? error.message : '<exception is nil>'
 
-      # Include backtrace in error message when in debug/verbose mode
-      error_display = if error && Tryouts.debug?
-        backtrace_preview = error.backtrace&.first(3)&.join("\n    ")
+      # Include backtrace in error message when stack traces are enabled
+      error_display = if error && Tryouts.stack_traces?
+        backtrace_preview = Console.pretty_backtrace(error.backtrace, limit: 3).join("\n    ")
         "(#{error.class}) #{error_message}\n    #{backtrace_preview}"
       else
         "(#{error.class}) #{error_message}"

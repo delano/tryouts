@@ -53,7 +53,7 @@ class Tryouts
       file_failed_count                 = test_results.count { |r| r.failed? }
       file_error_count                  = test_results.count { |r| r.error? }
       executed_test_count               = test_results.size
-      
+
       # Note: Individual test results are added to the aggregator in TestBatch
       # Here we just update the file success count
       if success
