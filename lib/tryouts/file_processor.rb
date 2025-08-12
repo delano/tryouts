@@ -20,7 +20,7 @@ class Tryouts
 
     def process
       testrun                     = create_parser(@file, @options).parse
-      @global_tally[:aggregator].add_file_result(total_files: @global_tally[:aggregator].get_file_counts[:total] + 1)
+      @global_tally[:aggregator].increment_total_files
       @output_manager.file_parsed(@file, testrun.total_tests)
 
       if @options[:inspect]

@@ -19,6 +19,7 @@ Gem::Specification.new do |spec|
 
   spec.add_dependency 'irb'
   spec.add_dependency 'prism', '~> 1.0'
+  spec.add_dependency 'concurrent-ruby', '~> 1.0'
 
   # TTY ecosystem for live terminal formatting
   spec.add_dependency 'minitest', '~> 5.0'

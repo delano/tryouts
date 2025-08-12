@@ -1,6 +1,7 @@
 # lib/tryouts/test_result_aggregator.rb
 
 require_relative 'failure_collector'
+require 'concurrent'
 
 class Tryouts
   # Centralized test result aggregation to ensure counting consistency
@@ -8,16 +9,17 @@ class Tryouts
   class TestResultAggregator
     def initialize
       @failure_collector = FailureCollector.new
+      # Use thread-safe atomic counters
       @test_counts = {
-        total_tests: 0,
-        passed: 0,
-        failed: 0,
-        errors: 0
+        total_tests: Concurrent::AtomicFixnum.new(0),
+        passed: Concurrent::AtomicFixnum.new(0),
+        failed: Concurrent::AtomicFixnum.new(0),
+        errors: Concurrent::AtomicFixnum.new(0)
       }
-      @infrastructure_failures = []
+      @infrastructure_failures = Concurrent::Array.new
       @file_counts = {
-        total: 0,
-        successful: 0
+        total: Concurrent::AtomicFixnum.new(0),
+        successful: Concurrent::AtomicFixnum.new(0)
       }
     end
 
@@ -25,15 +27,15 @@ class Tryouts
 
     # Add a test-level result (from individual test execution)
     def add_test_result(file_path, result_packet)
-      @test_counts[:total_tests] += 1
+      @test_counts[:total_tests].increment
 
       if result_packet.passed?
-        @test_counts[:passed] += 1
+        @test_counts[:passed].increment
       elsif result_packet.failed?
-        @test_counts[:failed] += 1
+        @test_counts[:failed].increment
         @failure_collector.add_failure(file_path, result_packet)
       elsif result_packet.error?
-        @test_counts[:errors] += 1
+        @test_counts[:errors].increment
         @failure_collector.add_failure(file_path, result_packet)
       end
     end
@@ -48,18 +50,27 @@ class Tryouts
       }
     end
 
-    # Update file-level counts
+    # Atomic increment methods for file-level operations
+    def increment_total_files
+      @file_counts[:total].increment
+    end
+
+    def increment_successful_files
+      @file_counts[:successful].increment
+    end
+
+    # Update file-level counts (deprecated - use atomic increment methods)
     def add_file_result(total_files: nil, successful: nil)
-      @file_counts[:total] = total_files if total_files
-      @file_counts[:successful] = successful if successful
+      @file_counts[:total].value = total_files if total_files
+      @file_counts[:successful].value = successful if successful
     end
 
     # Get counts that should be displayed in numbered failure lists
     # These match what actually appears in the failure summary
     def get_display_counts
       {
-        total_tests: @test_counts[:total_tests],
-        passed: @test_counts[:passed],
+        total_tests: @test_counts[:total_tests].value,
+        passed: @test_counts[:passed].value,
         failed: @failure_collector.failure_count,
         errors: @failure_collector.error_count,
         total_issues: @failure_collector.total_issues
@@ -82,7 +93,10 @@ class Tryouts
 
     # Get file-level statistics
     def get_file_counts
-      @file_counts.dup
+      {
+        total: @file_counts[:total].value,
+        successful: @file_counts[:successful].value
+      }
     end
 
     # Get infrastructure failures for detailed reporting
@@ -103,17 +117,13 @@ class Tryouts
     # Reset for testing purposes
     def clear
       @failure_collector.clear
-      @test_counts = {
-        total_tests: 0,
-        passed: 0,
-        failed: 0,
-        errors: 0
-      }
+      @test_counts[:total_tests].value = 0
+      @test_counts[:passed].value = 0
+      @test_counts[:failed].value = 0
+      @test_counts[:errors].value = 0
       @infrastructure_failures.clear
-      @file_counts = {
-        total: 0,
-        successful: 0
-      }
+      @file_counts[:total].value = 0
+      @file_counts[:successful].value = 0
     end
 
     # Provide a summary string for debugging

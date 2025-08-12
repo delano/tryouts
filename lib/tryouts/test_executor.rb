@@ -55,10 +55,9 @@ class Tryouts
       executed_test_count               = test_results.size
 
       # Note: Individual test results are added to the aggregator in TestBatch
-      # Here we just update the file success count
+      # Here we just update the file success count atomically
       if success
-        current_successful = @global_tally[:aggregator].get_file_counts[:successful]
-        @global_tally[:aggregator].add_file_result(successful: current_successful + 1)
+        @global_tally[:aggregator].increment_successful_files
       end
 
       duration = Time.now.to_f - @file_start.to_f
