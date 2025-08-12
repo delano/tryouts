@@ -86,6 +86,9 @@ class Tryouts
           in [_, { type: :boolean_expectation }]
             current_block[:expectations] << token
 
+          in [_, { type: :non_nil_expectation }]
+            current_block[:expectations] << token
+
           in [_, { type: :result_type_expectation }]
             current_block[:expectations] << token
 
@@ -192,7 +195,7 @@ class Tryouts
           :expectation, :exception_expectation, :intentional_failure_expectation,
           :true_expectation, :false_expectation, :boolean_expectation,
           :result_type_expectation, :regex_match_expectation,
-          :performance_time_expectation, :output_expectation
+          :performance_time_expectation, :output_expectation, :non_nil_expectation
         ].include?(type)
       end
 
@@ -368,6 +371,7 @@ class Tryouts
                      when :regex_match_expectation then :regex_match
                      when :performance_time_expectation then :performance_time
                      when :output_expectation then :output
+                     when :non_nil_expectation then :non_nil
                      else :regular
                      end
 

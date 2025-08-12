@@ -12,6 +12,7 @@ require_relative 'regex_match'
 require_relative 'performance_time'
 require_relative 'intentional_failure'
 require_relative 'output'
+require_relative 'non_nil'
 
 class Tryouts
   module ExpectationEvaluators
@@ -61,6 +62,7 @@ class Tryouts
       register(PerformanceTime)
       register(IntentionalFailure)
       register(Output)
+      register(NonNil)
     end
   end
 end

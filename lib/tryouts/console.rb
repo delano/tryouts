@@ -162,14 +162,19 @@ class Tryouts
       # only the relevant parts of file paths instead of lengthy absolute paths.
       #
       def pretty_path(filepath)
-        return nil if filepath.nil?
+        return nil if filepath.nil? || filepath.empty?
 
         basepath = Dir.pwd
-        relative_path = Pathname.new(filepath).relative_path_from(basepath)
-        if relative_path.to_s.start_with?('..')
+        begin
+          relative_path = Pathname.new(filepath).relative_path_from(basepath)
+          if relative_path.to_s.start_with?('..')
+            File.basename(filepath)
+          else
+            relative_path.to_s
+          end
+        rescue ArgumentError
+          # Handle cases where filepath cannot be relativized (e.g., empty paths, different roots)
           File.basename(filepath)
-        else
-          relative_path
         end
       end
 

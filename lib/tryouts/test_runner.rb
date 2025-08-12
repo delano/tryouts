@@ -1,5 +1,6 @@
 # lib/tryouts/test_runner.rb
 
+require 'concurrent'
 require_relative 'parsers/prism_parser'
 require_relative 'parsers/enhanced_parser'
 require_relative 'test_batch'
@@ -77,6 +78,14 @@ class Tryouts
     end
 
     def process_files
+      if @options[:parallel] && @files.length > 1
+        process_files_parallel
+      else
+        process_files_sequential
+      end
+    end
+
+    def process_files_sequential
       failure_count = 0
 
       @files.each_with_index do |file, _idx|
@@ -85,6 +94,50 @@ class Tryouts
         status         = result.zero? ? Console.color(:green, 'PASS') : Console.color(:red, 'FAIL')
         @output_manager.info "#{status} #{Console.pretty_path(file)} (#{result} failures)", 1
       end
+
+      failure_count
+    end
+
+    def process_files_parallel
+      # Determine thread pool size
+      pool_size = @options[:parallel_threads] || Concurrent.processor_count
+      @output_manager.info "Running #{@files.length} files in parallel (#{pool_size} threads)", 1
+
+      # Create thread pool executor
+      executor = Concurrent::ThreadPoolExecutor.new(
+        min_threads: 1,
+        max_threads: pool_size,
+        max_queue: 0, # Unlimited queue
+        fallback_policy: :caller_runs # Run on main thread if pool is exhausted
+      )
+
+      # Submit all file processing tasks to the thread pool
+      futures = @files.map do |file|
+        Concurrent::Future.execute(executor: executor) do
+          process_file(file)
+        end
+      end
+
+      # Wait for all tasks to complete and collect results
+      failure_count = 0
+      futures.each_with_index do |future, idx|
+        begin
+          result = future.value # This blocks until the future completes
+          failure_count += result unless result.zero?
+
+          status = result.zero? ? Console.color(:green, 'PASS') : Console.color(:red, 'FAIL')
+          file = @files[idx]
+          @output_manager.info "#{status} #{Console.pretty_path(file)} (#{result} failures)", 1
+        rescue StandardError => ex
+          failure_count += 1
+          file = @files[idx]
+          @output_manager.info "#{Console.color(:red, 'ERROR')} #{Console.pretty_path(file)} (#{ex.message})", 1
+        end
+      end
+
+      # Shutdown the thread pool
+      executor.shutdown
+      executor.wait_for_termination(10) # Wait up to 10 seconds for clean shutdown
 
       failure_count
     end

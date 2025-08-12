@@ -39,6 +39,8 @@ class Tryouts
                   { type: :false_expectation, content: $1.strip, line: index, ast: parse_expectation($1.strip) }
                 in /^#\s*=\|>\s*(.*)$/ # Boolean (true or false) expectation
                   { type: :boolean_expectation, content: $1.strip, line: index, ast: parse_expectation($1.strip) }
+                in /^#\s*=\*>\s*(.*)$/ # Non-nil expectation
+                  { type: :non_nil_expectation, content: $1.strip, line: index }
                 in /^#\s*=:>\s*(.*)$/ # Result type expectation
                   { type: :result_type_expectation, content: $1.strip, line: index, ast: parse_expectation($1.strip) }
                 in /^#\s*=~>\s*(.*)$/ # Regex match expectation

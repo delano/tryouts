@@ -86,6 +86,8 @@ class Tryouts
         { type: :false_expectation, content: $1.strip, line: line_number - 1, ast: parse_expectation($1.strip) }
       when /^#\s*=\|>\s*(.*)$/
         { type: :boolean_expectation, content: $1.strip, line: line_number - 1, ast: parse_expectation($1.strip) }
+      when /^#\s*=\*>\s*(.*)$/
+        { type: :non_nil_expectation, content: $1.strip, line: line_number - 1 }
       when /^#\s*=:>\s*(.*)$/
         { type: :result_type_expectation, content: $1.strip, line: line_number - 1, ast: parse_expectation($1.strip) }
       when /^#\s*=~>\s*(.*)$/
