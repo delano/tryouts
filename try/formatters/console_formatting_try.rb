@@ -91,7 +91,7 @@ Tryouts::Console.pretty_path(nil)
 ## TEST: pretty_path with simple filename
 test_file = File.expand_path('test_file.rb')
 result    = Tryouts::Console.pretty_path(test_file)
-result
+result.to_s
 #=> "test_file.rb"
 
 ## TEST: pretty_path removes absolute path prefix
@@ -104,7 +104,7 @@ result.end_with?('file.rb')
 # Test that it creates relative paths correctly
 test_file = File.expand_path('lib/tryouts/console.rb')
 result    = Tryouts::Console.pretty_path(test_file)
-result.include?('console.rb')
+result.to_s.include?('console.rb')
 #=> true
 
 ## TEST: Random color generates valid color codes
