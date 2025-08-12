@@ -105,3 +105,45 @@ jobs:
 
       - name: Test quiet mode
         run: bundle exec exe/try -q try/core/advanced_syntax_try.rb
+
+  parser-matrix:
+    timeout-minutes: 10
+    runs-on: ubuntu-24.04
+    name: "Parser: ${{ matrix.parser }} (Ruby ${{ matrix.ruby }})"
+    continue-on-error: false
+    strategy:
+      fail-fast: true
+      matrix:
+        ruby: ["3.4", "3.5"]
+        parser: [enhanced, prism]
+        include:
+          - parser: enhanced
+            parser_flag: "--enhanced-parser"
+          - parser: prism
+            parser_flag: "--legacy-parser"
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ matrix.ruby }}
+          bundler-cache: false
+
+      - name: Configure bundle groups
+        run: bundle config set --local without 'development'
+
+      - name: Install dependencies
+        run: bundle install
+
+      - name: Test core functionality with ${{ matrix.parser }} parser
+        run: FORCE_COLOR=1 bundle exec exe/try ${{ matrix.parser_flag }} try/core/
+
+      - name: Test expectations with ${{ matrix.parser }} parser
+        run: FORCE_COLOR=1 bundle exec exe/try ${{ matrix.parser_flag }} try/expectations/
+
+      - name: Test new non-nil expectation with ${{ matrix.parser }} parser
+        run: FORCE_COLOR=1 bundle exec exe/try ${{ matrix.parser_flag }} try/expectations/non_nil_expectations_try.rb
+
+      - name: Test parallel execution with ${{ matrix.parser }} parser
+        run: FORCE_COLOR=1 bundle exec exe/try ${{ matrix.parser_flag }} -j2 try/core/basic_syntax_try.rb try/core/advanced_syntax_try.rb
