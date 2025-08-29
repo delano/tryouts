@@ -82,15 +82,13 @@ class Tryouts
       # Smart truncate for different data types
       def smart_truncate(value, max_tokens: nil)
         max_tokens ||= [remaining / 2, 50].min  # Use half remaining or 50, whichever is smaller
-        max_chars = max_tokens * 4
+        max_chars = [max_tokens.to_i * 4, 0].max
 
         case value
         when String
-          if value.length <= max_chars
-            value
-          else
-            "#{value[0, max_chars - 3]}..."
-          end
+          return value if value.length <= max_chars
+          return '...' if max_chars <= 3
+          "#{value[0, max_chars - 3]}..."
         when Array
           if estimate_tokens(value.inspect) <= max_tokens
             value.inspect

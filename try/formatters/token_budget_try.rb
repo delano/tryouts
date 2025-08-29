@@ -12,19 +12,19 @@ require_relative '../../lib/tryouts/cli/formatters/token_budget'
 #=> 0
 
 ## Test custom initialization
-@@custom_budget = Tryouts::CLI::TokenBudget.new(1000)
-@@custom_budget.limit
+@custom_budget = Tryouts::CLI::TokenBudget.new(1000)
+@custom_budget.limit
 #=> 1000
 
 ## Test buffer calculation (5% buffer)
 expected_buffer = (1000 * 0.05).to_i
-remaining_with_buffer = @@custom_budget.remaining
+remaining_with_buffer = @custom_budget.remaining
 remaining_with_buffer
 #=> 950  # 1000 - 50 (5% buffer)
 
 # Test token estimation accuracy
 text_4_chars = "test"
-@@custom_budget.estimate_tokens(text_4_chars)
+@custom_budget.estimate_tokens(text_4_chars)
 #=> 1
 
 text_8_chars = "testtest"

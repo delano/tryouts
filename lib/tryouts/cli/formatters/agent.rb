@@ -52,25 +52,7 @@ class Tryouts
           @collected_files << @current_file_data
           @current_file_data = nil
         end
-
-        # If this is the end of all file processing (single file case) and we haven't output yet
-        if @total_stats[:files] <= 1 && !@output_rendered
-          # Render output now - this handles the single file case where batch_summary is not called
-          # Count failures manually from collected file data since file_result may not be called
-          total_tests = @total_stats[:tests]
-          failed_count = @collected_files.sum { |f| f[:failures].size }
-          error_count = @collected_files.sum { |f| f[:errors].size }
-          elapsed_time = @total_stats[:elapsed]
-
-          grand_total(
-            total_tests: total_tests,
-            failed_count: failed_count,
-            error_count: error_count,
-            successful_files: @collected_files.size - @collected_files.count { |f| f[:failures].any? || f[:errors].any? },
-            total_files: @collected_files.size,
-            elapsed_time: elapsed_time
-          )
-        end
+        # REMOVED: No longer attempts to render here to avoid premature output
       end
 
       def file_parsed(_file_path, test_count:, setup_present: false, teardown_present: false)
@@ -79,13 +61,15 @@ class Tryouts
       end
 
       def file_result(_file_path, total_tests:, failed_count:, error_count:, elapsed_time: nil)
-        return unless @current_file_data
-
-
-        @current_file_data[:passed] = total_tests - failed_count - error_count
+        # Always update global totals
         @total_stats[:failures] += failed_count
         @total_stats[:errors] += error_count
         @total_stats[:elapsed] += elapsed_time if elapsed_time
+
+        # Update per-file data when available
+        if @current_file_data
+          @current_file_data[:passed] = total_tests - failed_count - error_count
+        end
       end
 
 
@@ -121,26 +105,17 @@ class Tryouts
         end
       end
 
-      # Summary operations - if we get batch_summary, we should render now
+      # Summary operations - reliable trigger for rendering
       def batch_summary(failure_collector)
-        # ALWAYS render output at batch summary time (this is the end for single files)
-        if !@output_rendered
-          # Simulate grand_total call with current data
-          # Count failures manually from collected file data
-          total_tests = @total_stats[:tests]
-          failed_count = @collected_files.sum { |f| f[:failures].size }
-          error_count = @collected_files.sum { |f| f[:errors].size }
-          elapsed_time = @total_stats[:elapsed]
-
-          grand_total(
-            total_tests: total_tests,
-            failed_count: failed_count,
-            error_count: error_count,
-            successful_files: @collected_files.size - @collected_files.count { |f| f[:failures].any? || f[:errors].any? },
-            total_files: @collected_files.size,
-            elapsed_time: elapsed_time
-          )
-        end
+        # This becomes the single, reliable trigger for rendering
+        grand_total(
+          total_tests: @total_stats[:tests],
+          failed_count: @collected_files.sum { |f| f[:failures].size },
+          error_count: @collected_files.sum { |f| f[:errors].size },
+          successful_files: @collected_files.size - @collected_files.count { |f| f[:failures].any? || f[:errors].any? },
+          total_files: @collected_files.size,
+          elapsed_time: @total_stats[:elapsed]
+        ) unless @output_rendered
       end
 
       def grand_total(total_tests:, failed_count:, error_count:, successful_files:, total_files:, elapsed_time:)
@@ -312,11 +287,16 @@ class Tryouts
         issues_count = @total_stats[:failures] + @total_stats[:errors]
         passed_count = [@total_stats[:tests] - issues_count, 0].max
 
+        files_count = if @total_stats[:files].to_i > 0
+          @total_stats[:files]
+        else
+          @total_stats[:total_files] || @collected_files.size
+        end
 
         if issues_count > 0
-          status_line = "FAIL: #{issues_count}/#{@total_stats[:tests]} tests (#{@total_stats[:files]} files, #{format_time(@total_stats[:elapsed])})"
+          status_line = "FAIL: #{issues_count}/#{@total_stats[:tests]} tests (#{files_count} files, #{format_time(@total_stats[:elapsed])})"
         else
-          status_line = "PASS: #{@total_stats[:tests]} tests (#{@total_stats[:files]} files, #{format_time(@total_stats[:elapsed])})"
+          status_line = "PASS: #{@total_stats[:tests]} tests (#{files_count} files, #{format_time(@total_stats[:elapsed])})"
         end
 
         # Always include status line
