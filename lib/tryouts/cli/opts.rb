@@ -26,11 +26,17 @@ class Tryouts
         --agent-limit 1000                      # Limit output to 1000 tokens
 
       File Naming & Organization:
-        Files must end with '_try.rb' (e.g., auth_service_try.rb, user_model_try.rb)
-        Auto-discovery searches: ./try/, ./tryouts/, ./*_try.rb patterns
+        Files must end with '_try.rb' or '.try.rb' (e.g., auth_service_try.rb, user_model.try.rb)
+        Auto-discovery searches: ./try/, ./tryouts/, ./*_try.rb, ./*.try.rb patterns
         Organize by feature/module: try/models/, try/services/, try/api/
 
-      File Structure (3-section format):
+      Testcase Structure (3 required parts)
+        ## This is the description
+        echo 'This is ruby code under test'
+        true
+        #=> true  # this is the expected result
+
+      File Structure (3 sections):
         # Setup section (optional) - runs once before all tests
         @shared_var = "available to all test cases"
 
