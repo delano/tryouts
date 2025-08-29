@@ -13,6 +13,38 @@ permissions:
   contents: read
 
 jobs:
+  # Agent-optimized output for debugging CI failures efficiently
+  # Runs tests with structured output that's easier for AI agents to parse
+  # Use this job first when investigating failures, then human output for details
+  agent-output:
+    timeout-minutes: 10
+    runs-on: ubuntu-24.04
+    name: "Agent Output: ${{ matrix.testgroup }} - ${{ matrix.focus }} (Ruby ${{ matrix.ruby }})"
+    continue-on-error: false
+    strategy:
+      fail-fast: true
+      matrix:
+        ruby: ["3.4", "3.5"]
+        testgroup: [core, expectations, formatters, translators]
+        focus: [summary, first-failure, critical]
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ matrix.ruby }}
+          bundler-cache: false
+
+      - name: Configure bundle groups
+        run: bundle config set --local without 'development'
+
+      - name: Install dependencies
+        run: bundle install
+
+      - name: Run tests with agent output (${{ matrix.focus }} focus)
+        run: bundle exec exe/try --agent --agent-focus ${{ matrix.focus }} try/${{ matrix.testgroup }}
+
   tryouts-groups:
     timeout-minutes: 10
     runs-on: ubuntu-24.04
@@ -105,6 +137,18 @@ jobs:
 
       - name: Test quiet mode
         run: bundle exec exe/try -q try/core/advanced_syntax_try.rb
+
+      - name: Test agent mode
+        run: bundle exec exe/try --agent try/core/advanced_syntax_try.rb
+
+      - name: Test agent with summary focus
+        run: bundle exec exe/try --agent --agent-focus summary try/formatters/
+
+      - name: Test agent with first-failure focus
+        run: bundle exec exe/try --agent --agent-focus first-failure try/safety/
+
+      - name: Test agent with critical focus
+        run: bundle exec exe/try --agent --agent-focus critical try/
 
   parser-matrix:
     timeout-minutes: 10
