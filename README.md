@@ -1,4 +1,4 @@
-# Tryouts v3.1
+# Tryouts v3
 
 **Ruby tests that read like documentation.**
 
