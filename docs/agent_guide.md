@@ -144,14 +144,14 @@ Focus on readable, realistic Ruby code that demonstrates actual usage.
 
 ## Tryouts Execution Context Modes
 
-Shared Context (--shared-context or default in some modes)
+**Shared Context (default for Tryouts)**
 
 - Setup runs once at file start
 - All tests share the same container object
 - Instance variables persist across all test cases
 - State accumulates - changes in test 1 affect test 2, etc.
 
-Fresh Context (default for most modes)
+**Fresh Context (default for RSpec/Minitest modes)**
 
 - Setup runs once at file start in a setup container
 - Each test gets a new container object
