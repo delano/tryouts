@@ -1,0 +1,168 @@
+======================================================================
+                          PROCESSING 1 FILES
+======================================================================
+
+  ----------------------------------------------------------------------
+  >>>>>  try/formatters/agent_formatter_try.rb  <<<<<<<<<<<<<<<<<<<<<<<<
+  ----------------------------------------------------------------------
+    Executing global setup (lines 3..5)
+    Test 1/21: Test TokenBudget initialization and basic functionality
+
+    PASSED @ try/formatters/agent_formatter_try.rb:10
+          7: ## Test TokenBudget initialization and basic functionality
+          8: @budget = Tryouts::CLI::TokenBudget.new(100)
+          9: @budget.limit
+         10: #=> 100
+
+    Test 2/21: Unnamed test
+
+    PASSED @ try/formatters/agent_formatter_try.rb:13
+         12: @budget.used
+         13: #=> 0
+
+    Test 3/21: Unnamed test
+
+    PASSED @ try/formatters/agent_formatter_try.rb:16
+         15: @budget.remaining > 90  # Account for 5% buffer
+         16: #=> true
+
+    Test 4/21: Test token estimation (1 token ≈ 4 characters)
+
+    PASSED @ try/formatters/agent_formatter_try.rb:20
+         18: ## Test token estimation (1 token ≈ 4 characters)
+         19: @budget.estimate_tokens("test")
+         20: #=> 1
+
+    Test 5/21: Unnamed test
+
+    PASSED @ try/formatters/agent_formatter_try.rb:23
+         22: @budget.estimate_tokens("hello world")
+         23: #=> 3
+
+    Test 6/21: Test budget consumption
+
+    PASSED @ try/formatters/agent_formatter_try.rb:27
+         25: ## Test budget consumption
+         26: @budget.consume("test")
+         27: #=> true
+
+    Test 7/21: Unnamed test
+
+    PASSED @ try/formatters/agent_formatter_try.rb:30
+         29: @budget.used
+         30: #=> 1
+
+    Test 8/21: Unnamed test
+
+    PASSED @ try/formatters/agent_formatter_try.rb:33
+         32: @budget.remaining < 95
+         33: #=> true
+
+    Test 9/21: Test would_exceed functionality
+
+    PASSED @ try/formatters/agent_formatter_try.rb:37
+         35: ## Test would_exceed functionality
+         36: @budget.would_exceed?("a" * 400)  # Should exceed 100 token limit with buffer
+         37: #=> true
+
+    Test 10/21: Unnamed test
+
+    PASSED @ try/formatters/agent_formatter_try.rb:41
+         39: short_text = "short"
+         40: @budget.would_exceed?(short_text)
+         41: #=> false
+
+    Test 11/21: Test smart truncation for different data types
+
+    PASSED @ try/formatters/agent_formatter_try.rb:50
+         43: ## Test smart truncation for different data types
+         44: @budget_large = Tryouts::CLI::TokenBudget.new(1000)
+         45:
+         46: # String truncation
+         47: long_string = "a" * 200
+         48: @result = @budget_large.smart_truncate(long_string, max_tokens: 10)
+         49: @result.length < long_string.length
+         50: #=> true
+
+    Test 12/21: Unnamed test
+
+    PASSED @ try/formatters/agent_formatter_try.rb:53
+         52: @result.end_with?("...")
+         53: #==> true
+
+    Test 13/21: Test array truncation
+
+    PASSED @ try/formatters/agent_formatter_try.rb:59
+         55: ## Test array truncation
+         56: large_array = (1..50).to_a
+         57: truncated = @budget_large.smart_truncate(large_array, max_tokens: 20)
+         58: truncated.include?("more")
+         59: #=> true
+
+    Test 14/21: Test budget allocation strategy
+
+    PASSED @ try/formatters/agent_formatter_try.rb:64
+         61: ## Test budget allocation strategy
+         62: allocation = @budget_large.allocate_budget
+         63: allocation[:summary] + allocation[:failures] + allocation[:context] + allocation[:buffer]
+         64: #=> 1000
+
+    Test 15/21: Test AgentFormatter initialization
+
+    PASSED @ try/formatters/agent_formatter_try.rb:69
+         66: ## Test AgentFormatter initialization
+         67: @formatter = Tryouts::CLI::AgentFormatter.new
+         68: @formatter.class.name
+         69: #=> "Tryouts::CLI::AgentFormatter"
+
+    Test 16/21: Test AgentFormatter with options
+
+    PASSED @ try/formatters/agent_formatter_try.rb:78
+         71: ## Test AgentFormatter with options
+         72: opts_formatter = Tryouts::CLI::AgentFormatter.new({
+         73:   agent_limit: 2000,
+         74:   agent_focus: :summary
+         75: })
+         76: # Should initialize without errors
+         77: opts_formatter.class
+         78: #=> Tryouts::CLI::AgentFormatter
+
+    Test 17/21: Test relative path functionality (private method)
+
+    PASSED @ try/formatters/agent_formatter_try.rb:82
+         80: ## Test relative path functionality (private method)
+         81: @formatter.send(:relative_path, "/tmp/test.rb").end_with?("test.rb")
+         82: #=> true
+
+    Test 18/21: Test time formatting (private method)
+
+    PASSED @ try/formatters/agent_formatter_try.rb:86
+         84: ## Test time formatting (private method)
+         85: @formatter.send(:format_time, 0.0001)  # 100 microseconds
+         86: #=> "100μs"
+
+    Test 19/21: Unnamed test
+
+    PASSED @ try/formatters/agent_formatter_try.rb:89
+         88: @formatter.send(:format_time, 0.05)    # 50 milliseconds
+         89: #=> "50ms"
+
+    Test 20/21: Unnamed test
+
+    PASSED @ try/formatters/agent_formatter_try.rb:92
+         91: @formatter.send(:format_time, 1.5)     # 1.5 seconds
+         92: #=> "1.5s"
+
+    Test 21/21: Test that agent mode has no colors
+
+    PASSED @ try/formatters/agent_formatter_try.rb:96
+         94: ## Test that agent mode has no colors
+         95: @formatter.instance_variable_get(:@use_colors)
+         96: #=> false
+
+    Executing teardown (lines 97..97)
+
+Agent formatter tests completed successfully
+
+    ✓ 21 tests passed
+    Completed in 4ms

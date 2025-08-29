@@ -1,0 +1,13 @@
+CRITICAL: 1 file with errors
+
+try/formatters/token_budget_try.rb:
+  L32: NoMethodError: undefined method 'estimate_tokens' for nil
+  L36: NoMethodError: undefined method 'estimate_tokens' for nil
+  L40: NoMethodError: undefined method 'estimate_tokens' for nil
+  L45: NoMethodError: undefined method 'consume' for nil
+  L48: NoMethodError: undefined method 'used' for nil
+  L51: NoMethodError: undefined method 'remaining' for nil
+  L56: NoMethodError: undefined method 'would_exceed?' for nil
+  L60: NoMethodError: undefined method 'would_exceed?' for nil
+  L66: NoMethodError: undefined method 'force_consume' for nil
+  L70: NoMethodError: undefined method 'used' for nil
