@@ -18,18 +18,63 @@ class Tryouts
         try --agent test_try.rb                  # Agent-optimized structured output
         try --agent --agent-limit 10000 tests/  # Agent mode with 10K token limit
 
-      File Format:
-        ## Test description       # Test case marker
-        code_to_test              # Ruby code
-        #=> expected_result       # Expectation (various types available)
+      Agent Output Modes:
+        --agent                                  # Structured, token-efficient output
+        --agent-focus summary                    # Show counts and problem files only
+        --agent-focus first-failure              # Show first failure per file
+        --agent-focus critical                   # Show errors/exceptions only
+        --agent-limit 1000                      # Limit output to 1000 tokens
+
+      File Naming & Organization:
+        Files must end with '_try.rb' (e.g., auth_service_try.rb, user_model_try.rb)
+        Auto-discovery searches: ./try/, ./tryouts/, ./*_try.rb patterns
+        Organize by feature/module: try/models/, try/services/, try/api/
+
+      File Structure (3-section format):
+        # Setup section (optional) - runs once before all tests
+        @shared_var = "available to all test cases"
+
+        ## TEST: Feature description
+        # Test case body with plain Ruby code
+        result = some_operation()
+        #=> expected_value
+
+        # Teardown section (optional) - runs once after all tests
+
+      Context Guidelines:
+        Shared Context (default): Instance variables persist across test cases
+          - Use for: Integration testing, stateful scenarios, realistic workflows
+          - Caution: Test order matters, state accumulates
+
+        Fresh Context (--rspec/--minitest): Each test gets isolated environment
+          - Use for: Unit testing, independent test cases
+          - Setup variables copied to each test, but changes don't persist
+
+      Writing Quality Tryouts:
+        - Use realistic, plain Ruby code (avoid mocks, test harnesses)
+        - Test descriptions start with ##, be specific about what's being tested
+        - One result per test case (last expression is the result)
+        - Use appropriate expectation types for clarity (#==> for boolean, #=:> for types)
+        - Keep tests focused and readable - they serve as documentation
 
       Great Expectations System:
-        Multiple expectation types are supported for different testing needs.
-
         #=>   Value equality        #==> Must be true         #=/=> Must be false
         #=|>  True OR false         #=!>  Must raise error    #=:>  Type matching
         #=~>  Regex matching        #=%>  Time constraints    #=*>  Non-nil result
         #=1>  STDOUT content        #=2>  STDERR content      #=<>  Intentional failure
+
+      Exception Testing:
+        # Method 1: Rescue and test exception
+        begin
+          risky_operation
+        rescue StandardError => e
+          e.class
+        end
+        #=> StandardError
+
+        # Method 2: Let it raise and test with #=!>
+        risky_operation
+        #=!> error.is_a?(StandardError)
     HELP
 
     class << self
