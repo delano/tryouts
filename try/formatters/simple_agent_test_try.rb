@@ -8,6 +8,7 @@ require_relative '../../lib/tryouts/cli/formatters/token_budget'
 @budget.limit
 #=> 100
 
+## Test TokenBudget starts with zero usage
 @budget.used
 #=> 0
 
@@ -19,6 +20,7 @@ require_relative '../../lib/tryouts/cli/formatters/token_budget'
 @budget.consume("hi")
 #=> true
 
+## Test budget tracks consumption
 @budget.used > 0
 #=> true
 

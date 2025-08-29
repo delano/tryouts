@@ -7,6 +7,7 @@ require_relative '../../lib/tryouts/console'
 Tryouts::Console::COLOURS.keys.include?(:red)
 #=> true
 
+## TEST: Red color has correct ANSI code
 Tryouts::Console::COLOURS[:red]
 #=> 31
 
