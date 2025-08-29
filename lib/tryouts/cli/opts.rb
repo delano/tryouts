@@ -15,6 +15,8 @@ class Tryouts
         try --direct --shared-context test_try.rb # Explicit shared context
         try --generate-rspec test_try.rb         # Output RSpec code only
         try --inspect test_try.rb                # Inspect file structure and validation
+        try --agent test_try.rb                  # Agent-optimized structured output
+        try --agent --agent-limit 10000 tests/  # Agent mode with 10K token limit
 
       File Format:
         ## Test description       # Test case marker
@@ -68,6 +70,20 @@ class Tryouts
           opts.on('-j', '--parallel [THREADS]', 'Run test files in parallel (optional thread count)') do |threads|
             options[:parallel] = true
             options[:parallel_threads] = threads.to_i if threads && threads.to_i > 0
+          end
+
+          opts.separator "\nAgent-Optimized Output:"
+          opts.on('-a', '--agent', 'Agent-optimized structured output for LLM context management') do
+            options[:agent] = true
+          end
+          opts.on('--agent-limit TOKENS', Integer, 'Limit total output to token budget (default: 5000)') do |limit|
+            options[:agent] = true
+            options[:agent_limit] = limit
+          end
+          opts.on('--agent-focus TYPE', %w[failures first-failure summary critical],
+                  'Focus mode: failures, first-failure, summary, critical (default: failures)') do |focus|
+            options[:agent] = true
+            options[:agent_focus] = focus.to_sym
           end
 
           opts.separator "\nParser Options:"
