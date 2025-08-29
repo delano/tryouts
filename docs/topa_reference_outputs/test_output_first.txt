@@ -1,0 +1,7 @@
+FAIL: 10/37 tests (1 files, 0μs)
+
+try/formatters/token_budget_try.rb:
+  L32: NoMethodError: undefined method 'estimate_tokens' for nil
+  ... (9 more failures not shown)
+
+Summary: 27 passed, 0 failed, 10 errors in 1 files

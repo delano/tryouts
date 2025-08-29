@@ -38,7 +38,13 @@ class Tryouts
       result = process_files
       show_failure_summary
       show_grand_total if @global_tally[:aggregator].get_file_counts[:total] > 1
-      result
+
+      # For agent critical mode, only count errors as failures
+      if @options[:agent] && (@options[:agent_focus] == :critical || @options[:agent_focus] == 'critical')
+        @global_tally[:aggregator].get_display_counts[:errors]
+      else
+        result
+      end
     end
 
     private

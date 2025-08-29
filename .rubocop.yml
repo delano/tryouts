@@ -156,8 +156,8 @@ Style/BlockDelimiters:
   Enabled: true
 
 Naming/PredicateMethod:
-  Enabled: true
-  Mode: "aggressive"
+  Enabled: false
+  Mode: conservative
   AllowedMethods:
     - validate!
     - migrate

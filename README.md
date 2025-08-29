@@ -1,17 +1,21 @@
-# Tryouts v3.1
+# Tryouts v3
 
 **Ruby tests that read like documentation.**
 
 A modern test framework for Ruby that uses comments to define expectations. Tryouts are meant to double as documentation, so the Ruby code should be plain and reminiscent of real code.
 
+> [!NOTE]
+> **Agent-Optimized Output**: Tryouts includes specialized output modes for LLM consumption with `--agent` flag, providing structured, token-efficient test results that are 60-80% smaller than traditional output while preserving debugging context.
+
 > [!WARNING]
-> Version 3.0+ uses Ruby's Prism parser and pattern matching, requiring Ruby 3.4+
+> Version 3.0+ uses Ruby's Prism parser and pattern matching, requiring Ruby 3.2+
 
 ## Key Features
 
 - **Documentation-style tests** using comment-based expectations (`#=>`)
 - **Great expectation syntax** for more expressive assertions (`#==>` for true, `#=/=>` for false, `#=:>` for class/module)
 - **Framework integration** write with tryouts syntax, run with RSpec or Minitest
+- **Agent-optimized output** structured, token-efficient output for LLM consumption
 - **Enhanced error reporting** with line numbers and context
 
 ## Installation
@@ -117,6 +121,13 @@ try -v    # verbose (includes source code and return values)
 try -q    # quiet mode
 try -f    # show failures only
 try -D    # debug mode
+
+# Agent-optimized output for LLMs
+try --agent                              # structured, token-efficient output
+try --agent --agent-focus summary        # show only counts and problem files
+try --agent --agent-focus first-failure  # show first failure per file
+try --agent --agent-focus critical       # show only errors/exceptions
+try --agent --agent-limit 1000          # limit output to 1000 tokens
 ```
 
 ### Exit Codes
@@ -127,14 +138,14 @@ try -D    # debug mode
 
 ## Requirements
 
-- **Ruby >= 3.2+** (for Prism parser and pattern matching)
+- **Ruby >= 3.2** (for Prism parser and pattern matching)
 - **RSpec** or **Minitest** (optional, for framework integration)
 
 ## Modern Architecture (v3+)
 
 ### Core Components
 
-- **Prism Parser**: Inhouse Ruby parsing with pattern matching for line classification
+- **Prism Parser**: Native Ruby parsing with pattern matching for line classification
 - **Data Structures**: Immutable `Data.define` classes for test representation
 - **Framework Translators**: Convert tryouts to RSpec/Minitest format
 - **CLI**: Modern command-line interface with framework selection

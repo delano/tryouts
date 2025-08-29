@@ -12,6 +12,11 @@ class Tryouts
       end
 
       def self.create_formatter(options = {})
+        # Check for agent mode first (takes precedence)
+        if options[:agent]
+          return AgentFormatter.new(options)
+        end
+
         # Map boolean flags to format symbols if format not explicitly set
         format = options[:format]&.to_sym || determine_format_from_flags(options)
 
