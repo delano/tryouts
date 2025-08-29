@@ -142,7 +142,7 @@ jobs:
         run: bundle exec exe/try --agent try/core/advanced_syntax_try.rb
 
       - name: Test agent with summary focus
-        run: bundle exec exe/try --agent --agent-focus summary try/formatters/
+        run: bundle exec exe/try --agent --agent-focus summary try/core/
 
       - name: Test agent with first-failure focus
         run: bundle exec exe/try --agent --agent-focus first-failure try/safety/
