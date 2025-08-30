@@ -259,31 +259,34 @@ class Tryouts
         issues_count = failed_count + error_count
         passed_count = [@total_stats[:tests] - issues_count, 0].max
 
+        status_parts = []
         if issues_count > 0
-          status = "FAIL: #{issues_count}/#{@total_stats[:tests]} tests"
           details = []
           details << "#{failed_count} failed" if failed_count > 0
           details << "#{error_count} errors" if error_count > 0
-          status += " (#{details.join(', ')}, #{passed_count} passed)"
+          status_parts << "FAIL: #{issues_count}/#{@total_stats[:tests]} tests (#{details.join(', ')}, #{passed_count} passed)"
+        else
+          # Agent doesn't need output in the positive case (i.e. for passing
+          # tests). It just fills out the context window.
         end
 
-        status += " (#{format_time(@total_stats[:elapsed])})" if @total_stats[:elapsed]
+        status_parts << "(#{format_time(@total_stats[:elapsed])})" if @total_stats[:elapsed]
 
-        output << status
+        output << status_parts.join(" ")
 
         # Always show file information for agent context
         output << ""
 
         files_with_issues = @collected_files.select { |f| f[:failures].any? || f[:errors].any? }
         if files_with_issues.any?
-          output << "Files with issues:"
+          output << "Files:"
           files_with_issues.each do |file_data|
             issue_count = file_data[:failures].size + file_data[:errors].size
             output << "  #{file_data[:path]}: #{issue_count} issue#{'s' if issue_count != 1}"
           end
-        else
+        elsif @collected_files.any?
           # Show files that were processed successfully
-          output << "Files processed:"
+          output << "Files:"
           @collected_files.each do |file_data|
             # Use the passed count from file_result if available, otherwise calculate
             passed_tests = file_data[:passed] ||
@@ -292,7 +295,7 @@ class Tryouts
           end
         end
 
-        puts output.join("\n")
+        puts output.join("\n") if output.any?
       end
 
       def render_critical_only
