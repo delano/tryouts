@@ -35,12 +35,12 @@ class Tryouts
         extras << 'teardown' if teardown_present
         message += " (#{extras.join(', ')})" unless extras.empty?
 
-        puts(indent_text(message, 2))
+        puts(indent_text(message, 1))
       end
 
       def file_execution_start(_file_path, test_count:, context_mode:)
         message = "Running #{test_count} tests with #{context_mode} context"
-        puts(indent_text(message, 1))
+        puts(indent_text(message, 0))
       end
 
       # Summary operations - show detailed failure summary
@@ -94,17 +94,17 @@ class Tryouts
 
           time_str = elapsed_time ? " (#{elapsed_time.round(2)}s)" : ''
           message = "✗ Out of #{total_tests} tests: #{details_str}#{time_str}"
-          puts indent_text(Console.color(color, message), 2)
+          puts indent_text(Console.color(color, message), 1)
         else
           message = "#{total_tests} tests passed"
           color = :green
-          puts indent_text(Console.color(color, "✓ #{message}"), 2)
+          puts indent_text(Console.color(color, "✓ #{message}"), 1)
         end
 
         return unless elapsed_time
 
         time_msg = "Completed in #{format_timing(elapsed_time).strip.tr('()', '')}"
-        puts indent_text(Console.color(:dim, time_msg), 2)
+        puts indent_text(Console.color(:dim, time_msg), 1)
       end
 
       # Test-level operations
@@ -114,7 +114,7 @@ class Tryouts
         desc = test_case.description.to_s
         desc = 'Unnamed test' if desc.empty?
         message = "Test #{index}/#{total}: #{desc}"
-        puts indent_text(Console.color(:dim, message), 2)
+        puts indent_text(Console.color(:dim, message), 1)
       end
 
       def test_result(result_packet)
@@ -137,7 +137,7 @@ class Tryouts
         test_case = result_packet.test_case
         location = "#{Console.pretty_path(test_case.path)}:#{test_case.first_expectation_line + 1}"
         puts
-        puts indent_text("#{status_line} @ #{location}", 2)
+        puts indent_text("#{status_line} @ #{location}", 1)
 
         # Show source code for verbose mode
         show_test_source_code(test_case)
@@ -154,21 +154,21 @@ class Tryouts
       def test_output(test_case:, output_text:, result_packet:)
         return if output_text.nil? || output_text.strip.empty?
 
-        puts indent_text('Test Output:', 3)
-        puts indent_text(Console.color(:dim, '--- BEGIN OUTPUT ---'), 3)
+        puts indent_text('Test Output:', 2)
+        puts indent_text(Console.color(:dim, '--- BEGIN OUTPUT ---'), 2)
 
         output_text.lines.each do |line|
-          puts indent_text(line.chomp, 4)
+          puts indent_text(line.chomp, 3)
         end
 
-        puts indent_text(Console.color(:dim, '--- END OUTPUT ---'), 3)
+        puts indent_text(Console.color(:dim, '--- END OUTPUT ---'), 2)
         puts
       end
 
       # Setup/teardown operations
       def setup_start(line_range:)
         message = "Executing global setup (lines #{line_range.first}..#{line_range.last})"
-        puts indent_text(Console.color(:cyan, message), 2)
+        puts indent_text(Console.color(:cyan, message), 1)
       end
 
       def setup_output(output_text)
@@ -181,7 +181,7 @@ class Tryouts
 
       def teardown_start(line_range:)
         message = "Executing teardown (lines #{line_range.first}..#{line_range.last})"
-        puts indent_text(Console.color(:cyan, message), 2)
+        puts indent_text(Console.color(:cyan, message), 1)
         puts
       end
 
@@ -235,16 +235,16 @@ class Tryouts
 
       def error_message(message, backtrace: nil)
         error_msg = Console.color(:red, "ERROR: #{message}")
-        puts indent_text(error_msg, 1)
+        puts indent_text(error_msg, 0)
 
         return unless backtrace && @show_stack_traces
 
-        puts indent_text('Details:', 2)
+        puts indent_text('Details:', 1)
         # Show first 10 lines of backtrace to avoid overwhelming output
         Console.pretty_backtrace(backtrace, limit: 10).each do |line|
-          puts indent_text(line, 3)
+          puts indent_text(line, 2)
         end
-        puts indent_text("... (#{backtrace.length - 10} more lines)", 3) if backtrace.length > 10
+        puts indent_text("... (#{backtrace.length - 10} more lines)", 2) if backtrace.length > 10
       end
 
       def live_status_capabilities
@@ -264,16 +264,16 @@ class Tryouts
       def show_exception_details(test_case, actual_results, expected_results = [])
         return if actual_results.empty?
 
-        puts indent_text('Exception Details:', 4)
+        puts indent_text('Exception Details:', 2)
 
         actual_results.each_with_index do |actual, idx|
           expected = expected_results[idx] if expected_results && idx < expected_results.length
           expectation = test_case.expectations[idx] if test_case.expectations
 
           if expectation&.type == :exception
-            puts indent_text("Caught: #{Console.color(:blue, actual.inspect)}", 5)
-            puts indent_text("Expectation: #{Console.color(:green, expectation.content)}", 5)
-            puts indent_text("Result: #{Console.color(:green, expected.inspect)}", 5) if expected
+            puts indent_text("Caught: #{Console.color(:blue, actual.inspect)}", 3)
+            puts indent_text("Expectation: #{Console.color(:green, expectation.content)}", 3)
+            puts indent_text("Result: #{Console.color(:green, expected.inspect)}", 3) if expected
           end
         end
         puts
@@ -292,7 +292,7 @@ class Tryouts
             line_display = Console.color(:yellow, line_display)
           end
 
-          puts indent_text(line_display, 4)
+          puts indent_text(line_display, 2)
         end
         puts
       end
@@ -306,15 +306,15 @@ class Tryouts
 
           if !expected.nil?
             # Use the evaluated expected value from the evaluator
-            puts indent_text("Expected: #{Console.color(:green, expected.inspect)}", 4)
-            puts indent_text("Actual:   #{Console.color(:red, actual.inspect)}", 4)
+            puts indent_text("Expected: #{Console.color(:green, expected.inspect)}", 2)
+            puts indent_text("Actual:   #{Console.color(:red, actual.inspect)}", 2)
           elsif expected_line && !expected_results.empty?
             # Only show raw expectation content if we have expected_results (non-error case)
-            puts indent_text("Expected: #{Console.color(:green, expected_line.content)}", 4)
-            puts indent_text("Actual:   #{Console.color(:red, actual.inspect)}", 4)
+            puts indent_text("Expected: #{Console.color(:green, expected_line.content)}", 2)
+            puts indent_text("Actual:   #{Console.color(:red, actual.inspect)}", 2)
           else
             # For error cases (empty expected_results), just show the error
-            puts indent_text("Error:   #{Console.color(:red, actual.inspect)}", 4)
+            puts indent_text("Error:   #{Console.color(:red, actual.inspect)}", 2)
           end
 
           # Show difference if both are strings
@@ -329,16 +329,16 @@ class Tryouts
       def show_string_diff(expected, actual)
         return if expected == actual
 
-        puts indent_text('Difference:', 4)
-        puts indent_text("- #{Console.color(:red, actual)}", 5)
-        puts indent_text("+ #{Console.color(:green, expected)}", 5)
+        puts indent_text('Difference:', 2)
+        puts indent_text("- #{Console.color(:red, actual)}", 3)
+        puts indent_text("+ #{Console.color(:green, expected)}", 3)
       end
 
       def file_header_visual(file_path)
         pretty_path = Console.pretty_path(file_path)
 
         [
-          indent_text("--- #{pretty_path} ---", 1)
+          indent_text("--- #{pretty_path} ---", 0)
         ].join("\n")
       end
     end
