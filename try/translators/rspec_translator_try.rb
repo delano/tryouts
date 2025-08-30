@@ -35,7 +35,8 @@ testrun = Tryouts::Testrun.new(
   test_cases: [test_case],
   teardown: nil,
   source_file: 'math_test.rb',
-  metadata: {}
+  metadata: {},
+  warnings: []
 )
 
 generated_code = translator.generate_code(testrun)
@@ -78,7 +79,8 @@ exception_testrun = Tryouts::Testrun.new(
   test_cases: [exception_test_case],
   teardown: nil,
   source_file: 'error_test.rb',
-  metadata: {}
+  metadata: {},
+  warnings: []
 )
 
 exception_code = translator.generate_code(exception_testrun)
@@ -111,7 +113,8 @@ teardown_testrun = Tryouts::Testrun.new(
   test_cases: [test_case], # reuse from earlier
   teardown: teardown_code,
   source_file: 'cleanup_test.rb',
-  metadata: {}
+  metadata: {},
+  warnings: []
 )
 
 teardown_generated = translator.generate_code(teardown_testrun)
@@ -147,7 +150,8 @@ multi_testrun = Tryouts::Testrun.new(
   test_cases: [@test_case_1, test_case_2],
   teardown: nil,
   source_file: 'string_test.rb',
-  metadata: {}
+  metadata: {},
+  warnings: []
 )
 
 @multi_code = translator.generate_code(multi_testrun)
@@ -168,7 +172,8 @@ filename_testrun = Tryouts::Testrun.new(
   test_cases: [@test_case_1],
   teardown: nil,
   source_file: 'custom_filename.rb',
-  metadata: {}
+  metadata: {},
+  warnings: []
 )
 
 filename_code = translator.generate_code(filename_testrun)
@@ -181,7 +186,8 @@ complex_filename_testrun = Tryouts::Testrun.new(
   test_cases: [@test_case_1],
   teardown: nil,
   source_file: '/some/path/complex-test_file.spec.rb',
-  metadata: {}
+  metadata: {},
+  warnings: []
 )
 
 complex_code = translator.generate_code(complex_filename_testrun)
@@ -206,7 +212,8 @@ empty_desc_testrun = Tryouts::Testrun.new(
   test_cases: [empty_desc_case],
   teardown: nil,
   source_file: 'empty_desc_test.rb',
-  metadata: {}
+  metadata: {},
+  warnings: []
 )
 
 empty_desc_code = translator.generate_code(empty_desc_testrun)
@@ -222,7 +229,8 @@ simple_testrun = Tryouts::Testrun.new(
   test_cases: [@test_case_1],
   teardown: nil,
   source_file: 'simple.rb',
-  metadata: {}
+  metadata: {},
+  warnings: []
 )
 
 simple_code = translator.generate_code(simple_testrun)
@@ -250,7 +258,8 @@ multi_exp_testrun = Tryouts::Testrun.new(
   test_cases: [multi_expectation_case],
   teardown: nil,
   source_file: 'multi_exp.rb',
-  metadata: {}
+  metadata: {},
+  warnings: []
 )
 
 multi_exp_code = translator.generate_code(multi_exp_testrun)
@@ -279,7 +288,8 @@ full_testrun = Tryouts::Testrun.new(
   test_cases: [@test_case_1],
   teardown: full_teardown_code,
   source_file: 'full_test.rb',
-  metadata: {}
+  metadata: {},
+  warnings: []
 )
 
 full_code = translator.generate_code(full_testrun)

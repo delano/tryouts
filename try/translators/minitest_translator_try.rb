@@ -40,7 +40,8 @@ testrun = Tryouts::Testrun.new(
   test_cases: [test_case],
   teardown: nil,
   source_file: 'basic_test.rb',
-  metadata: {}
+  metadata: {},
+  warnings: []
 )
 generated_code = translator.generate_code(testrun)
 generated_code.include?("class Testbasictest < Minitest::Test")
@@ -62,7 +63,8 @@ testrun = Tryouts::Testrun.new(
   test_cases: [test_case],
   teardown: nil,
   source_file: 'test.rb',
-  metadata: {}
+  metadata: {},
+  warnings: []
 )
 generated_code = translator.generate_code(testrun)
 generated_code.include?("def test_000_simple_addition")
@@ -84,7 +86,8 @@ testrun = Tryouts::Testrun.new(
   test_cases: [test_case],
   teardown: nil,
   source_file: 'test.rb',
-  metadata: {}
+  metadata: {},
+  warnings: []
 )
 generated_code = translator.generate_code(testrun)
 # The translator inserts expectation objects instead of their content - this is the current behavior
@@ -107,7 +110,8 @@ testrun = Tryouts::Testrun.new(
   test_cases: [test_case],
   teardown: nil,
   source_file: 'test.rb',
-  metadata: {}
+  metadata: {},
+  warnings: []
 )
 generated_code = translator.generate_code(testrun)
 has_minitest_require = generated_code.include?("require 'minitest/test'")
@@ -136,7 +140,8 @@ testrun = Tryouts::Testrun.new(
   test_cases: [test_case],
   teardown: nil,
   source_file: 'setup_test.rb',
-  metadata: {}
+  metadata: {},
+  warnings: []
 )
 generated_code = translator.generate_code(testrun)
 has_setup_method = generated_code.include?("def setup")
@@ -165,7 +170,8 @@ testrun = Tryouts::Testrun.new(
   test_cases: [test_case],
   teardown: teardown_code,
   source_file: 'teardown_test.rb',
-  metadata: {}
+  metadata: {},
+  warnings: []
 )
 generated_code = translator.generate_code(testrun)
 has_teardown_method = generated_code.include?("def teardown")
@@ -189,7 +195,8 @@ exception_testrun = Tryouts::Testrun.new(
   test_cases: [exception_test_case],
   teardown: nil,
   source_file: 'exception_test.rb',
-  metadata: {}
+  metadata: {},
+  warnings: []
 )
 exception_code = translator.generate_code(exception_testrun)
 has_assert_raises = exception_code.include?("error = assert_raises(StandardError)")
@@ -223,7 +230,8 @@ multi_testrun = Tryouts::Testrun.new(
   test_cases: [test_case_1, test_case_2],
   teardown: nil,
   source_file: 'multi_test.rb',
-  metadata: {}
+  metadata: {},
+  warnings: []
 )
 multi_code = translator.generate_code(multi_testrun)
 test_methods_count = multi_code.scan(/def test_\d+_/).length
@@ -248,7 +256,8 @@ complex_filename_testrun = Tryouts::Testrun.new(
   test_cases: [simple_case],
   teardown: nil,
   source_file: 'complex-file_name.try.rb',
-  metadata: {}
+  metadata: {},
+  warnings: []
 )
 complex_code = translator.generate_code(complex_filename_testrun)
 # Special characters should be stripped from class name - checking actual output
@@ -271,7 +280,8 @@ empty_desc_testrun = Tryouts::Testrun.new(
   test_cases: [empty_desc_case],
   teardown: nil,
   source_file: 'empty_test.rb',
-  metadata: {}
+  metadata: {},
+  warnings: []
 )
 empty_desc_code = translator.generate_code(empty_desc_testrun)
 # Should still generate a test method even with empty description

@@ -62,7 +62,6 @@ class Tryouts
 
         puts
         write '=== FAILURES ==='
-        # puts
 
         # Number failures sequentially across all files instead of per-file
         failure_number = 1
