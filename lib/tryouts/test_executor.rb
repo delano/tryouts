@@ -12,10 +12,6 @@ class Tryouts
       @translator     = translator
       @global_tally   = global_tally
 
-      # Filter test cases if line spec is provided
-      if @options[:line_spec]
-        filter_test_cases_by_line_spec
-      end
     end
 
     def execute
@@ -33,26 +29,6 @@ class Tryouts
 
     private
 
-    def filter_test_cases_by_line_spec
-      require_relative 'cli/line_spec_parser'
-
-      line_spec = @options[:line_spec]
-
-      # Filter test cases to only those that match the line spec
-      filtered_cases = @testrun.test_cases.select do |test_case|
-        Tryouts::CLI::LineSpecParser.matches?(test_case, line_spec)
-      end
-
-      # Update the testrun with filtered cases
-      # We need to preserve the setup and teardown but only run matching tests
-      @testrun = @testrun.class.new(
-        setup: @testrun.setup,
-        test_cases: filtered_cases,
-        teardown: @testrun.teardown,
-        source_file: @testrun.source_file,
-        metadata: @testrun.metadata
-      )
-    end
 
     def execute_direct_mode
       batch = TestBatch.new(

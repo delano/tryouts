@@ -49,9 +49,11 @@ end
 threads.each(&:join)
 
 @file_counts = @aggregator.get_file_counts
+## Test file count tracking
 @file_counts[:total]
 #=> 1000
 
+## Test successful file count
 @file_counts[:successful]
 #=> 500
 
@@ -77,12 +79,15 @@ threads.each(&:join)
 @display_counts[:total_tests]
 #=> 300
 
+## Test passed count
 @display_counts[:passed]
 #=> 100
 
+## Test failed count
 @display_counts[:failed]
 #=> 100
 
+## Test error count
 @display_counts[:errors]
 #=> 100
 
@@ -134,18 +139,23 @@ threads.each(&:join)
 @mixed_file_counts[:total]
 #=> 10
 
+## Test mixed successful count
 @mixed_file_counts[:successful]
 #=> 10
 
+## Test mixed total tests count
 @mixed_display_counts[:total_tests]
 #=> 20
 
+## Test mixed passed count
 @mixed_display_counts[:passed]
 #=> 10
 
+## Test mixed failed count
 @mixed_display_counts[:failed]
 #=> 10
 
+## Test mixed infrastructure failure count
 @mixed_infrastructure_failures.size
 #=> 10
 

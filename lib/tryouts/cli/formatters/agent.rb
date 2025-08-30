@@ -538,7 +538,7 @@ class Tryouts
         context_lines << "  Flags: #{flags.any? ? flags.join(', ') : 'none'}" if flags.any?
 
         # Agent-specific settings
-        context_lines << "  Agent mode: focus=#{@focus_mode}, limit=#{@budget.instance_variable_get(:@limit)} tokens"
+        context_lines << "  Agent mode: focus=#{@focus_mode}, limit=#{@budget.limit} tokens"
 
         # Add syntax errors if any (these prevent test execution)
         if @syntax_errors.any?

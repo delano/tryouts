@@ -43,9 +43,13 @@ class Tryouts
         # Remove 'L' prefix if present (GitHub style)
         spec = spec.gsub(/L/i, '')
 
-        # Handle range (e.g., "19-45")
+        # Handle range (e.g., "19-80")
         if spec.include?('-')
           parts = spec.split('-', 2)
+
+          # Validate that both parts are numeric
+          return nil unless parts[0] =~ /\A\d+\z/ && parts[1] =~ /\A\d+\z/
+
           start_line = parts[0].to_i
           end_line = parts[1].to_i
 
@@ -55,7 +59,9 @@ class Tryouts
 
           start_line..end_line
         else
-          # Single line number
+          # Single line number - validate it's numeric
+          return nil unless spec =~ /\A\d+\z/
+
           line = spec.to_i
           return nil if line <= 0
 
