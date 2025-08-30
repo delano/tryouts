@@ -38,6 +38,19 @@ class Tryouts
         puts(indent_text(message, 1))
       end
 
+      def parser_warnings(file_path, warnings:)
+        return if warnings.empty? || !@options.fetch(:warnings, true)
+
+        puts
+        puts Console.color(:yellow, "Parser Warnings:")
+        warnings.each do |warning|
+          puts "  #{Console.color(:yellow, 'WARNING')}: #{warning.message} (line #{warning.line_number})"
+          puts "    #{Console.color(:dim, warning.context)}" unless warning.context.empty?
+          puts "    #{Console.color(:blue, warning.suggestion)}"
+        end
+        puts
+      end
+
       def file_execution_start(_file_path, test_count:, context_mode:)
         message = "Running #{test_count} tests with #{context_mode} context"
         puts(indent_text(message, 0))

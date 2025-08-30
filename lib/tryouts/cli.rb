@@ -14,6 +14,8 @@ class Tryouts
         framework: :direct,
         verbose: false,
         inspect: false,
+        strict: true,    # Default to strict mode for better UX
+        warnings: true,  # Default to showing warnings
       }
     end
 

@@ -57,6 +57,10 @@ class Tryouts
         )
       end
 
+      def parser_warnings(file_path, warnings:)
+        @formatter.parser_warnings(file_path, warnings: warnings)
+      end
+
       def file_execution_start(file_path, test_count, context_mode)
         @formatter.file_execution_start(
           file_path,

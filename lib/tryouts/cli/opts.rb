@@ -123,6 +123,12 @@ class Tryouts
             options[:parallel_threads] = threads.to_i if threads && threads.to_i > 0
           end
 
+          opts.separator "\nParser Options:"
+          opts.on('--strict', 'Require explicit test descriptions (fail on unnamed tests)') { options[:strict] = true }
+          opts.on('--no-strict', 'Allow unnamed tests (legacy behavior)') { options[:strict] = false }
+          opts.on('-w', '--warnings', 'Show parser warnings (default: true)') { options[:warnings] = true }
+          opts.on('--no-warnings', 'Suppress parser warnings') { options[:warnings] = false }
+
           opts.separator "\nAgent-Optimized Output:"
           opts.on('-a', '--agent', 'Agent-optimized structured output for LLM context management') do
             options[:agent] = true

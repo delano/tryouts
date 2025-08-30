@@ -22,6 +22,7 @@ class Tryouts
       testrun                     = create_parser(@file, @options).parse
       @global_tally[:aggregator].increment_total_files
       @output_manager.file_parsed(@file, testrun.total_tests)
+      @output_manager.parser_warnings(@file, warnings: testrun.warnings)
 
       if @options[:inspect]
         handle_inspect_mode(testrun)
@@ -47,9 +48,9 @@ class Tryouts
 
       case parser_type
       when :enhanced
-        EnhancedParser.new(file)
+        EnhancedParser.new(file, options)
       when :prism
-        PrismParser.new(file)
+        PrismParser.new(file, options)
       end
     end
 

@@ -67,7 +67,7 @@ class Tryouts
     end
   end
 
-  Testrun = Data.define(:setup, :test_cases, :teardown, :source_file, :metadata) do
+  Testrun = Data.define(:setup, :test_cases, :teardown, :source_file, :metadata, :warnings) do
     def total_tests
       test_cases.size
     end

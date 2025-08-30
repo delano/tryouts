@@ -23,6 +23,8 @@ class Tryouts
         @total_stats = { files: 0, tests: 0, failures: 0, errors: 0, elapsed: 0 }
         @output_rendered = false
         @options = options  # Store all options for execution context display
+        @all_warnings = []  # Store warnings globally for execution details
+        @syntax_errors = []  # Store syntax errors for execution details
 
         # No colors in agent mode for cleaner parsing
         @use_colors = false
@@ -62,6 +64,27 @@ class Tryouts
           @current_file_data[:tests] = test_count
         end
         @total_stats[:tests] += test_count
+      end
+
+      def parser_warnings(file_path, warnings:)
+        return if warnings.empty? || !@options.fetch(:warnings, true)
+
+        # Store warnings globally for execution details and per-file
+        warnings.each do |warning|
+          warning_data = {
+            type: warning.type.to_s,
+            message: warning.message,
+            line: warning.line_number,
+            suggestion: warning.suggestion,
+            file: relative_path(file_path)
+          }
+          @all_warnings << warning_data
+        end
+
+        # Also store in current file data for potential future use
+        if @current_file_data
+          @current_file_data[:warnings] = @all_warnings.select { |w| w[:file] == relative_path(file_path) }
+        end
       end
 
       def file_result(file_path, total_tests:, failed_count:, error_count:, elapsed_time: nil)
@@ -142,6 +165,14 @@ class Tryouts
         # Now render all collected data
         render_agent_output
         @output_rendered = true
+      end
+
+      def error_message(message, backtrace: nil)
+        # Store syntax errors for display in execution details
+        @syntax_errors << {
+          message: message,
+          backtrace: backtrace
+        }
       end
 
       # Override live status - not needed for agent mode
@@ -472,7 +503,7 @@ class Tryouts
 
       def render_execution_context
         context_lines = []
-        context_lines << "EXECUTION CONTEXT:"
+        context_lines << "EXECUTION DETAILS:"
 
         # Framework and context mode
         framework = @options[:framework] || :direct
@@ -508,6 +539,32 @@ class Tryouts
 
         # Agent-specific settings
         context_lines << "  Agent mode: focus=#{@focus_mode}, limit=#{@budget.instance_variable_get(:@limit)} tokens"
+
+        # Add syntax errors if any (these prevent test execution)
+        if @syntax_errors.any?
+          context_lines << ""
+          context_lines << "Syntax Errors:"
+          @syntax_errors.each do |error|
+            # Clean up the error message to remove redundant prefixes
+            clean_message = error[:message].gsub(/^ERROR:\s*/i, '').strip
+            context_lines << "  #{clean_message}"
+            if error[:backtrace] && @options[:debug]
+              error[:backtrace].first(3).each do |trace|
+                context_lines << "    #{trace}"
+              end
+            end
+          end
+        end
+
+        # Add warnings if any
+        if @all_warnings.any? && @options.fetch(:warnings, true)
+          context_lines << ""
+          context_lines << "Parser Warnings:"
+          @all_warnings.each do |warning|
+            context_lines << "  #{warning[:file]}:#{warning[:line]}: #{warning[:message]}"
+            context_lines << "    #{warning[:suggestion]}" if warning[:suggestion]
+          end
+        end
 
         context_lines.join("\n")
       end

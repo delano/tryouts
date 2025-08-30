@@ -44,6 +44,16 @@ class Tryouts
         @stderr.puts indent_text("Parsed #{test_count} tests#{suffix}", 1)
       end
 
+      def parser_warnings(file_path, warnings:)
+        return if warnings.empty? || !@options.fetch(:warnings, true)
+
+        @stderr.puts
+        @stderr.puts Console.color(:yellow, "Warnings:")
+        warnings.each do |warning|
+          @stderr.puts "  #{Console.pretty_path(file_path)}:#{warning.line_number}: #{warning.message}"
+        end
+      end
+
       def file_execution_start(file_path, test_count:, context_mode:)
         pretty_path = Console.pretty_path(file_path)
         puts

@@ -33,6 +33,10 @@ class Tryouts
         # Default: no output
       end
 
+      def parser_warnings(file_path, warnings:)
+        # Default: no output - override in specific formatters
+      end
+
       def file_execution_start(file_path, test_count:, context_mode:)
         # Default: no output
       end
