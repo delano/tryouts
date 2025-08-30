@@ -209,12 +209,12 @@ class Tryouts
           details = []
           details << "#{failed_count} failed" if failed_count > 0
           details << "#{error_count} errors" if error_count > 0
-          puts "#{details.join(', ')}, #{passed} passed#{time_str}"
+          printf("%-10s %s\n", "Testcases:", "#{details.join(', ')}, #{passed} passed#{time_str}")
         else
-          puts "#{total_tests} tests passed#{time_str}"
+          printf("%-10s %s\n", "Testcases:", "#{total_tests} tests passed#{time_str}")
         end
 
-        puts "Files: #{successful_files} of #{total_files} successful"
+        printf("%-10s %s\n", "Files:", "#{successful_files} of #{total_files} passed")
       end
 
       # Debug and diagnostic output

@@ -151,7 +151,7 @@ class Tryouts
       end
 
       def separator(style = :light)
-        width = @options.fetch(:line_width, 70)
+        width = @options.fetch(:line_width, 60)
         case style
         when :heavy
           '=' * width
