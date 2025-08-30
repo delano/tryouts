@@ -117,6 +117,8 @@ class Tryouts
 
       # Test-level operations
       def test_start(test_case:, index:, total:)
+        return unless @show_passed
+
         desc = test_case.description.to_s
         desc = 'Unnamed test' if desc.empty?
         message = "Test #{index}/#{total}: #{desc}"
