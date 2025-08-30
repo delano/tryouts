@@ -1,4 +1,4 @@
-# Tryouts v3
+# Tryouts - A Ruby Testing Framework
 
 **Ruby tests that read like documentation.**
 
