@@ -58,19 +58,26 @@ class Tryouts
       end
 
       def file_parsed(_file_path, test_count:, setup_present: false, teardown_present: false)
-        @current_file_data[:tests] = test_count if @current_file_data
+        if @current_file_data
+          @current_file_data[:tests] = test_count
+        end
         @total_stats[:tests] += test_count
       end
 
-      def file_result(_file_path, total_tests:, failed_count:, error_count:, elapsed_time: nil)
+      def file_result(file_path, total_tests:, failed_count:, error_count:, elapsed_time: nil)
         # Always update global totals
         @total_stats[:failures] += failed_count
         @total_stats[:errors] += error_count
         @total_stats[:elapsed] += elapsed_time if elapsed_time
 
-        # Update per-file data when available
-        if @current_file_data
-          @current_file_data[:passed] = total_tests - failed_count - error_count
+        # Update per-file data - file_result is called AFTER file_end, so data is in @collected_files
+        relative_file_path = relative_path(file_path)
+        file_data = @collected_files.find { |f| f[:path] == relative_file_path }
+
+        if file_data
+          file_data[:passed] = total_tests - failed_count - error_count
+          # Also ensure tests count is correct if it wasn't set properly earlier
+          file_data[:tests] ||= total_tests
         end
       end
 
@@ -227,22 +234,30 @@ class Tryouts
           details << "#{failed_count} failed" if failed_count > 0
           details << "#{error_count} errors" if error_count > 0
           status += " (#{details.join(', ')}, #{passed_count} passed)"
-        else
-          status = "PASS: #{@total_stats[:tests]} tests passed"
         end
 
         status += " (#{format_time(@total_stats[:elapsed])})" if @total_stats[:elapsed]
 
         output << status
 
-        # Show which files had failures
+        # Always show file information for agent context
+        output << ""
+
         files_with_issues = @collected_files.select { |f| f[:failures].any? || f[:errors].any? }
         if files_with_issues.any?
-          output << ""
           output << "Files with issues:"
           files_with_issues.each do |file_data|
             issue_count = file_data[:failures].size + file_data[:errors].size
             output << "  #{file_data[:path]}: #{issue_count} issue#{'s' if issue_count != 1}"
+          end
+        else
+          # Show files that were processed successfully
+          output << "Files processed:"
+          @collected_files.each do |file_data|
+            # Use the passed count from file_result if available, otherwise calculate
+            passed_tests = file_data[:passed] ||
+                          ((file_data[:tests] || 0) - file_data[:failures].size - file_data[:errors].size)
+            output << "  #{file_data[:path]}: #{passed_tests} test#{'s' if passed_tests != 1} passed"
           end
         end
 
@@ -299,39 +314,17 @@ class Tryouts
         output << render_execution_context
         output << ""
 
-        # Header with overall stats
-        issues_count = @total_stats[:failures] + @total_stats[:errors]
+        # Count actual failures from collected data
+        failed_count = @collected_files.sum { |f| f[:failures].size }
+        error_count = @collected_files.sum { |f| f[:errors].size }
+        issues_count = failed_count + error_count
         passed_count = [@total_stats[:tests] - issues_count, 0].max
 
-        files_count = if @total_stats[:files].to_i > 0
-          @total_stats[:files]
-        else
-          @total_stats[:total_files] || @collected_files.size
-        end
+        # Show files with issues only
+        files_with_issues = @collected_files.select { |f| f[:failures].any? || f[:errors].any? }
 
-        if issues_count > 0
-          status_line = "FAIL: #{issues_count}/#{@total_stats[:tests]} tests (#{files_count} files, #{format_time(@total_stats[:elapsed])})"
-        else
-          status_line = "PASS: #{@total_stats[:tests]} tests (#{files_count} files, #{format_time(@total_stats[:elapsed])})"
-        end
-
-        # Always include status line
-        output << status_line
-        @budget.force_consume(status_line)
-
-        # Only show files with issues (unless focus is different)
-        files_to_show = case @focus_mode
-        when :failures, :first_failure
-          @collected_files.select { |f| f[:failures].any? || f[:errors].any? }
-        else
-          @collected_files.select { |f| f[:failures].any? || f[:errors].any? }
-        end
-
-        if files_to_show.any?
-          output << ""
-          @budget.consume("\n")
-
-          files_to_show.each do |file_data|
+        if files_with_issues.any?
+          files_with_issues.each do |file_data|
             break unless @budget.has_budget?
 
             file_section = render_file_section(file_data)
@@ -345,14 +338,15 @@ class Tryouts
               @budget.consume(file_section)
             end
           end
+          output << ""
         end
 
         # Final summary line
-        summary = "Summary: #{passed_count} passed, #{@total_stats[:failures]} failed"
-        summary += ", #{@total_stats[:errors]} errors" if @total_stats[:errors] > 0
+        summary = "Summary: \n"
+        summary += "#{passed_count} testcases passed, #{failed_count} failed"
+        summary += ", #{error_count} errors" if error_count > 0
         summary += " in #{@total_stats[:files]} files"
 
-        output << ""
         output << summary
 
         puts output.join("\n")
@@ -363,6 +357,20 @@ class Tryouts
 
         # File header
         lines << "#{file_data[:path]}:"
+
+        # Check if file has any issues
+        has_issues = file_data[:failures].any? || file_data[:errors].any?
+
+        # If no issues, show success summary
+        if !has_issues
+          # Use the passed count from file_result if available, otherwise calculate
+          passed_tests = file_data[:passed] ||
+                        ((file_data[:tests] || 0) - file_data[:failures].size - file_data[:errors].size)
+
+
+          lines << "  ✓ #{passed_tests} test#{'s' if passed_tests != 1} passed"
+          return lines.join("\n")
+        end
 
         # For first-failure mode, only show first error or failure
         if @focus_mode == :first_failure || @focus_mode == :'first-failure'
