@@ -130,6 +130,21 @@ try --agent --agent-focus critical       # show only errors/exceptions
 try --agent --agent-limit 1000          # limit output to 1000 tokens
 ```
 
+#### Why Not Pipe Test Output Directly to AI?
+
+Raw test output creates several problems when working with AI assistants:
+
+- **Token bloat**: Verbose formatting wastes 60-80% of your context window on styling
+- **Signal vs noise**: Important failures get buried in passing test details and framework boilerplate
+- **Inconsistent parsing**: AI struggles with varying output formats across different test runs
+- **Context overflow**: Large test suites exceed AI token limits, truncating critical information
+
+#### TOPA: A Better Approach
+
+Tryouts' `--agent` mode inspired the development of **TOPA (Test Output Protocol for AI)** - a standardized format optimized for AI analysis. The [tpane](https://github.com/delano/tpane) tool implements this protocol, transforming any test framework's output into structured, token-efficient formats.
+
+Instead of overwhelming AI with raw output, TOPA provides clean semantic data focusing on what actually needs attention - failures, errors, and actionable context.
+
 ### Exit Codes
 
 - `0`: All tests pass
