@@ -162,8 +162,8 @@ For real-world usage examples, see:
 
 This version of Tryouts was developed with assistance from AI tools. The following tools provided significant help with architecture design, code generation, and documentation:
 
-- **Claude Sonnet 4** - Architecture design, code generation, and documentation
-- **Claude Desktop & Claude Code** - Interactive development sessions and debugging
+- **Claude Sonnet 4, Opus 4.1** - Architecture design, code generation, and documentation
+- **Claude Desktop & Claude Code (Max plan)** - Interactive development sessions and debugging
 - **GitHub Copilot** - Code completion and refactoring assistance
 - **Qodo Merge Pro** - Code review and quality improvements
 
