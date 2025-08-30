@@ -13,12 +13,12 @@ b = 2
 a + b + 1
 # => 4
 
-# multiple expectations
+## Multiple expectations on one test case
 'foo' + 'bar'
 #=> 'foobar'
 #=> :foobar.to_s
 
-# test ignores comments before expectations
+## Test ignores comments before expectations
 'foo'
 # ignored comment
 # ignored comment

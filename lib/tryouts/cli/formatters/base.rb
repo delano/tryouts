@@ -33,6 +33,10 @@ class Tryouts
         # Default: no output
       end
 
+      def parser_warnings(file_path, warnings:)
+        # Default: no output - override in specific formatters
+      end
+
       def file_execution_start(file_path, test_count:, context_mode:)
         # Default: no output
       end
@@ -151,7 +155,7 @@ class Tryouts
       end
 
       def separator(style = :light)
-        width = @options.fetch(:line_width, 70)
+        width = @options.fetch(:line_width, 60)
         case style
         when :heavy
           '=' * width

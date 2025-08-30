@@ -44,9 +44,20 @@ class Tryouts
         @stderr.puts indent_text("Parsed #{test_count} tests#{suffix}", 1)
       end
 
+      def parser_warnings(file_path, warnings:)
+        return if warnings.empty? || !@options.fetch(:warnings, true)
+
+        @stderr.puts
+        @stderr.puts Console.color(:yellow, "Warnings:")
+        warnings.each do |warning|
+          @stderr.puts "  #{Console.pretty_path(file_path)}:#{warning.line_number}: #{warning.message}"
+        end
+      end
+
       def file_execution_start(file_path, test_count:, context_mode:)
         pretty_path = Console.pretty_path(file_path)
-        @stderr.puts "#{pretty_path}: #{test_count} tests"
+        puts
+        puts "#{pretty_path}: #{test_count} tests"
       end
 
       # Summary operations - show failure summary
@@ -204,7 +215,6 @@ class Tryouts
 
       def grand_total(total_tests:, failed_count:, error_count:, successful_files:, total_files:, elapsed_time:)
         @stderr.puts
-        @stderr.puts '=' * 50
 
         issues_count = failed_count + error_count
         if issues_count > 0
@@ -219,8 +229,8 @@ class Tryouts
 
         time_str = format_timing(elapsed_time)
 
-        @stderr.puts "Total: #{result}#{time_str}"
-        @stderr.puts "Files: #{successful_files} of #{total_files} successful"
+        @stderr.puts "#{result}#{time_str}"
+        @stderr.puts "#{successful_files} of #{total_files} files passed"
       end
 
       # Debug and diagnostic output - minimal in compact mode

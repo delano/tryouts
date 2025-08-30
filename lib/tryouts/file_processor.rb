@@ -20,8 +20,15 @@ class Tryouts
 
     def process
       testrun                     = create_parser(@file, @options).parse
+
+      # Apply line spec filtering before reporting test counts
+      if @options[:line_spec]
+        testrun = filter_testrun_by_line_spec(testrun)
+      end
+
       @global_tally[:aggregator].increment_total_files
       @output_manager.file_parsed(@file, testrun.total_tests)
+      @output_manager.parser_warnings(@file, warnings: testrun.warnings)
 
       if @options[:inspect]
         handle_inspect_mode(testrun)
@@ -38,6 +45,34 @@ class Tryouts
 
     private
 
+    def filter_testrun_by_line_spec(testrun)
+      require_relative 'cli/line_spec_parser'
+
+      line_spec = @options[:line_spec]
+
+      # Filter test cases to only those that match the line spec
+      filtered_cases = testrun.test_cases.select do |test_case|
+        Tryouts::CLI::LineSpecParser.matches?(test_case, line_spec)
+      end
+
+      # Check if any tests matched the line specification
+      if filtered_cases.empty?
+        @output_manager.file_failure(@file, "No test cases found matching line specification: #{line_spec}")
+        return testrun  # Return original testrun to avoid breaking the pipeline
+      end
+
+      # Create a new testrun with filtered cases
+      # We need to preserve the setup and teardown but only include matching tests
+      testrun.class.new(
+        setup: testrun.setup,
+        test_cases: filtered_cases,
+        teardown: testrun.teardown,
+        source_file: testrun.source_file,
+        metadata: testrun.metadata,
+        warnings: testrun.warnings
+      )
+    end
+
     def create_parser(file, options)
       parser_type = options[:parser] || :enhanced  # enhanced parser is now the default
 
@@ -47,9 +82,9 @@ class Tryouts
 
       case parser_type
       when :enhanced
-        EnhancedParser.new(file)
+        EnhancedParser.new(file, options)
       when :prism
-        PrismParser.new(file)
+        PrismParser.new(file, options)
       end
     end
 

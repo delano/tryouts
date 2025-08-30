@@ -1,4 +1,4 @@
-# Tryouts v3
+# Tryouts - A Ruby Testing Framework
 
 **Ruby tests that read like documentation.**
 
@@ -130,6 +130,21 @@ try --agent --agent-focus critical       # show only errors/exceptions
 try --agent --agent-limit 1000          # limit output to 1000 tokens
 ```
 
+#### Why Not Pipe Test Output Directly to AI?
+
+Raw test output creates several problems when working with AI assistants:
+
+- **Token bloat**: Verbose formatting wastes 60-80% of your context window on styling
+- **Signal vs noise**: Important failures get buried in passing test details and framework boilerplate
+- **Inconsistent parsing**: AI struggles with varying output formats across different test runs
+- **Context overflow**: Large test suites exceed AI token limits, truncating critical information
+
+#### TOPA: A Better Approach
+
+Tryouts' `--agent` mode inspired the development of **TOPA (Test Output Protocol for AI)** - a standardized format optimized for AI analysis. The [tpane](https://github.com/delano/tpane) tool implements this protocol, transforming any test framework's output into structured, token-efficient formats.
+
+Instead of overwhelming AI with raw output, TOPA provides clean semantic data focusing on what actually needs attention - failures, errors, and actionable context.
+
 ### Exit Codes
 
 - `0`: All tests pass
@@ -162,8 +177,8 @@ For real-world usage examples, see:
 
 This version of Tryouts was developed with assistance from AI tools. The following tools provided significant help with architecture design, code generation, and documentation:
 
-- **Claude Sonnet 4** - Architecture design, code generation, and documentation
-- **Claude Desktop & Claude Code** - Interactive development sessions and debugging
+- **Claude Sonnet 4, Opus 4.1** - Architecture design, code generation, and documentation
+- **Claude Desktop & Claude Code (Max plan)** - Interactive development sessions and debugging
 - **GitHub Copilot** - Code completion and refactoring assistance
 - **Qodo Merge Pro** - Code review and quality improvements
 

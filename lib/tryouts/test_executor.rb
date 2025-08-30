@@ -11,6 +11,7 @@ class Tryouts
       @output_manager = output_manager
       @translator     = translator
       @global_tally   = global_tally
+
     end
 
     def execute
@@ -27,6 +28,7 @@ class Tryouts
     end
 
     private
+
 
     def execute_direct_mode
       batch = TestBatch.new(

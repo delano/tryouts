@@ -24,4 +24,5 @@ node_modules/
 .pnpm/
 *gem
 .claude
+.serena
 .mcp.json

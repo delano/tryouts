@@ -29,6 +29,7 @@ class Tryouts
       @output_manager = output_manager
       @translator     = initialize_translator
       @global_tally   = initialize_global_tally
+      @file_line_specs = options[:file_line_specs] || {}
     end
 
     def run
@@ -37,7 +38,10 @@ class Tryouts
 
       result = process_files
       show_failure_summary
-      show_grand_total if @global_tally[:aggregator].get_file_counts[:total] > 1
+      # Always show grand total for agent mode to ensure output, otherwise only for multiple files
+      if @options[:agent] || @global_tally[:aggregator].get_file_counts[:total] > 1
+        show_grand_total
+      end
 
       # For agent critical mode, only count errors as failures
       if @options[:agent] && (@options[:agent_focus] == :critical || @options[:agent_focus] == 'critical')
@@ -148,10 +152,16 @@ class Tryouts
       failure_count
     end
 
-    def process_file(file_path)
+    def process_file(file)
+      # Pass line spec for this file if available
+      file_options = @options.dup
+      if @file_line_specs && @file_line_specs[file]
+        file_options[:line_spec] = @file_line_specs[file]
+      end
+
       processor = FileProcessor.new(
-        file: file_path,
-        options: @options,
+        file: file,
+        options: file_options,
         output_manager: @output_manager,
         translator: @translator,
         global_tally: @global_tally,
@@ -160,7 +170,7 @@ class Tryouts
     rescue StandardError => ex
       handle_file_error(ex)
       @global_tally[:aggregator].add_infrastructure_failure(
-        :file_processing, file_path, ex.message, ex
+        :file_processing, file, ex.message, ex
       )
       1
     end

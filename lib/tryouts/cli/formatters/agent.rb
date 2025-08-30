@@ -22,6 +22,9 @@ class Tryouts
         @current_file_data = nil
         @total_stats = { files: 0, tests: 0, failures: 0, errors: 0, elapsed: 0 }
         @output_rendered = false
+        @options = options  # Store all options for execution context display
+        @all_warnings = []  # Store warnings globally for execution details
+        @syntax_errors = []  # Store syntax errors for execution details
 
         # No colors in agent mode for cleaner parsing
         @use_colors = false
@@ -42,7 +45,8 @@ class Tryouts
           tests: 0,
           failures: [],
           errors: [],
-          passed: 0
+          passed: 0,
+          context_info: context_info  # Store context info for later display
         }
       end
 
@@ -56,19 +60,47 @@ class Tryouts
       end
 
       def file_parsed(_file_path, test_count:, setup_present: false, teardown_present: false)
-        @current_file_data[:tests] = test_count if @current_file_data
+        if @current_file_data
+          @current_file_data[:tests] = test_count
+        end
         @total_stats[:tests] += test_count
       end
 
-      def file_result(_file_path, total_tests:, failed_count:, error_count:, elapsed_time: nil)
+      def parser_warnings(file_path, warnings:)
+        return if warnings.empty? || !@options.fetch(:warnings, true)
+
+        # Store warnings globally for execution details and per-file
+        warnings.each do |warning|
+          warning_data = {
+            type: warning.type.to_s,
+            message: warning.message,
+            line: warning.line_number,
+            suggestion: warning.suggestion,
+            file: relative_path(file_path)
+          }
+          @all_warnings << warning_data
+        end
+
+        # Also store in current file data for potential future use
+        if @current_file_data
+          @current_file_data[:warnings] = @all_warnings.select { |w| w[:file] == relative_path(file_path) }
+        end
+      end
+
+      def file_result(file_path, total_tests:, failed_count:, error_count:, elapsed_time: nil)
         # Always update global totals
         @total_stats[:failures] += failed_count
         @total_stats[:errors] += error_count
         @total_stats[:elapsed] += elapsed_time if elapsed_time
 
-        # Update per-file data when available
-        if @current_file_data
-          @current_file_data[:passed] = total_tests - failed_count - error_count
+        # Update per-file data - file_result is called AFTER file_end, so data is in @collected_files
+        relative_file_path = relative_path(file_path)
+        file_data = @collected_files.find { |f| f[:path] == relative_file_path }
+
+        if file_data
+          file_data[:passed] = total_tests - failed_count - error_count
+          # Also ensure tests count is correct if it wasn't set properly earlier
+          file_data[:tests] ||= total_tests
         end
       end
 
@@ -133,6 +165,14 @@ class Tryouts
         # Now render all collected data
         render_agent_output
         @output_rendered = true
+      end
+
+      def error_message(message, backtrace: nil)
+        # Store syntax errors for display in execution details
+        @syntax_errors << {
+          message: message,
+          backtrace: backtrace
+        }
       end
 
       # Override live status - not needed for agent mode
@@ -209,50 +249,71 @@ class Tryouts
       def render_summary_only
         output = []
 
+        # Add execution context header for agent clarity
+        output << render_execution_context
+        output << ""
+
         # Count failures manually from collected file data (same as other render methods)
         failed_count = @collected_files.sum { |f| f[:failures].size }
         error_count = @collected_files.sum { |f| f[:errors].size }
         issues_count = failed_count + error_count
         passed_count = [@total_stats[:tests] - issues_count, 0].max
 
+        status_parts = []
         if issues_count > 0
-          status = "FAIL: #{issues_count}/#{@total_stats[:tests]} tests"
           details = []
           details << "#{failed_count} failed" if failed_count > 0
           details << "#{error_count} errors" if error_count > 0
-          status += " (#{details.join(', ')}, #{passed_count} passed)"
+          status_parts << "FAIL: #{issues_count}/#{@total_stats[:tests]} tests (#{details.join(', ')}, #{passed_count} passed)"
         else
-          status = "PASS: #{@total_stats[:tests]} tests passed"
+          # Agent doesn't need output in the positive case (i.e. for passing
+          # tests). It just fills out the context window.
         end
 
-        status += " (#{format_time(@total_stats[:elapsed])})" if @total_stats[:elapsed]
+        status_parts << "(#{format_time(@total_stats[:elapsed])})" if @total_stats[:elapsed]
 
-        output << status
+        output << status_parts.join(" ")
 
-        # Show which files had failures
+        # Always show file information for agent context
+        output << ""
+
         files_with_issues = @collected_files.select { |f| f[:failures].any? || f[:errors].any? }
         if files_with_issues.any?
-          output << ""
-          output << "Files with issues:"
+          output << "Files:"
           files_with_issues.each do |file_data|
             issue_count = file_data[:failures].size + file_data[:errors].size
             output << "  #{file_data[:path]}: #{issue_count} issue#{'s' if issue_count != 1}"
           end
+        elsif @collected_files.any?
+          # Show files that were processed successfully
+          output << "Files:"
+          @collected_files.each do |file_data|
+            # Use the passed count from file_result if available, otherwise calculate
+            passed_tests = file_data[:passed] ||
+                          ((file_data[:tests] || 0) - file_data[:failures].size - file_data[:errors].size)
+            output << "  #{file_data[:path]}: #{passed_tests} test#{'s' if passed_tests != 1} passed"
+          end
         end
 
-        puts output.join("\n")
+        puts output.join("\n") if output.any?
       end
 
       def render_critical_only
         # Only show errors (exceptions), skip assertion failures
         critical_files = @collected_files.select { |f| f[:errors].any? }
 
+        output = []
+
+        # Add execution context header for agent clarity
+        output << render_execution_context
+        output << ""
+
         if critical_files.empty?
-          puts "No critical errors found"
+          output << "No critical errors found"
+          puts output.join("\n")
           return
         end
 
-        output = []
         output << "CRITICAL: #{critical_files.size} file#{'s' if critical_files.size != 1} with errors"
         output << ""
 
@@ -283,39 +344,21 @@ class Tryouts
       def render_full_structured
         output = []
 
-        # Header with overall stats
-        issues_count = @total_stats[:failures] + @total_stats[:errors]
+        # Add execution context header for agent clarity
+        output << render_execution_context
+        output << ""
+
+        # Count actual failures from collected data
+        failed_count = @collected_files.sum { |f| f[:failures].size }
+        error_count = @collected_files.sum { |f| f[:errors].size }
+        issues_count = failed_count + error_count
         passed_count = [@total_stats[:tests] - issues_count, 0].max
 
-        files_count = if @total_stats[:files].to_i > 0
-          @total_stats[:files]
-        else
-          @total_stats[:total_files] || @collected_files.size
-        end
+        # Show files with issues only
+        files_with_issues = @collected_files.select { |f| f[:failures].any? || f[:errors].any? }
 
-        if issues_count > 0
-          status_line = "FAIL: #{issues_count}/#{@total_stats[:tests]} tests (#{files_count} files, #{format_time(@total_stats[:elapsed])})"
-        else
-          status_line = "PASS: #{@total_stats[:tests]} tests (#{files_count} files, #{format_time(@total_stats[:elapsed])})"
-        end
-
-        # Always include status line
-        output << status_line
-        @budget.force_consume(status_line)
-
-        # Only show files with issues (unless focus is different)
-        files_to_show = case @focus_mode
-        when :failures, :first_failure
-          @collected_files.select { |f| f[:failures].any? || f[:errors].any? }
-        else
-          @collected_files.select { |f| f[:failures].any? || f[:errors].any? }
-        end
-
-        if files_to_show.any?
-          output << ""
-          @budget.consume("\n")
-
-          files_to_show.each do |file_data|
+        if files_with_issues.any?
+          files_with_issues.each do |file_data|
             break unless @budget.has_budget?
 
             file_section = render_file_section(file_data)
@@ -329,14 +372,15 @@ class Tryouts
               @budget.consume(file_section)
             end
           end
+          output << ""
         end
 
         # Final summary line
-        summary = "Summary: #{passed_count} passed, #{@total_stats[:failures]} failed"
-        summary += ", #{@total_stats[:errors]} errors" if @total_stats[:errors] > 0
+        summary = "Summary: \n"
+        summary += "#{passed_count} testcases passed, #{failed_count} failed"
+        summary += ", #{error_count} errors" if error_count > 0
         summary += " in #{@total_stats[:files]} files"
 
-        output << ""
         output << summary
 
         puts output.join("\n")
@@ -347,6 +391,20 @@ class Tryouts
 
         # File header
         lines << "#{file_data[:path]}:"
+
+        # Check if file has any issues
+        has_issues = file_data[:failures].any? || file_data[:errors].any?
+
+        # If no issues, show success summary
+        if !has_issues
+          # Use the passed count from file_result if available, otherwise calculate
+          passed_tests = file_data[:passed] ||
+                        ((file_data[:tests] || 0) - file_data[:failures].size - file_data[:errors].size)
+
+
+          lines << "  ✓ #{passed_tests} test#{'s' if passed_tests != 1} passed"
+          return lines.join("\n")
+        end
 
         # For first-failure mode, only show first error or failure
         if @focus_mode == :first_failure || @focus_mode == :'first-failure'
@@ -444,6 +502,74 @@ class Tryouts
         else
           "#{seconds.round(2)}s"
         end
+      end
+
+      def render_execution_context
+        context_lines = []
+        context_lines << "EXECUTION DETAILS:"
+
+        # Framework and context mode
+        framework = @options[:framework] || :direct
+        shared_context = if @options.key?(:shared_context)
+          @options[:shared_context]
+        else
+          # Apply framework defaults
+          case framework
+          when :rspec, :minitest
+            false
+          else
+            true  # direct/tryouts defaults to shared
+          end
+        end
+
+        context_lines << "  Framework: #{framework}"
+        context_lines << "  Context mode: #{shared_context ? 'shared (variables persist across test cases)' : 'fresh (each test case isolated)'}"
+
+        # Parser type
+        parser = @options[:parser] || :enhanced
+        context_lines << "  Parser: #{parser}"
+
+        # Other relevant flags
+        flags = []
+        flags << "verbose" if @options[:verbose]
+        flags << "fails-only" if @options[:fails_only]
+        flags << "debug" if @options[:debug]
+        flags << "stack-traces" if @options[:stack_traces]
+        flags << "parallel(#{@options[:parallel_threads] || 'auto'})" if @options[:parallel]
+        flags << "line-spec" if @options[:line_spec]
+
+        context_lines << "  Flags: #{flags.any? ? flags.join(', ') : 'none'}" if flags.any?
+
+        # Agent-specific settings
+        context_lines << "  Agent mode: focus=#{@focus_mode}, limit=#{@budget.limit} tokens"
+
+        # Add syntax errors if any (these prevent test execution)
+        if @syntax_errors.any?
+          context_lines << ""
+          context_lines << "Syntax Errors:"
+          @syntax_errors.each do |error|
+            # Clean up the error message to remove redundant prefixes
+            clean_message = error[:message].gsub(/^ERROR:\s*/i, '').strip
+            context_lines << "  #{clean_message}"
+            if error[:backtrace] && @options[:debug]
+              error[:backtrace].first(3).each do |trace|
+                context_lines << "    #{trace}"
+              end
+            end
+          end
+        end
+
+        # Add warnings if any
+        if @all_warnings.any? && @options.fetch(:warnings, true)
+          context_lines << ""
+          context_lines << "Parser Warnings:"
+          @all_warnings.each do |warning|
+            context_lines << "  #{warning[:file]}:#{warning[:line]}: #{warning[:message]}"
+            context_lines << "    #{warning[:suggestion]}" if warning[:suggestion]
+          end
+        end
+
+        context_lines.join("\n")
       end
     end
   end

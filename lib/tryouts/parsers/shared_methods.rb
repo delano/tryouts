@@ -1,5 +1,7 @@
 # lib/tryouts/parsers/shared_methods.rb
 
+require_relative '../parser_warning'
+
 class Tryouts
   module Parsers
     module SharedMethods
@@ -205,13 +207,19 @@ class Tryouts
         test_blocks     = classified_blocks.filter { |block| block[:type] == :test }
         teardown_blocks = classified_blocks.filter { |block| block[:type] == :teardown }
 
-        Testrun.new(
+        testrun = Testrun.new(
           setup: build_setup(setup_blocks),
           test_cases: test_blocks.map { |block| build_test_case(block) },
           teardown: build_teardown(teardown_blocks),
           source_file: @source_path,
           metadata: { parsed_at: @parsed_at, parser: parser_type },
+          warnings: warnings
         )
+
+        # Validate strict mode after collecting all warnings
+        validate_strict_mode(testrun)
+
+        testrun
       end
 
       def build_setup(setup_blocks)
@@ -354,6 +362,9 @@ class Tryouts
           start_line: Integer => start_line,
           end_line: Integer => end_line
         }
+          # Collect warning for unnamed test
+          collect_unnamed_test_warning(block)
+
           source_lines           = @lines[start_line..end_line]
           first_expectation_line = exp_tokens.empty? ? start_line : exp_tokens.first[:line]
 
@@ -409,6 +420,44 @@ class Tryouts
       # Parser type identification for metadata - to be overridden by subclasses
       def parser_type
         :shared
+      end
+
+      # Warning collection methods
+      def add_warning(warning)
+        @warnings ||= []
+        @warnings << warning
+      end
+
+      def warnings
+        @warnings ||= []
+      end
+
+      def collect_unnamed_test_warning(block)
+        return unless block[:type] == :test && block[:description].empty?
+
+        line_number = block[:start_line] + 1
+        context = @lines[block[:start_line]] || ''
+
+        add_warning(ParserWarning.unnamed_test(
+          line_number: line_number,
+          context: context.strip
+        ))
+      end
+
+      def validate_strict_mode(testrun)
+        return unless @options[:strict]
+
+        unnamed_test_warnings = warnings.select { |w| w.type == :unnamed_test }
+        return if unnamed_test_warnings.empty?
+
+        # In strict mode, fail with first unnamed test error
+        first_warning = unnamed_test_warnings.first
+        raise TryoutSyntaxError.new(
+          "Strict mode: #{first_warning.message} at line #{first_warning.line_number}. #{first_warning.suggestion}",
+          line_number: first_warning.line_number,
+          context: first_warning.context,
+          source_file: @source_path
+        )
       end
 
     end
