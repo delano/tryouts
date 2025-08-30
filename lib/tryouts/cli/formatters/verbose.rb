@@ -19,12 +19,7 @@ class Tryouts
       def phase_header(message, file_count: nil)
         return if message.include?('EXECUTING') # Skip execution phase headers
 
-        header_line = message.center(@line_width)
-        separator_line = '=' * @line_width
-
-        puts(separator_line)
-        puts(header_line)
-        puts(separator_line)
+        puts("=== #{message} ===")
       end
 
       # File-level operations
@@ -53,9 +48,8 @@ class Tryouts
         return unless failure_collector.any_failures?
 
         puts
-        write '=' * 50
-        puts
-        puts Console.color(:red, 'Failed Tests:')
+        write '=== FAILURES ==='
+        # puts
 
         # Number failures sequentially across all files instead of per-file
         failure_number = 1
@@ -73,16 +67,14 @@ class Tryouts
             puts
             puts Console.color(:yellow, location)
             puts "  #{failure_number}) #{failure.description}"
-            puts "     #{Console.color(:red, 'Failure:')} #{failure.failure_reason}"
+            puts "     #{Console.color(:red, failure.failure_reason)}"
 
-            # Show source context in verbose mode
+            # Show source context in compact format
             if failure.source_context.any?
-              puts "     #{Console.color(:cyan, 'Source:')}"
               failure.source_context.each do |line|
                 puts "       #{line.strip}"
               end
             end
-            puts
             failure_number += 1
           end
         end
@@ -203,8 +195,7 @@ class Tryouts
 
       def grand_total(total_tests:, failed_count:, error_count:, successful_files:, total_files:, elapsed_time:)
         puts
-        puts '=' * @line_width
-        puts 'Grand Total:'
+        puts '=== TOTAL ==='
 
         issues_count = failed_count + error_count
         time_str = if elapsed_time < 2.0
@@ -224,7 +215,6 @@ class Tryouts
         end
 
         puts "Files: #{successful_files} of #{total_files} successful"
-        puts '=' * @line_width
       end
 
       # Debug and diagnostic output
@@ -346,14 +336,9 @@ class Tryouts
 
       def file_header_visual(file_path)
         pretty_path = Console.pretty_path(file_path)
-        header_content = ">>>>>  #{pretty_path}  "
-        padding_length = [@line_width - header_content.length, 0].max
-        padding = '<' * padding_length
 
         [
-          indent_text('-' * @line_width, 1),
-          indent_text(header_content + padding, 1),
-          indent_text('-' * @line_width, 1),
+          indent_text("--- #{pretty_path} ---", 1)
         ].join("\n")
       end
     end
