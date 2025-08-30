@@ -22,6 +22,7 @@ class Tryouts
         @current_file_data = nil
         @total_stats = { files: 0, tests: 0, failures: 0, errors: 0, elapsed: 0 }
         @output_rendered = false
+        @options = options  # Store all options for execution context display
 
         # No colors in agent mode for cleaner parsing
         @use_colors = false
@@ -42,7 +43,8 @@ class Tryouts
           tests: 0,
           failures: [],
           errors: [],
-          passed: 0
+          passed: 0,
+          context_info: context_info  # Store context info for later display
         }
       end
 
@@ -209,6 +211,10 @@ class Tryouts
       def render_summary_only
         output = []
 
+        # Add execution context header for agent clarity
+        output << render_execution_context
+        output << ""
+
         # Count failures manually from collected file data (same as other render methods)
         failed_count = @collected_files.sum { |f| f[:failures].size }
         error_count = @collected_files.sum { |f| f[:errors].size }
@@ -247,12 +253,18 @@ class Tryouts
         # Only show errors (exceptions), skip assertion failures
         critical_files = @collected_files.select { |f| f[:errors].any? }
 
+        output = []
+
+        # Add execution context header for agent clarity
+        output << render_execution_context
+        output << ""
+
         if critical_files.empty?
-          puts "No critical errors found"
+          output << "No critical errors found"
+          puts output.join("\n")
           return
         end
 
-        output = []
         output << "CRITICAL: #{critical_files.size} file#{'s' if critical_files.size != 1} with errors"
         output << ""
 
@@ -282,6 +294,10 @@ class Tryouts
 
       def render_full_structured
         output = []
+
+        # Add execution context header for agent clarity
+        output << render_execution_context
+        output << ""
 
         # Header with overall stats
         issues_count = @total_stats[:failures] + @total_stats[:errors]
@@ -444,6 +460,48 @@ class Tryouts
         else
           "#{seconds.round(2)}s"
         end
+      end
+
+      def render_execution_context
+        context_lines = []
+        context_lines << "EXECUTION CONTEXT:"
+
+        # Framework and context mode
+        framework = @options[:framework] || :direct
+        shared_context = if @options.key?(:shared_context)
+          @options[:shared_context]
+        else
+          # Apply framework defaults
+          case framework
+          when :rspec, :minitest
+            false
+          else
+            true  # direct/tryouts defaults to shared
+          end
+        end
+
+        context_lines << "  Framework: #{framework}"
+        context_lines << "  Context mode: #{shared_context ? 'shared (variables persist across test cases)' : 'fresh (each test case isolated)'}"
+
+        # Parser type
+        parser = @options[:parser] || :enhanced
+        context_lines << "  Parser: #{parser}"
+
+        # Other relevant flags
+        flags = []
+        flags << "verbose" if @options[:verbose]
+        flags << "fails-only" if @options[:fails_only]
+        flags << "debug" if @options[:debug]
+        flags << "stack-traces" if @options[:stack_traces]
+        flags << "parallel(#{@options[:parallel_threads] || 'auto'})" if @options[:parallel]
+        flags << "line-spec" if @options[:line_spec]
+
+        context_lines << "  Flags: #{flags.any? ? flags.join(', ') : 'none'}" if flags.any?
+
+        # Agent-specific settings
+        context_lines << "  Agent mode: focus=#{@focus_mode}, limit=#{@budget.instance_variable_get(:@limit)} tokens"
+
+        context_lines.join("\n")
       end
     end
   end
