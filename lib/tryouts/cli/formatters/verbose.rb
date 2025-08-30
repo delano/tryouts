@@ -169,6 +169,7 @@ class Tryouts
       def setup_start(line_range:)
         message = "Executing global setup (lines #{line_range.first}..#{line_range.last})"
         puts indent_text(Console.color(:cyan, message), 1)
+        puts
       end
 
       def setup_output(output_text)
@@ -182,7 +183,6 @@ class Tryouts
       def teardown_start(line_range:)
         message = "Executing teardown (lines #{line_range.first}..#{line_range.last})"
         puts indent_text(Console.color(:cyan, message), 1)
-        puts
       end
 
       def teardown_output(output_text)
@@ -361,6 +361,20 @@ class Tryouts
         return if result_packet.passed?
 
         super
+      end
+
+      # Suppress setup/teardown output in fails-only mode
+      def setup_start(line_range:)
+        # No output in fails mode
+      end
+
+      def teardown_start(line_range:)
+        # No output in fails mode
+      end
+
+      # Suppress file result summaries in fails-only mode
+      def file_result(_file_path, total_tests:, failed_count:, error_count:, elapsed_time: nil)
+        # No output in fails mode - let the batch_summary handle failures
       end
 
       def live_status_capabilities
