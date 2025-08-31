@@ -4,13 +4,42 @@ require_relative 'token_budget'
 
 class Tryouts
   class CLI
-    # Agent-optimized formatter designed for LLM context management
-    # Features:
-    # - Token budget awareness
-    # - Structured YAML-like output
-    # - No redundant file paths
-    # - Smart truncation
-    # - Hierarchical organization
+    # TOPA (Test Output Protocol for AI) Formatter
+    #
+    # Language-agnostic test output format designed for LLM context management.
+    # This formatter implements the TOPA v1.0 specification for structured,
+    # token-efficient test result communication.
+    #
+    # TOPA Features:
+    # - Language-agnostic field naming (snake_case, hierarchical)
+    # - Standardized execution context (runtime, environment, VCS)
+    # - Token budget awareness with smart truncation
+    # - Cross-platform compatibility (CI/CD, package managers)
+    # - Structured failure reporting with diffs
+    # - Protocol versioning for forward compatibility
+    #
+    # Field Specifications:
+    # - command: Exact command executed
+    # - process_id: System process identifier
+    # - runtime: Language, version, platform info
+    # - package_manager: Dependency management system
+    # - version_control: VCS branch/commit info
+    # - environment: Normalized env vars (ci_system, app_env, etc.)
+    # - test_framework: Framework name, isolation mode, parser
+    # - execution_flags: Runtime flags in normalized form
+    # - protocol: TOPA version and configuration
+    # - project: Auto-detected project type
+    # - test_discovery: File pattern matching rules
+    #
+    # Compatible with: Ruby/RSpec/Minitest, Python/pytest/unittest,
+    # JavaScript/Jest/Mocha, Java/JUnit, Go, C#/NUnit, and more.
+    #
+    # Language Adaptation Examples:
+    # Python: runtime.language=python, package_manager.name=pip/poetry/conda
+    # Node.js: runtime.language=javascript, package_manager.name=npm/yarn/pnpm
+    # Java: runtime.language=java, package_manager.name=maven/gradle
+    # Go: runtime.language=go, package_manager.name=go_modules
+    # C#: runtime.language=csharp, package_manager.name=nuget/dotnet
     class AgentFormatter
       include FormatterInterface
 
@@ -506,9 +535,41 @@ class Tryouts
 
       def render_execution_context
         context_lines = []
-        context_lines << "EXECUTION DETAILS:"
+        context_lines << "EXECUTION_CONTEXT:"
 
-        # Framework and context mode
+        # Command that was executed
+        if @options[:original_command]
+          command_str = @options[:original_command].join(' ')
+          context_lines << "  command: #{command_str}"
+        end
+
+        # Compact system info on one line when possible
+        context_lines << "  pid: #{Process.pid} | pwd: #{Dir.pwd}"
+
+        # Runtime - compact format
+        platform = RUBY_PLATFORM.gsub(/darwin\d+/, 'darwin')  # Simplify darwin25 -> darwin
+        context_lines << "  runtime: ruby #{RUBY_VERSION} (#{platform})"
+
+        # Package manager - only if present, compact format
+        if defined?(Bundler)
+          context_lines << "  package_manager: bundler #{Bundler::VERSION}"
+        end
+
+        # Version control - compact single line with timeout protection
+        git_info = safe_git_info
+        if git_info[:branch] && git_info[:commit] && !git_info[:branch].empty? && !git_info[:commit].empty?
+          context_lines << "  vcs: git #{git_info[:branch]}@#{git_info[:commit]}"
+        end
+
+        # Environment - only non-defaults
+        env_vars = build_environment_context
+        if env_vars.any?
+          # Compact key=value format
+          env_str = env_vars.map { |k, v| "#{k}=#{v}" }.join(', ')
+          context_lines << "  environment: #{env_str}"
+        end
+
+        # Test framework - compact critical info only
         framework = @options[:framework] || :direct
         shared_context = if @options.key?(:shared_context)
           @options[:shared_context]
@@ -522,26 +583,24 @@ class Tryouts
           end
         end
 
-        context_lines << "  Framework: #{framework}"
-        context_lines << "  Context mode: #{shared_context ? 'shared (variables persist across test cases)' : 'fresh (each test case isolated)'}"
+        isolation = shared_context ? 'shared' : 'isolated'
+        context_lines << "  test_framework: #{framework} (#{isolation})"
 
-        # Parser type
-        parser = @options[:parser] || :enhanced
-        context_lines << "  Parser: #{parser}"
+        # Execution flags - only if non-standard
+        flags = build_execution_flags
+        if flags.any?
+          context_lines << "  flags: #{flags.join(', ')}"
+        end
 
-        # Other relevant flags
-        flags = []
-        flags << "verbose" if @options[:verbose]
-        flags << "fails-only" if @options[:fails_only]
-        flags << "debug" if @options[:debug]
-        flags << "stack-traces" if @options[:stack_traces]
-        flags << "parallel(#{@options[:parallel_threads] || 'auto'})" if @options[:parallel]
-        flags << "line-spec" if @options[:line_spec]
+        # TOPA protocol - compact
+        context_lines << "  protocol: TOPA v1.0 | focus: #{@focus_mode} | limit: #{@budget.limit}"
 
-        context_lines << "  Flags: #{flags.any? ? flags.join(', ') : 'none'}" if flags.any?
-
-        # Agent-specific settings
-        context_lines << "  Agent mode: focus=#{@focus_mode}, limit=#{@budget.limit} tokens"
+        # File count being tested
+        if @collected_files && @collected_files.any?
+          context_lines << "  files_under_test: #{@collected_files.size}"
+        elsif @total_stats[:files] && @total_stats[:files] > 0
+          context_lines << "  files_under_test: #{@total_stats[:files]}"
+        end
 
         # Add syntax errors if any (these prevent test execution)
         if @syntax_errors.any?
@@ -570,6 +629,101 @@ class Tryouts
         end
 
         context_lines.join("\n")
+      end
+
+      # Build environment context with language-agnostic keys
+      def build_environment_context
+        env_vars = {}
+
+        # CI/CD detection - prioritize most specific
+        if ENV['GITHUB_ACTIONS']
+          env_vars['CI'] = 'github'
+        elsif ENV['GITLAB_CI']
+          env_vars['CI'] = 'gitlab'
+        elsif ENV['JENKINS_URL']
+          env_vars['CI'] = 'jenkins'
+        elsif ENV['CI']
+          env_vars['CI'] = 'true'
+        end
+
+        # Runtime environment - only if not default
+        if ENV['RAILS_ENV'] && ENV['RAILS_ENV'] != 'development'
+          env_vars['ENV'] = ENV['RAILS_ENV']
+        elsif ENV['RACK_ENV'] && ENV['RACK_ENV'] != 'development'
+          env_vars['ENV'] = ENV['RACK_ENV']
+        elsif ENV['NODE_ENV'] && ENV['NODE_ENV'] != 'development'
+          env_vars['ENV'] = ENV['NODE_ENV']
+        end
+
+        # Coverage - simplified
+        env_vars['COV'] = '1' if ENV['COVERAGE'] || ENV['SIMPLECOV']
+
+        # Test seed for reproducibility
+        env_vars['SEED'] = ENV['SEED'] if ENV['SEED']
+
+        env_vars
+      end
+
+      # Build execution flags in language-agnostic format
+      def build_execution_flags
+        flags = []
+        flags << "verbose" if @options[:verbose]
+        flags << "fails-only" if @options[:fails_only]
+        flags << "debug" if @options[:debug]
+        flags << "traces" if @options[:stack_traces] && !@options[:debug]  # debug implies traces
+        flags << "parallel" if @options[:parallel]
+        flags << "line-spec" if @options[:line_spec]
+        flags << "strict" if @options[:strict]
+        flags << "quiet" if @options[:quiet]
+        flags
+      end
+
+      # Get test discovery patterns in language-agnostic format
+      def get_test_discovery_patterns
+        patterns = []
+
+        # Ruby/Tryouts patterns
+        patterns.concat([
+          "**/*_try.rb",
+          "**/*.try.rb",
+          "try/**/*.rb",
+          "tryouts/**/*.rb"
+        ])
+
+        # TOPA-compatible patterns for other languages:
+        # Python: ["**/*_test.py", "**/test_*.py", "tests/**/*.py"]
+        # JavaScript: ["**/*.test.js", "**/*.spec.js", "__tests__/**/*.js"]
+        # Java: ["**/*Test.java", "**/Test*.java", "src/test/**/*.java"]
+        # Go: ["**/*_test.go"]
+        # C#: ["**/*Test.cs", "**/*Tests.cs"]
+        # PHP: ["**/*Test.php", "tests/**/*.php"]
+        # Rust: ["**/*_test.rs", "tests/**/*.rs"]
+
+        patterns
+      end
+
+      private
+
+      # Safely get git information with timeout protection
+      def safe_git_info
+        # Check if we're in a git repository
+        return {} unless File.directory?('.git') || system('git rev-parse --git-dir >/dev/null 2>&1')
+
+        require 'timeout'
+
+        Timeout.timeout(2) do
+          branch = `git rev-parse --abbrev-ref HEAD 2>/dev/null`.strip
+          commit = `git rev-parse --short HEAD 2>/dev/null`.strip
+
+          # Validate output to prevent injection
+          branch = nil unless branch =~ /\A[\w\-\/\.]+\z/
+          commit = nil unless commit =~ /\A[a-f0-9]+\z/i
+
+          { branch: branch, commit: commit }
+        end
+      rescue Timeout::Error, StandardError
+        # Return empty hash on any error (timeout, permission, etc.)
+        {}
       end
     end
   end

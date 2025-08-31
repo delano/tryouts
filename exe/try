@@ -38,9 +38,15 @@ require_relative '../lib/tryouts'
 lib_glob = File.join(Dir.pwd, '{lib,../lib,.}')
 Tryouts.update_load_path(lib_glob) if Tryouts.respond_to?(:update_load_path)
 
+# Capture original command for agent mode before ARGV gets modified
+original_command = [$0] + ARGV
+
 # Parse args and run CLI
 begin
   files, options = Tryouts::CLI.parse_args(ARGV)
+
+  # Add original command to options for agent formatter
+  options[:original_command] = original_command
 
   # Expand files if directories are given, preserving line specs
   expanded_files = []
