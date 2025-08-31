@@ -40,6 +40,21 @@ class Tryouts
         # Try to evaluate in test context first, then fallback to global context for constants
         begin
           expected_class = eval_expectation_content(@expectation.content, expectation_result)
+
+          # If the evaluated result is not a class/module (e.g., shadowed constant),
+          # fall back to global context resolution
+          unless expected_class.is_a?(Class) || expected_class.is_a?(Module)
+            # Attempt to get the constant from global context
+            # This handles cases where a local variable/method shadows a class constant
+            constant_name = @expectation.content.strip
+            # Ensure the constant name is valid before attempting const_get
+            if constant_name =~ /\A[A-Z][\w:]*\z/
+              expected_class = Object.const_get(constant_name)
+            else
+              # If it's not a valid constant name, the evaluation failed
+              raise TypeError, "Expected a Class or Module, got #{expected_class.class}"
+            end
+          end
         rescue NameError => e
           # If we can't find the constant in test context, try global context
           # This is common for exception classes like ArgumentError, StandardError, etc.

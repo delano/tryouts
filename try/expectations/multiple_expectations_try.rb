@@ -37,3 +37,24 @@ true
 ## TEST7: Boolean evaluator with false value
 false
 #=|> result  # Must be true or false
+
+## TEST8: User reported scenario - CustomDomain with multiple expectations including String type check
+class CustomDomain
+  def initialize(display_domain:, custid:)
+    @display_domain = display_domain
+    @custid = custid
+  end
+
+  def identifier
+    # Generate a hex identifier similar to the user's case
+    require 'digest'
+    Digest::MD5.hexdigest("#{@display_domain}-#{@custid}")[0..17]
+  end
+end
+
+cd = CustomDomain.new display_domain: 'www.example.com', custid: 'domain-test@example.com'
+cd.identifier
+#=:> String
+#=/=> _.empty?
+#==> _.size > 16
+#=~>/\A[0-9a-f]+\z/
