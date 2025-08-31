@@ -555,15 +555,10 @@ class Tryouts
           context_lines << "  package_manager: bundler #{Bundler::VERSION}"
         end
 
-        # Version control - compact single line
-        begin
-          git_branch = `git rev-parse --abbrev-ref HEAD 2>/dev/null`.strip
-          git_commit = `git rev-parse --short HEAD 2>/dev/null`.strip
-          if !git_branch.empty? && !git_commit.empty?
-            context_lines << "  vcs: git #{git_branch}@#{git_commit}"
-          end
-        rescue
-          # Ignore git errors
+        # Version control - compact single line with timeout protection
+        git_info = safe_git_info
+        if git_info[:branch] && git_info[:commit] && !git_info[:branch].empty? && !git_info[:commit].empty?
+          context_lines << "  vcs: git #{git_info[:branch]}@#{git_info[:commit]}"
         end
 
         # Environment - only non-defaults
@@ -599,12 +594,6 @@ class Tryouts
 
         # TOPA protocol - compact
         context_lines << "  protocol: TOPA v1.0 | focus: #{@focus_mode} | limit: #{@budget.limit}"
-
-        # Project type - only if detectable
-        project_type = detect_project_type
-        if project_type != "generic"
-          context_lines << "  project_type: #{project_type}"
-        end
 
         # File count being tested
         if @collected_files && @collected_files.any?
@@ -689,20 +678,6 @@ class Tryouts
         flags
       end
 
-      # Detect project type in language-agnostic way
-      def detect_project_type
-        return "rails" if File.exist?("config/application.rb") || File.exist?("Gemfile") && File.read("Gemfile").include?("rails")
-        return "ruby_gem" if File.exist?("*.gemspec") || Dir.glob("*.gemspec").any?
-        return "python" if File.exist?("setup.py") || File.exist?("pyproject.toml") || File.exist?("requirements.txt")
-        return "node" if File.exist?("package.json")
-        return "java_maven" if File.exist?("pom.xml")
-        return "java_gradle" if File.exist?("build.gradle") || File.exist?("build.gradle.kts")
-        return "dotnet" if Dir.glob("*.csproj").any? || Dir.glob("*.sln").any?
-        return "go" if File.exist?("go.mod")
-        return "rust" if File.exist?("Cargo.toml")
-        return "generic"
-      end
-
       # Get test discovery patterns in language-agnostic format
       def get_test_discovery_patterns
         patterns = []
@@ -725,6 +700,30 @@ class Tryouts
         # Rust: ["**/*_test.rs", "tests/**/*.rs"]
 
         patterns
+      end
+
+      private
+
+      # Safely get git information with timeout protection
+      def safe_git_info
+        # Check if we're in a git repository
+        return {} unless File.directory?('.git') || system('git rev-parse --git-dir >/dev/null 2>&1')
+
+        require 'timeout'
+
+        Timeout.timeout(2) do
+          branch = `git rev-parse --abbrev-ref HEAD 2>/dev/null`.strip
+          commit = `git rev-parse --short HEAD 2>/dev/null`.strip
+
+          # Validate output to prevent injection
+          branch = nil unless branch =~ /\A[\w\-\/\.]+\z/
+          commit = nil unless commit =~ /\A[a-f0-9]+\z/i
+
+          { branch: branch, commit: commit }
+        end
+      rescue Timeout::Error, StandardError
+        # Return empty hash on any error (timeout, permission, etc.)
+        {}
       end
     end
   end
