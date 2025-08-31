@@ -508,6 +508,49 @@ class Tryouts
         context_lines = []
         context_lines << "EXECUTION DETAILS:"
 
+        # Command that was executed
+        if @options[:original_command]
+          command_str = @options[:original_command].join(' ')
+          context_lines << "  Command: #{command_str}"
+        end
+
+        # System information
+        context_lines << "  PID: #{Process.pid}"
+        context_lines << "  Shell: #{ENV['SHELL'] || 'unknown'}"
+        context_lines << "  Working directory: #{Dir.pwd}"
+        context_lines << "  Ruby: #{RUBY_VERSION} (#{RUBY_PLATFORM})"
+
+        # Bundler information
+        if defined?(Bundler)
+          context_lines << "  Bundler: #{Bundler::VERSION}"
+          context_lines << "  Bundle path: #{Bundler.bundle_path}" rescue nil
+        end
+
+        # Git information if available
+        begin
+          git_branch = `git rev-parse --abbrev-ref HEAD 2>/dev/null`.strip
+          git_commit = `git rev-parse --short HEAD 2>/dev/null`.strip
+          if !git_branch.empty? && !git_commit.empty?
+            context_lines << "  Git: #{git_branch}@#{git_commit}"
+          end
+        rescue
+          # Ignore git errors
+        end
+
+        # Add relevant environment variables if present
+        env_vars = []
+        env_vars << "BUNDLE_GEMFILE=#{ENV['BUNDLE_GEMFILE']}" if ENV['BUNDLE_GEMFILE']
+        env_vars << "RAILS_ENV=#{ENV['RAILS_ENV']}" if ENV['RAILS_ENV']
+        env_vars << "RACK_ENV=#{ENV['RACK_ENV']}" if ENV['RACK_ENV']
+        env_vars << "CI=#{ENV['CI']}" if ENV['CI']
+        context_lines << "  Environment: #{env_vars.join(', ')}" if env_vars.any?
+
+        # Load path information (helpful for debugging require issues)
+        tryouts_lib_paths = $LOAD_PATH.select { |path| path.include?('tryouts') }
+        if tryouts_lib_paths.any?
+          context_lines << "  Tryouts load paths: #{tryouts_lib_paths.map { |p| File.basename(p) }.join(', ')}"
+        end
+
         # Framework and context mode
         framework = @options[:framework] || :direct
         shared_context = if @options.key?(:shared_context)
