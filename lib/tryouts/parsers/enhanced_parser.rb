@@ -118,8 +118,8 @@ class Tryouts
                 tokens << { type: :code, content: line, line: index, ast: parse_ruby_line(line) }
                 emitted_code = true
               end
-              # Inline comment may carry expectations; classify it too
-              tokens << classify_comment_inhousely(comment_content, line_number)
+              # Inline comment (after code) - treat as regular comment, not expectation
+              tokens << { type: :comment, content: comment_content.sub(/^#\s*/, ''), line: line_number - 1 }
             else
               tokens << classify_comment_inhousely(comment_content, line_number)
             end
@@ -219,20 +219,28 @@ class Tryouts
     # Detect if a comment looks like a malformed expectation attempt
     # This catches patterns that suggest someone tried to write an expectation
     # but got the syntax wrong (missing parts, wrong spacing, extra characters, etc.)
+    #
+    # Only flags as malformed if it starts with patterns that look like expectation syntax,
+    # not just any comment that happens to contain equals signs in natural language.
     def looks_like_malformed_expectation?(content)
       # Skip if it's already handled by specific patterns above
       return false if content.match?(/^##\s*/) # Description
       return false if content.match?(/^#\s*TEST\s*\d*:\s*/) # TEST format
       return false if content.match?(/^##\s*=>\s*/) # Commented out expectation
 
-      # Look for patterns that suggest expectation attempts:
-      # 1. Contains = and/or > in suspicious positions
-      # 2. Has spaces around = or > suggesting misunderstanding
-      # 3. Missing > or = from what looks like expectation syntax
-      # 4. Extra characters in expectation-like patterns
+      # Only flag as malformed if it looks like an expectation attempt at the start
+      # Patterns that suggest malformed expectation syntax:
+      # - Starts with #= but doesn't match valid patterns
+      # - Has multiple = or > characters in suspicious positions near the start
+      # - Looks like broken expectation syntax (not natural language)
 
-      content.match?(/^#\s*([=><]|.*[=><])/) && # Contains =, >, or < after #
-      !content.match?(/^#\s*[^=><]*$/) # Not just a regular comment without expectation chars
+      return true if content.match?(/^#\s*=\s*>/) # "# = >" (spaces in wrong places)
+      return true if content.match?(/^#\s*==+>/) # "# ==> " (wrong number of =)
+      return true if content.match?(/^#\s*=[^=:!~%*|\/>\s][^>]*>/) # "# =X> " (invalid chars between = and >)
+      return true if content.match?(/^#\s*>[^=]/) # "# >something" (starts with >)
+      return true if content.match?(/^#\s*<[^=]/) # "# <something" (starts with <)
+
+      false # Regular comments with = signs in natural language are OK
     end
 
     # Extract the malformed syntax portion for warning display
