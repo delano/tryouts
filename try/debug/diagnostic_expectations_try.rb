@@ -1,4 +1,5 @@
-# try/features/diagnostic_expectations_try.rb
+# try/debug/diagnostic_expectations_try.rb
+# Requires enhanced parser for #=?> diagnostic syntax
 
 # Setup variables for diagnostic testing
 @debug_counter = 0
