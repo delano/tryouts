@@ -14,7 +14,7 @@
 
 ## TEST: Supports ancestors
 "hello"
-#=:> Object
+#=:<> Object
 
 ## TEST: Multiple expectations with String class check first
 value = "test_string"
