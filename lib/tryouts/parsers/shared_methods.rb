@@ -103,6 +103,9 @@ class Tryouts
           in [_, { type: :output_expectation }]
             current_block[:expectations] << token
 
+          in [_, { type: :diagnostic_expectation }]
+            current_block[:expectations] << token
+
           in [_, { type: :malformed_expectation }]
             current_block[:expectations] << token
 
@@ -379,6 +382,7 @@ class Tryouts
               type = case token[:type]
                      when :exception_expectation then :exception
                      when :intentional_failure_expectation then :intentional_failure
+                     when :diagnostic_expectation then :diagnostic
                      when :true_expectation then :true # rubocop:disable Lint/BooleanSymbol
                      when :false_expectation then :false # rubocop:disable Lint/BooleanSymbol
                      when :boolean_expectation then :boolean

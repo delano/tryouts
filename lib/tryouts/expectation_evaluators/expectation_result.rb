@@ -16,16 +16,21 @@ class Tryouts
     #
     # Variables available in eval_expectation_content:
     #   result, _ : actual_result (regular) or execution_time_ms (performance)
-    ExpectationResult = Data.define(:actual_result, :execution_time_ns, :start_time_ns, :end_time_ns, :stdout_content, :stderr_content) do
+    ExpectationResult = Data.define(:actual_result, :execution_time_ns, :start_time_ns, :end_time_ns, :stdout_content, :stderr_content, :passed, :expected_result, :diagnostic) do
       # Convert nanoseconds to milliseconds for human-readable timing
       # Used for display and as the value of `result`/`_` variables in performance expectations
       def execution_time_ms
         execution_time_ns ? (execution_time_ns / 1_000_000.0).round(2) : nil
       end
 
+      # Check if this is a diagnostic expectation result
+      def diagnostic?
+        diagnostic == true
+      end
+
       # Helper to create a basic packet with just actual result
       # Used by: regular, true, false, boolean, result_type, regex_match, exception evaluators
-      def self.from_result(actual_result)
+      def self.from_result(actual_result, passed: nil, expected_result: nil, diagnostic: false)
         new(
           actual_result: actual_result,
           execution_time_ns: nil,
@@ -33,13 +38,16 @@ class Tryouts
           end_time_ns: nil,
           stdout_content: nil,
           stderr_content: nil,
+          passed: passed,
+          expected_result: expected_result,
+          diagnostic: diagnostic,
         )
       end
 
       # Helper to create a timing packet with execution data
       # Used by: performance_time evaluator
       # Future: Could accept additional timing or resource metrics
-      def self.from_timing(actual_result, execution_time_ns, start_time_ns = nil, end_time_ns = nil)
+      def self.from_timing(actual_result, execution_time_ns, start_time_ns = nil, end_time_ns = nil, passed: nil, expected_result: nil, diagnostic: false)
         new(
           actual_result: actual_result,
           execution_time_ns: execution_time_ns,
@@ -47,12 +55,15 @@ class Tryouts
           end_time_ns: end_time_ns,
           stdout_content: nil,
           stderr_content: nil,
+          passed: passed,
+          expected_result: expected_result,
+          diagnostic: diagnostic,
         )
       end
 
       # Helper to create a packet with captured output data
       # Used by: output evaluator for stdout/stderr expectations
-      def self.from_execution_with_output(actual_result, stdout_content, stderr_content, execution_time_ns = nil)
+      def self.from_execution_with_output(actual_result, stdout_content, stderr_content, execution_time_ns = nil, passed: nil, expected_result: nil, diagnostic: false)
         new(
           actual_result: actual_result,
           execution_time_ns: execution_time_ns,
@@ -60,6 +71,9 @@ class Tryouts
           end_time_ns: nil,
           stdout_content: stdout_content,
           stderr_content: stderr_content,
+          passed: passed,
+          expected_result: expected_result,
+          diagnostic: diagnostic,
         )
       end
     end

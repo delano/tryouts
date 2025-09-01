@@ -36,6 +36,7 @@ class Tryouts
     def performance_time? = type == :performance_time
     def intentional_failure? = type == :intentional_failure
     def output? = type == :output
+    def diagnostic? = type == :diagnostic
   end
 
   # Special expectation type for output capturing with pipe information
@@ -86,6 +87,7 @@ class Tryouts
     :result_value,       # Actual execution result
     :actual_results,     # Array of actual values from expectations
     :expected_results,   # Array of expected values from expectations
+    :diagnostic_results, # Array of diagnostic values (only shown on failure)
     :error,              # Exception object (if any)
     :captured_output,    # Captured stdout/stderr content
     :elapsed_time,       # Execution timing (future use)
@@ -111,6 +113,10 @@ class Tryouts
       !error.nil?
     end
 
+    def has_diagnostic_results?
+      diagnostic_results && !diagnostic_results.empty?
+    end
+
     # Helper for formatter access to first actual/expected values
     def first_actual
       actual_results&.first
@@ -121,13 +127,14 @@ class Tryouts
     end
 
     # Create a basic result packet for successful tests
-    def self.from_success(test_case, result_value, actual_results, expected_results, captured_output: nil, elapsed_time: nil, metadata: {})
+    def self.from_success(test_case, result_value, actual_results, expected_results, diagnostic_results: [], captured_output: nil, elapsed_time: nil, metadata: {})
       new(
         test_case: test_case,
         status: :passed,
         result_value: result_value,
         actual_results: actual_results,
         expected_results: expected_results,
+        diagnostic_results: diagnostic_results,
         error: nil,
         captured_output: captured_output,
         elapsed_time: elapsed_time,
@@ -136,13 +143,14 @@ class Tryouts
     end
 
     # Create a result packet for failed tests
-    def self.from_failure(test_case, result_value, actual_results, expected_results, captured_output: nil, elapsed_time: nil, metadata: {})
+    def self.from_failure(test_case, result_value, actual_results, expected_results, diagnostic_results: [], captured_output: nil, elapsed_time: nil, metadata: {})
       new(
         test_case: test_case,
         status: :failed,
         result_value: result_value,
         actual_results: actual_results,
         expected_results: expected_results,
+        diagnostic_results: diagnostic_results,
         error: nil,
         captured_output: captured_output,
         elapsed_time: elapsed_time,
@@ -151,7 +159,7 @@ class Tryouts
     end
 
     # Create a result packet for error cases
-    def self.from_error(test_case, error, captured_output: nil, elapsed_time: nil, metadata: {})
+    def self.from_error(test_case, error, diagnostic_results: [], captured_output: nil, elapsed_time: nil, metadata: {})
       error_message = error ? error.message : '<exception is nil>'
 
       # Include backtrace in error message when stack traces are enabled
@@ -168,6 +176,7 @@ class Tryouts
         result_value: nil,
         actual_results: [error_display],
         expected_results: [],
+        diagnostic_results: diagnostic_results,
         error: error,
         captured_output: captured_output,
         elapsed_time: elapsed_time,

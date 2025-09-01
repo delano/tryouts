@@ -245,6 +245,13 @@ class Tryouts
           end
         end
 
+        # Add diagnostic results for failures (only shown on failure)
+        if result_packet.has_diagnostic_results? && @budget.has_budget?
+          failure_data[:debug] = result_packet.diagnostic_results.map do |diagnostic_value|
+            @budget.smart_truncate(diagnostic_value, max_tokens: 20)
+          end
+        end
+
         failure_data
       end
 

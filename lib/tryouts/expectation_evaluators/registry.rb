@@ -13,6 +13,7 @@ require_relative 'performance_time'
 require_relative 'intentional_failure'
 require_relative 'output'
 require_relative 'non_nil'
+require_relative 'diagnostic'
 
 class Tryouts
   module ExpectationEvaluators
@@ -63,6 +64,7 @@ class Tryouts
       register(IntentionalFailure)
       register(Output)
       register(NonNil)
+      register(Diagnostic)
     end
   end
 end

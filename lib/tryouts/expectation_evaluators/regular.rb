@@ -63,5 +63,34 @@ class Tryouts
         handle_evaluation_error(ex, actual_result)
       end
     end
+
+require_relative 'base'
+
+module Tryouts
+  module ExpectationEvaluators
+    class Diagnostic < Base
+      def evaluate(actual_result)
+        # Evaluate the diagnostic expression in the test context
+        diagnostic_result = @context.instance_eval(@expectation.content)
+
+        # Diagnostic expectations never fail - they're for information only
+        ExpectationResult.new(
+          passed: true,  # Always pass - diagnostics don't affect test outcome
+          actual_result: diagnostic_result,
+          expected_result: nil,  # No expected result for diagnostics
+          diagnostic: true  # Flag this as a diagnostic result
+        )
+      rescue => e
+        # Even if diagnostic evaluation fails, don't fail the test
+        ExpectationResult.new(
+          passed: true,
+          actual_result: e,
+          expected_result: nil,
+          diagnostic: true
+        )
+      end
+    end
+  end
+end
   end
 end

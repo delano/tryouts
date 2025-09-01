@@ -172,7 +172,9 @@ class Tryouts
         { type: :exception_expectation, content: $1.strip, line: line_number - 1, ast: parse_expectation($1.strip) }
       in /^#\s*=<>\s*(.*)$/ # Intentional failure expectation
         { type: :intentional_failure_expectation, content: $1.strip, line: line_number - 1, ast: parse_expectation($1.strip) }
-      in /^#\s*==>\s*(.*)$/ # Boolean true expectation
+      in /^#\s*=\?>\s*(.*)$/ # Diagnostic expectation
+        { type: :diagnostic_expectation, content: $1.strip, line: line_number - 1, ast: parse_expectation($1.strip) }
+      in /^#\s*==>>\s*(.*)$/ # Boolean true expectation
         { type: :true_expectation, content: $1.strip, line: line_number - 1, ast: parse_expectation($1.strip) }
       in %r{^#\s*=/=>\s*(.*)$} # Boolean false expectation
         { type: :false_expectation, content: $1.strip, line: line_number - 1, ast: parse_expectation($1.strip) }
@@ -190,7 +192,7 @@ class Tryouts
         { type: :output_expectation, content: $2.strip, pipe: $1.to_i, line: line_number - 1, ast: parse_expectation($2.strip) }
       in /^#\s*=>\s*(.*)$/ # Regular expectation
         { type: :expectation, content: $1.strip, line: line_number - 1, ast: parse_expectation($1.strip) }
-      in /^#\s*=([^>=:!~%*|\/\s]+)>\s*(.*)$/ # Malformed expectation - invalid characters between = and >
+      in %r{^#\s*=([^>=:!~%*|/\\s]+)>\s*(.*)$} # Malformed expectation - invalid characters between = and >
         syntax = $1
         content_part = $2.strip
         add_warning(ParserWarning.malformed_expectation(

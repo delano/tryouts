@@ -41,25 +41,25 @@ NOTE: Do not say things like, "You're absolutely right!".
 7. **Result**: Last expression in each test case is the result
 
 **Running tests:**
-- **Basic**: `bundle exec try` (auto-discovers `*_try.rb` and `*.try.rb` files)
-- **All options**: `bundle exec try --help` (complete CLI reference with agent-specific notes)
+- **Basic**: `bundle exec exe/try` (auto-discovers `*_try.rb` and `*.try.rb` files)
+- **All options**: `bundle exec exe/try --help` (complete CLI reference with agent-specific notes)
 
 **Agent-optimized workflow:**
-- **Default agent mode**: `bundle exec try --agent` (structured, token-efficient output for LLMs)
-- **Focus modes**: `bundle exec try --agent --agent-focus summary` (options: `summary|first-failure|critical`)
+- **Default agent mode**: `bundle exec exe/try --agent` (structured, token-efficient output for LLMs)
+- **Focus modes**: `bundle exec exe/try --agent --agent-focus summary` (options: `summary|first-failure|critical`)
   - `summary`: Overview of test results only
   - `first-failure`: Stop at first failure with details
   - `critical`: Only show critical issues and summary
 
 **Framework integration:**
-- **RSpec**: `bundle exec try --rspec` (generates RSpec-compatible output)
-- **Minitest**: `bundle exec try --minitest` (generates Minitest-compatible output)
+- **RSpec**: `bundle exec exe/try --rspec` (generates RSpec-compatible output)
+- **Minitest**: `bundle exec exe/try --minitest` (generates Minitest-compatible output)
 
 **Debugging options:**
-- **Stack traces**: `bundle exec try -s` (stack traces without debug logging)
-- **Debug mode**: `bundle exec try -D` (additional logging including stack traces)
-- **Verbose failures**: `bundle exec try -vf` (detailed failure output)
-- **Fresh context**: `bundle exec try --fresh-context` (isolate test cases)
+- **Stack traces**: `bundle exec exe/try -s` (stack traces without debug logging)
+- **Debug mode**: `bundle exec exe/try -D` (additional logging including stack traces)
+- **Verbose failures**: `bundle exec exe/try -vf` (detailed failure output)
+- **Fresh context**: `bundle exec exe/try --fresh-context` (isolate test cases)
 
 *Note: Use `--agent` mode for optimal token efficiency when analyzing test results programmatically.*
 
@@ -204,7 +204,7 @@ Files are processed in lexical order.
 - `1+`: Number of failing tests
 
 ### Key Dependencies
-- **Ruby** (>= 3.4.4)
+- **Ruby** (>= 3.2)
 - **prism** (~> 1.0): Native Ruby parser
 - **rspec**, **minitest**: Framework integration
 - **rubocop**: Code quality with performance and thread safety extensions

@@ -331,9 +331,14 @@ class Tryouts
 
     # Evaluate expectations using new object-oriented evaluation system
     def evaluate_expectations(test_case, actual_result, context, execution_time_ns = nil, stdout_content = nil, stderr_content = nil, caught_exception = nil)
-      return { passed: true, actual_results: [], expected_results: [] } if test_case.expectations.empty?
+      return { passed: true, actual_results: [], expected_results: [], diagnostic_results: [] } if test_case.expectations.empty?
 
-      evaluation_results = test_case.expectations.map do |expectation|
+      # Separate diagnostic expectations from regular ones
+      diagnostic_expectations = test_case.expectations.select(&:diagnostic?)
+      regular_expectations = test_case.expectations.reject(&:diagnostic?)
+
+      # Evaluate regular expectations
+      evaluation_results = regular_expectations.map do |expectation|
         evaluator = ExpectationEvaluators::Registry.evaluator_for(expectation, test_case, context)
 
         # Pass appropriate data to different evaluator types
@@ -349,7 +354,15 @@ class Tryouts
         end
       end
 
-      aggregate_evaluation_results(evaluation_results)
+      # Always evaluate diagnostic expectations (even on success)
+      diagnostic_results = diagnostic_expectations.map do |expectation|
+        evaluator = ExpectationEvaluators::Registry.evaluator_for(expectation, test_case, context)
+        evaluator.evaluate(actual_result)
+      end
+
+      regular_result = aggregate_evaluation_results(evaluation_results)
+      regular_result[:diagnostic_results] = diagnostic_results.map { |dr| dr[:actual] }
+      regular_result
     end
 
     # Aggregate individual evaluation results into the expected format
@@ -363,12 +376,15 @@ class Tryouts
 
     # Build structured test results using TestCaseResultPacket
     def build_test_result(test_case, result_value, expectations_result)
+      diagnostic_results = expectations_result[:diagnostic_results] || []
+
       if expectations_result[:passed]
         TestCaseResultPacket.from_success(
           test_case,
           result_value,
           expectations_result[:actual_results],
           expectations_result[:expected_results],
+          diagnostic_results: diagnostic_results,
         )
       else
         TestCaseResultPacket.from_failure(
@@ -376,12 +392,31 @@ class Tryouts
           result_value,
           expectations_result[:actual_results],
           expectations_result[:expected_results],
+          diagnostic_results: diagnostic_results,
         )
       end
     end
 
     def build_error_result(test_case, exception)
-      TestCaseResultPacket.from_error(test_case, exception)
+      # Try to evaluate diagnostic expressions even in error cases
+      diagnostic_results = []
+      if test_case.expectations.any?(&:diagnostic?)
+        begin
+          # Use a fresh container for diagnostic evaluation in error cases
+          container = Object.new
+          diagnostic_expectations = test_case.expectations.select(&:diagnostic?)
+          diagnostic_results = diagnostic_expectations.map do |expectation|
+            evaluator = ExpectationEvaluators::Registry.evaluator_for(expectation, test_case, container)
+            result = evaluator.evaluate(exception)
+            result[:actual]
+          end
+        rescue => e
+          # If diagnostic evaluation fails, just continue with empty results
+          Tryouts.debug "Diagnostic evaluation failed in error case: #{e.message}"
+        end
+      end
+
+      TestCaseResultPacket.from_error(test_case, exception, diagnostic_results: diagnostic_results)
     end
 
     # Process and display test results using formatter

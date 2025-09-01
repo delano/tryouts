@@ -157,6 +157,11 @@ class Tryouts
         # Show failure details for failed tests
         if result_packet.failed? || result_packet.error?
           show_failure_details(test_case, result_packet.actual_results, result_packet.expected_results)
+
+          # Show diagnostic results on failures
+          if result_packet.has_diagnostic_results?
+            show_diagnostic_results(result_packet.diagnostic_results)
+          end
         # Show exception details for passed exception expectations
         elsif result_packet.passed? && has_exception_expectations?(test_case)
           show_exception_details(test_case, result_packet.actual_results, result_packet.expected_results)
@@ -300,11 +305,22 @@ class Tryouts
           line_display = format('%3d: %s', line_num + 1, line_content)
 
           # Highlight expectation lines by checking if this line contains any expectation syntax
-          if line_content.match?(%r{^\s*#\s*=(!|<|=|/=|\||:|~|%|\d+)?>\s*})
+          if line_content.match?(%r{^\s*#\s*=(!|<|\?|=|/=|\||:|~|%|\d+)?>\s*})
             line_display = Console.color(:yellow, line_display)
           end
 
           puts indent_text(line_display, 2)
+        end
+        puts
+      end
+
+      def show_diagnostic_results(diagnostic_results)
+        return if diagnostic_results.nil? || diagnostic_results.empty?
+
+        puts indent_text(Console.color(:cyan, 'Debug Info:'), 2)
+        diagnostic_results.each_with_index do |diagnostic_value, idx|
+          debug_line = "Debug: #{diagnostic_value.inspect}"
+          puts indent_text(debug_line, 3)
         end
         puts
       end
