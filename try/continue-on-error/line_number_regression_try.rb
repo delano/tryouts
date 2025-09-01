@@ -22,7 +22,7 @@ puts "Setup complete"
 
 ## TEST: Line number accuracy test - should fail at expected line 25
 "this will fail"
-#=> "this will not match"
+#=> "this intentionally does not match"
 
 ## TEST: Second test to verify offset consistency - should fail at line 29
 [1, 2, 3]

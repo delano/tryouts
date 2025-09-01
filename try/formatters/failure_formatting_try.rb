@@ -1,21 +1,21 @@
 # try/formatters/failure_formatting_try.rb
 
-## TEST: Regular expectation failure
+## TEST: Regular expectation failure (the lists do not match)
 [1, 2, 3]
-#=<> [4, 5, 6]
+#=> [4, 5, 6]
 
-## TEST: Boolean true expectation failure
+## TEST: Boolean true expectation failure (the list is NOT empty)
 [1, 2, 3]
-#==<> result.empty?
+#==> result.empty?
 
-## TEST: Boolean false expectation failure
+## TEST: Boolean false expectation failure (the list IS empty)
 []
-#=/=<> result.empty?
+#=/=> result.empty?
 
-## TEST: Result type failure
+## TEST: Result type failure (the return value is a String and not an Integer)
 'hello'
-#=:<> Integer
+#=:> Integer
 
-## TEST: Performance timing failure
-sleep(0.01)
-#=%<> 1
+## TEST: Performance timing failure (2ms is greater than 1ms)
+sleep(0.02)
+#=%> 1

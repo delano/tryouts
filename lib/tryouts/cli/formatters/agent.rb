@@ -4,13 +4,13 @@ require_relative 'token_budget'
 
 class Tryouts
   class CLI
-    # TOPA (Test Output Protocol for AI) Formatter
+    # TOPAZ (Test Output Protocol for AI Zealots) Formatter
     #
     # Language-agnostic test output format designed for LLM context management.
-    # This formatter implements the TOPA v1.0 specification for structured,
+    # This formatter implements the TOPAZ v1.0 specification for structured,
     # token-efficient test result communication.
     #
-    # TOPA Features:
+    # TOPAZ Features:
     # - Language-agnostic field naming (snake_case, hierarchical)
     # - Standardized execution context (runtime, environment, VCS)
     # - Token budget awareness with smart truncation
@@ -27,7 +27,7 @@ class Tryouts
     # - environment: Normalized env vars (ci_system, app_env, etc.)
     # - test_framework: Framework name, isolation mode, parser
     # - execution_flags: Runtime flags in normalized form
-    # - protocol: TOPA version and configuration
+    # - protocol: TOPAZ version and configuration
     # - project: Auto-detected project type
     # - test_discovery: File pattern matching rules
     #
@@ -49,7 +49,7 @@ class Tryouts
         @focus_mode = options[:agent_focus] || :failures
         @collected_files = []
         @current_file_data = nil
-        @total_stats = { files: 0, tests: 0, failures: 0, errors: 0, elapsed: 0 }
+        @total_stats = { files: 0, tests: 0, failures: 0, errors: 0, elapsed_time: 0 }
         @output_rendered = false
         @options = options  # Store all options for execution context display
         @all_warnings = []  # Store warnings globally for execution details
@@ -120,7 +120,7 @@ class Tryouts
         # Always update global totals
         @total_stats[:failures] += failed_count
         @total_stats[:errors] += error_count
-        @total_stats[:elapsed] += elapsed_time if elapsed_time
+        @total_stats[:elapsed_time] += elapsed_time if elapsed_time
 
         # Update per-file data - file_result is called AFTER file_end, so data is in @collected_files
         relative_file_path = relative_path(file_path)
@@ -175,7 +175,7 @@ class Tryouts
           error_count: @collected_files.sum { |f| f[:errors].size },
           successful_files: @collected_files.size - @collected_files.count { |f| f[:failures].any? || f[:errors].any? },
           total_files: @collected_files.size,
-          elapsed_time: @total_stats[:elapsed]
+          elapsed_time: @total_stats[:elapsed_time]
         ) unless @output_rendered
       end
 
@@ -188,7 +188,7 @@ class Tryouts
           errors: error_count,
           successful_files: successful_files,
           total_files: total_files,
-          elapsed: elapsed_time
+          elapsed_time: elapsed_time,
         )
 
         # Now render all collected data
@@ -278,6 +278,12 @@ class Tryouts
       def render_summary_only
         output = []
 
+        time_str = if @total_stats[:elapsed_time] < 2.0
+          " (#{(@total_stats[:elapsed_time] * 1000).round}ms)"
+        else
+          " (#{@total_stats[:elapsed_time].round(2)}s)"
+        end
+
         # Add execution context header for agent clarity
         output << render_execution_context
         output << ""
@@ -293,13 +299,13 @@ class Tryouts
           details = []
           details << "#{failed_count} failed" if failed_count > 0
           details << "#{error_count} errors" if error_count > 0
-          status_parts << "FAIL: #{issues_count}/#{@total_stats[:tests]} tests (#{details.join(', ')}, #{passed_count} passed)"
+          status_parts << "FAIL: #{issues_count}/#{@total_stats[:tests]} tests (#{details.join(', ')}, #{passed_count} passed#{time_str})"
         else
           # Agent doesn't need output in the positive case (i.e. for passing
           # tests). It just fills out the context window.
         end
 
-        status_parts << "(#{format_time(@total_stats[:elapsed])})" if @total_stats[:elapsed]
+        status_parts << "(#{format_time(@total_stats[:elapsed_time])})" if @total_stats[:elapsed_time]
 
         output << status_parts.join(" ")
 
@@ -331,6 +337,12 @@ class Tryouts
         # Only show errors (exceptions), skip assertion failures
         critical_files = @collected_files.select { |f| f[:errors].any? }
 
+        time_str = if @total_stats[:elapsed_time] < 2.0
+          " (#{(@total_stats[:elapsed_time] * 1000).round}ms)"
+        else
+          " (#{@total_stats[:elapsed_time].round(2)}s)"
+        end
+
         output = []
 
         # Add execution context header for agent clarity
@@ -343,7 +355,7 @@ class Tryouts
           return
         end
 
-        output << "CRITICAL: #{critical_files.size} file#{'s' if critical_files.size != 1} with errors"
+        output << "CRITICAL: #{critical_files.size} file#{'s' if critical_files.size != 1} with errors#{time_str}"
         output << ""
 
         critical_files.each do |file_data|
@@ -372,6 +384,12 @@ class Tryouts
 
       def render_full_structured
         output = []
+
+        time_str = if @total_stats[:elapsed_time] < 2.0
+          " (#{(@total_stats[:elapsed_time] * 1000).round}ms)"
+        else
+          " (#{@total_stats[:elapsed_time].round(2)}s)"
+        end
 
         # Add execution context header for agent clarity
         output << render_execution_context
@@ -408,7 +426,7 @@ class Tryouts
         summary = "Summary: \n"
         summary += "#{passed_count} testcases passed, #{failed_count} failed"
         summary += ", #{error_count} errors" if error_count > 0
-        summary += " in #{@total_stats[:files]} files"
+        summary += " in #{@total_stats[:files]} files#{time_str}"
 
         output << summary
 
@@ -548,7 +566,7 @@ class Tryouts
 
         # Runtime - compact format
         platform = RUBY_PLATFORM.gsub(/darwin\d+/, 'darwin')  # Simplify darwin25 -> darwin
-        context_lines << "  runtime: ruby #{RUBY_VERSION} (#{platform})"
+        context_lines << "  runtime: ruby #{RUBY_VERSION} (#{platform}); tryouts #{Tryouts::VERSION}"
 
         # Package manager - only if present, compact format
         if defined?(Bundler)
@@ -592,8 +610,8 @@ class Tryouts
           context_lines << "  flags: #{flags.join(', ')}"
         end
 
-        # TOPA protocol - compact
-        context_lines << "  protocol: TOPA v1.0 | focus: #{@focus_mode} | limit: #{@budget.limit}"
+        # TOPAZ protocol - compact
+        context_lines << "  protocol: TOPAZ v0.3 | focus: #{@focus_mode} | limit: #{@budget.limit}"
 
         # File count being tested
         if @collected_files && @collected_files.any?

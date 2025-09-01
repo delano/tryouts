@@ -43,7 +43,7 @@ GIT
 PATH
   remote: .
   specs:
-    tryouts (3.5.1)
+    tryouts (3.5.2)
       concurrent-ruby (~> 1.0)
       irb
       minitest (~> 5.0)

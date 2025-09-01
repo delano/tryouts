@@ -11,7 +11,6 @@ class Tryouts
       @output_manager = output_manager
       @translator     = translator
       @global_tally   = global_tally
-
     end
 
     def execute
@@ -28,7 +27,6 @@ class Tryouts
     end
 
     private
-
 
     def execute_direct_mode
       batch = TestBatch.new(
@@ -56,7 +54,7 @@ class Tryouts
       file_error_count                  = test_results.count { |r| r.error? }
       executed_test_count               = test_results.size
 
-      # Note: Individual test results are added to the aggregator in TestBatch
+      # NOTE: Individual test results are added to the aggregator in TestBatch
       # Here we just update the file success count atomically
       if success
         @global_tally[:aggregator].increment_successful_files
@@ -66,7 +64,17 @@ class Tryouts
       @output_manager.file_success(@file, executed_test_count, file_failed_count, file_error_count, duration)
 
       # Combine failures and errors to determine the exit code.
-      success ? 0 : (file_failed_count + file_error_count)
+      # Include infrastructure failures (setup/teardown errors) in exit code calculation
+      if success
+        0
+      else
+        # Check for infrastructure failures when no test cases executed
+        infrastructure_failure_count = @global_tally[:aggregator].infrastructure_failure_count
+        total_failure_count          = file_failed_count + file_error_count
+
+        # If no tests ran but there are infrastructure failures, count those as failures
+        total_failure_count.zero? && infrastructure_failure_count > 0 ? infrastructure_failure_count : total_failure_count
+      end
     end
 
     def execute_rspec_mode

@@ -6,7 +6,7 @@ test_file = 'try/safety/batch_setup_with_comments_try.rb'
 puts 'end of setup'
 
 # We instantiate the parser just for fun
-@parser = Tryouts::PrismParser.new(test_file)
+@parser = Tryouts::LegacyParser.new(test_file)
 
 ## TEST: Just a simple non-nil check?
 @parser

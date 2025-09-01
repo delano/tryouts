@@ -1,8 +1,8 @@
 #!/usr/bin/env ruby
 # Parser comparison testing script
-# Compares outputs of PrismParser vs EnhancedParser
+# Compares outputs of LegacyParser vs EnhancedParser
 
-require_relative '../../lib/tryouts/parsers/prism_parser'
+require_relative '../../lib/tryouts/parsers/legacy_parser'
 require_relative '../../lib/tryouts/parsers/enhanced_parser'
 
 class ParserComparison
@@ -18,7 +18,7 @@ class ParserComparison
 
   def compare_all_test_files
     puts "=== Parser Comparison Testing ==="
-    puts "Comparing PrismParser vs EnhancedParser outputs\n\n"
+    puts "Comparing LegacyParser vs EnhancedParser outputs\n\n"
 
     test_files = find_test_files
     puts "Found #{test_files.length} test files to compare\n"
@@ -37,7 +37,7 @@ class ParserComparison
 
     begin
       # Parse with both parsers
-      prism_result = Tryouts::PrismParser.new(file_path).parse
+      prism_result = Tryouts::LegacyParser.new(file_path).parse
       enhanced_result = Tryouts::EnhancedParser.new(file_path).parse
 
       # Compare results

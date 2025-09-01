@@ -103,6 +103,9 @@ class Tryouts
           in [_, { type: :output_expectation }]
             current_block[:expectations] << token
 
+          in [_, { type: :malformed_expectation }]
+            current_block[:expectations] << token
+
           in [_, { type: :comment | :blank }]
             add_context_to_block(current_block, token)
           end
@@ -197,7 +200,8 @@ class Tryouts
           :expectation, :exception_expectation, :intentional_failure_expectation,
           :true_expectation, :false_expectation, :boolean_expectation,
           :result_type_expectation, :regex_match_expectation,
-          :performance_time_expectation, :output_expectation, :non_nil_expectation
+          :performance_time_expectation, :output_expectation, :non_nil_expectation,
+          :malformed_expectation
         ].include?(type)
       end
 

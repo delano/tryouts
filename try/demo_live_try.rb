@@ -154,7 +154,7 @@ odds       = range_data.select(&:odd?)
 puts 'Type validation failure...'
 sleep(0.09)
 '123'
-#=:<> Integer  # This should fail (it's a String, not Integer)
+#=:> Integer  # This should fail (it's a String, not Integer)
 
 ## TEST: Network simulation
 puts 'Simulating network operations...'

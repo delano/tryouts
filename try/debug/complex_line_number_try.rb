@@ -52,7 +52,7 @@ result = @x + 10
 #=> 52
 
 ## TEST: Test with inline comment after heredoc parsing
-"hello world" # This is an inline comment with #=> fake expectation
+"hello world" # This is an inline comment
 #=> "hello world"
 
 ## TEST: Multiple line test with complex patterns
