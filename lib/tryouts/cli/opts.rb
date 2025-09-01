@@ -10,20 +10,20 @@ class Tryouts
         Minitest:   Fresh context (each test isolated)
 
       Examples:
-        try test_try.rb                          # Tryouts test runner with shared context
-        try --rspec test_try.rb                  # RSpec with fresh context
-        try --direct --shared-context test_try.rb # Explicit shared context
-        try --generate-rspec test_try.rb         # Output RSpec code only
-        try --inspect test_try.rb                # Inspect file structure and validation
-        try --agent test_try.rb                  # Agent-optimized structured output
-        try --agent --agent-limit 10000 tests/  # Agent mode with 10K token limit
+        try test_try.rb                             # Tryouts test runner with shared context
+        try --rspec test_try.rb                     # RSpec with fresh context
+        try --direct --shared-context test_try.rb   # Explicit shared context
+        try --generate-rspec test_try.rb            # Output RSpec code only
+        try --inspect test_try.rb                   # Inspect file structure and validation
+        try --agent test_try.rb                     # Agent-optimized structured output
+        try --agent --agent-limit 10000 tests/      # Agent mode with 10K token limit
 
       Agent Output Modes:
-        --agent                                  # Structured, token-efficient output
-        --agent-focus summary                    # Show counts and problem files only
-        --agent-focus first-failure              # Show first failure per file
-        --agent-focus critical                   # Show errors/exceptions only
-        --agent-limit 1000                      # Limit output to 1000 tokens
+        --agent                                     # Structured, token-efficient output
+        --agent-focus summary                       # Show counts and problem files only
+        --agent-focus first-failure                 # Show first failure per file
+        --agent-focus critical                      # Show errors/exceptions only
+        --agent-limit 1000                          # Limit output to 1000 tokens
 
       File Naming & Organization:
         Files must end with '_try.rb' or '.try.rb' (e.g., auth_service_try.rb, user_model.try.rb)
@@ -37,7 +37,7 @@ class Tryouts
         #=> true  # this is the expected result
 
       File Structure (3 sections):
-        # Setup section (optional) - runs once before all tests
+        # Setup section (optional) - code before first testcase runs once before all tests
         @shared_var = "available to all test cases"
 
         ## TEST: Feature description
@@ -45,9 +45,9 @@ class Tryouts
         result = some_operation()
         #=> expected_value
 
-        # Teardown section (optional) - runs once after all tests
+        # Teardown section (optional) - code after last testcase runs once after all tests
 
-      Context Guidelines:
+      Execution Context:
         Shared Context (default): Instance variables persist across test cases
           - Use for: Integration testing, stateful scenarios, realistic workflows
           - Caution: Test order matters, state accumulates
