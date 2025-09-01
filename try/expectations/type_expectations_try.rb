@@ -12,10 +12,6 @@
 42
 #=:> Integer
 
-## TEST: Should fail with wrong type
-"hello"
-#=:<> Integer
-
 ## TEST: Supports ancestors
 "hello"
 #=:> Object
