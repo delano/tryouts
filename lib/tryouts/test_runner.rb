@@ -44,8 +44,11 @@ class Tryouts
       end
 
       # For agent critical mode, only count errors as failures
-      if @options[:agent] && (@options[:agent_focus] == :critical || @options[:agent_focus] == 'critical')
-        @global_tally[:aggregator].get_display_counts[:errors]
+      if @options[:agent] && ([:critical, 'critical'].include?(@options[:agent_focus]))
+        # Include infrastructure failures as errors for agent critical mode
+        display_errors        = @global_tally[:aggregator].get_display_counts[:errors]
+        infrastructure_errors = @global_tally[:aggregator].infrastructure_failure_count
+        display_errors + infrastructure_errors
       else
         result
       end
