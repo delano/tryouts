@@ -72,7 +72,9 @@ class Tryouts
       else
         failure_count = file_failed_count + file_error_count
         failure_count > 0 ? failure_count : 1
-      end
+      # TODO: If there was an error in the setup so no testcases ran, we still 
+      # need to return a non-zero exit code otherwise test automation will 
+      # consider it a successful run.
     end
 
     def execute_rspec_mode
