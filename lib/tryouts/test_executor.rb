@@ -66,7 +66,13 @@ class Tryouts
       @output_manager.file_success(@file, executed_test_count, file_failed_count, file_error_count, duration)
 
       # Combine failures and errors to determine the exit code.
-      success ? 0 : (file_failed_count + file_error_count)
+      # If setup failed but no tests ran, still return 1 to indicate failure
+      if success
+        0
+      else
+        failure_count = file_failed_count + file_error_count
+        failure_count > 0 ? failure_count : 1
+      end
     end
 
     def execute_rspec_mode
