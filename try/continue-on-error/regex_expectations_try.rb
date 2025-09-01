@@ -1,5 +1,7 @@
 # try/expectations/regex_expectations_try.rb
 
+# NOTE: These fail in the legacy parser
+
 ## TEST: Simple regex pattern match
 "hello world"
 #=~> /hello/
