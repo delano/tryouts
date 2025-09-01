@@ -14,7 +14,7 @@
 
 ## TEST: Should fail with wrong type
 "hello"
-#=:> Integer
+#=:<> Integer
 
 ## TEST: Supports ancestors
 "hello"
