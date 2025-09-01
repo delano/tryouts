@@ -53,8 +53,7 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
-        ruby: ["3.4", "3.5"]
-        testgroup: [core, expectations, formatters, translators]
+        ruby: ["3.4", "3.5", "3.2", "3.3"]
 
     steps:
       - uses: actions/checkout@v4
@@ -71,7 +70,7 @@ jobs:
         run: bundle install
 
       - name: Run framework unit tests with coverage
-        run: COVERAGE=1 FORCE_COLOR=1 bundle exec exe/try try/${{ matrix.testgroup }}
+        run: COVERAGE=1 FORCE_COLOR=1 bundle exec exe/try try/core try/expectations try/formatters try/translators
 
   failure_is_an_option:
     timeout-minutes: 10
