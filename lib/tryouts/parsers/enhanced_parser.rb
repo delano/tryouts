@@ -98,6 +98,16 @@ class Tryouts
         { type: :output_expectation, content: $2.strip, pipe: $1.to_i, line: line_number - 1, ast: parse_expectation($2.strip) }
       when /^#\s*=>\s*(.*)$/
         { type: :expectation, content: $1.strip, line: line_number - 1, ast: parse_expectation($1.strip) }
+      when /^#\s*=([^>=:!~%*|\/\s]+)>\s*(.*)$/
+        # Malformed expectation - invalid characters between = and >
+        syntax = $1
+        content_part = $2.strip
+        add_warning(ParserWarning.malformed_expectation(
+          line_number: line_number,
+          syntax: syntax,
+          context: content.strip
+        ))
+        { type: :malformed_expectation, syntax: syntax, content: content_part, line: line_number - 1 }
       when /^##\s*=>\s*(.*)$/
         { type: :comment, content: '=>' + $1.strip, line: line_number - 1 }
       when /^#\s*(.*)$/

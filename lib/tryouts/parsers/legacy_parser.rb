@@ -51,6 +51,15 @@ class Tryouts
                   { type: :output_expectation, content: $2.strip, pipe: $1.to_i, line: index, ast: parse_expectation($2.strip) }
                 in /^#\s*=>\s*(.*)$/ # Regular expectation
                   { type: :expectation, content: $1.strip, line: index, ast: parse_expectation($1.strip) }
+                in /^#\s*=([^>=:!~%*|\/\s]+)>\s*(.*)$/ # Malformed expectation - invalid characters between = and >
+                  syntax = $1
+                  content_part = $2.strip
+                  add_warning(ParserWarning.malformed_expectation(
+                    line_number: index + 1,
+                    syntax: syntax,
+                    context: line.strip
+                  ))
+                  { type: :malformed_expectation, syntax: syntax, content: content_part, line: index }
                 in /^##\s*=>\s*(.*)$/ # Commented out expectation (should be ignored)
                   { type: :comment, content: '=>' + $1.strip, line: index }
                 in /^#\s*(.*)$/ # Single hash comment - potential description
