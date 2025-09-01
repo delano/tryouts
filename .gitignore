@@ -9,6 +9,7 @@
 *.log
 *.md
 *.txt
+.*.json
 docs/*
 !docs/agent_guide.md
 !LICENSE.txt
@@ -25,4 +26,3 @@ node_modules/
 *gem
 .claude
 .serena
-.mcp.json

@@ -1,4 +1,5 @@
 # try/debug/line_number_regression_try.rb
+
 # Test file to identify line number discrepancies between parsers
 # NOTE: Some tests are designed to fail to verify accurate error line reporting
 
@@ -20,11 +21,11 @@ final_setup = [1, 2, 3]
 
 puts "Setup complete"
 
-## TEST: Line number accuracy test - should fail at expected line 25
+## TEST: Line number accuracy test - should fail at expected line 26
 "this will fail"
 #=> "this intentionally does not match"
 
-## TEST: Second test to verify offset consistency - should fail at line 29
+## TEST: Second test to verify offset consistency - should fail at line 30
 [1, 2, 3]
 #=> [1, 2, 3, 4]
 

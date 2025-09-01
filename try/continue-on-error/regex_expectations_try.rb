@@ -1,5 +1,7 @@
 # try/expectations/regex_expectations_try.rb
 
+# NOTE: These fail in the legacy parser
+
 ## TEST: Simple regex pattern match
 "hello world"
 #=~> /hello/
@@ -14,8 +16,8 @@
 
 ## TEST: Should fail with non-matching pattern
 "hello world"
-#=~> /goodbye/
+#=~<> /goodbye/
 
 ## TEST: Case insensitive match
 "HELLO WORLD"
-#=~> /hello/i
+#=~<> /hello/i
