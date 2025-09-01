@@ -24,11 +24,11 @@ class Tryouts
     }.freeze
 
     def initialize(files:, options:, output_manager:)
-      @files          = files
-      @options        = apply_framework_defaults(options)
-      @output_manager = output_manager
-      @translator     = initialize_translator
-      @global_tally   = initialize_global_tally
+      @files           = files
+      @options         = apply_framework_defaults(options)
+      @output_manager  = output_manager
+      @translator      = initialize_translator
+      @global_tally    = initialize_global_tally
       @file_line_specs = options[:file_line_specs] || {}
     end
 
@@ -118,7 +118,7 @@ class Tryouts
         min_threads: 1,
         max_threads: pool_size,
         max_queue: @files.length, # Queue size must accommodate all files
-        fallback_policy: :abort # Raise exception if pool and queue are exhausted
+        fallback_policy: :abort, # Raise exception if pool and queue are exhausted
       )
 
       # Submit all file processing tasks to the thread pool
@@ -131,18 +131,16 @@ class Tryouts
       # Wait for all tasks to complete and collect results
       failure_count = 0
       futures.each_with_index do |future, idx|
-        begin
-          result = future.value # This blocks until the future completes
+          result         = future.value # This blocks until the future completes
           failure_count += result unless result.zero?
 
           status = result.zero? ? Console.color(:green, 'PASS') : Console.color(:red, 'FAIL')
-          file = @files[idx]
+          file   = @files[idx]
           @output_manager.info "#{status} #{Console.pretty_path(file)} (#{result} failures)", 1
-        rescue StandardError => ex
+      rescue StandardError => ex
           failure_count += 1
-          file = @files[idx]
+          file           = @files[idx]
           @output_manager.info "#{Console.color(:red, 'ERROR')} #{Console.pretty_path(file)} (#{ex.message})", 1
-        end
       end
 
       # Shutdown the thread pool
@@ -184,10 +182,10 @@ class Tryouts
     end
 
     def show_grand_total
-      elapsed_time = Time.now - @global_tally[:start_time]
-      aggregator = @global_tally[:aggregator]
+      elapsed_time   = Time.now - @global_tally[:start_time]
+      aggregator     = @global_tally[:aggregator]
       display_counts = aggregator.get_display_counts
-      file_counts = aggregator.get_file_counts
+      file_counts    = aggregator.get_file_counts
 
       @output_manager.grand_total(
         display_counts[:total_tests],

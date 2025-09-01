@@ -8,18 +8,18 @@ class Tryouts
   # across all formatters and eliminate counting discrepancies
   class TestResultAggregator
     def initialize
-      @failure_collector = FailureCollector.new
+      @failure_collector       = FailureCollector.new
       # Use thread-safe atomic counters
-      @test_counts = {
+      @test_counts             = {
         total_tests: Concurrent::AtomicFixnum.new(0),
         passed: Concurrent::AtomicFixnum.new(0),
         failed: Concurrent::AtomicFixnum.new(0),
-        errors: Concurrent::AtomicFixnum.new(0)
+        errors: Concurrent::AtomicFixnum.new(0),
       }
       @infrastructure_failures = Concurrent::Array.new
-      @file_counts = {
+      @file_counts             = {
         total: Concurrent::AtomicFixnum.new(0),
-        successful: Concurrent::AtomicFixnum.new(0)
+        successful: Concurrent::AtomicFixnum.new(0),
       }
     end
 
@@ -46,7 +46,7 @@ class Tryouts
         type: type,           # :setup, :teardown, :file_processing
         file_path: file_path,
         error_message: error_message,
-        exception: exception
+        exception: exception,
       }
     end
 
@@ -59,6 +59,10 @@ class Tryouts
       @file_counts[:successful].increment
     end
 
+    # Get count of infrastructure failures
+    def infrastructure_failure_count
+      @infrastructure_failures.size
+    end
 
     # Get counts that should be displayed in numbered failure lists
     # These match what actually appears in the failure summary
@@ -68,7 +72,7 @@ class Tryouts
         passed: @test_counts[:passed].value,
         failed: @failure_collector.failure_count,
         errors: @failure_collector.error_count,
-        total_issues: @failure_collector.total_issues
+        total_issues: @failure_collector.total_issues,
       }
     end
 
@@ -82,7 +86,7 @@ class Tryouts
         failed: display[:failed],
         errors: display[:errors],
         infrastructure_failures: @infrastructure_failures.size,
-        total_issues: display[:total_issues] + @infrastructure_failures.size
+        total_issues: display[:total_issues] + @infrastructure_failures.size,
       }
     end
 
@@ -90,7 +94,7 @@ class Tryouts
     def get_file_counts
       {
         total: @file_counts[:total].value,
-        successful: @file_counts[:successful].value
+        successful: @file_counts[:successful].value,
       }
     end
 
@@ -124,7 +128,7 @@ class Tryouts
     # Provide a summary string for debugging
     def summary
       display = get_display_counts
-      total = get_total_counts
+      total   = get_total_counts
 
       parts = []
       parts << "#{display[:passed]} passed" if display[:passed] > 0
@@ -132,7 +136,7 @@ class Tryouts
       parts << "#{display[:errors]} errors" if display[:errors] > 0
       parts << "#{total[:infrastructure_failures]} infrastructure failures" if total[:infrastructure_failures] > 0
 
-      parts.empty? ? "All tests passed" : parts.join(', ')
+      parts.empty? ? 'All tests passed' : parts.join(', ')
     end
   end
 end

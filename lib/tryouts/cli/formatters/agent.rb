@@ -4,13 +4,13 @@ require_relative 'token_budget'
 
 class Tryouts
   class CLI
-    # TOPA (Test Output Protocol for AI) Formatter
+    # TOPAZ (Test Output Protocol for AI Zealots) Formatter
     #
     # Language-agnostic test output format designed for LLM context management.
-    # This formatter implements the TOPA v1.0 specification for structured,
+    # This formatter implements the TOPAZ v1.0 specification for structured,
     # token-efficient test result communication.
     #
-    # TOPA Features:
+    # TOPAZ Features:
     # - Language-agnostic field naming (snake_case, hierarchical)
     # - Standardized execution context (runtime, environment, VCS)
     # - Token budget awareness with smart truncation
@@ -27,7 +27,7 @@ class Tryouts
     # - environment: Normalized env vars (ci_system, app_env, etc.)
     # - test_framework: Framework name, isolation mode, parser
     # - execution_flags: Runtime flags in normalized form
-    # - protocol: TOPA version and configuration
+    # - protocol: TOPAZ version and configuration
     # - project: Auto-detected project type
     # - test_discovery: File pattern matching rules
     #
@@ -592,8 +592,8 @@ class Tryouts
           context_lines << "  flags: #{flags.join(', ')}"
         end
 
-        # TOPA protocol - compact
-        context_lines << "  protocol: TOPA v1.0 | focus: #{@focus_mode} | limit: #{@budget.limit}"
+        # TOPAZ protocol - compact
+        context_lines << "  protocol: TOPAZ v0.3 | focus: #{@focus_mode} | limit: #{@budget.limit}"
 
         # File count being tested
         if @collected_files && @collected_files.any?

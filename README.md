@@ -132,18 +132,15 @@ try --agent --agent-limit 1000          # limit output to 1000 tokens
 
 #### Why Not Pipe Test Output Directly to AI?
 
-Raw test output creates several problems when working with AI assistants:
+I mean, you could. If that already works well, you could probably still benefit from an agent that is able to focus on the critical information for the task. And the extra context window space.
 
-- **Token bloat**: Verbose formatting wastes 60-80% of your context window on styling
-- **Signal vs noise**: Important failures get buried in passing test details and framework boilerplate
-- **Inconsistent parsing**: AI struggles with varying output formats across different test runs
-- **Context overflow**: Large test suites exceed AI token limits, truncating critical information
+Raw test output creates problems when working with AI assistants: high token usage with inconsistent parsing across different runs, where the same logical failure might be interpreted differently, making it difficult to reliably produce and analyze results consistently.
 
-#### TOPA: A Better Approach
+#### TOPAZ: A Better Approach
 
-Tryouts' `--agent` mode inspired the development of **TOPA (Test Output Protocol for AI)** - a standardized format optimized for AI analysis. The [tpane](https://github.com/delano/tpane) tool implements this protocol, transforming any test framework's output into structured, token-efficient formats.
+Tryouts' `--agent` mode inspired the development of **TOPAZ (Test Output Protocol for AI Zealots)** - a standardized format optimized for AI analysis. The [tpane](https://github.com/delano/tpane) tool implements this protocol, transforming any test framework's output into structured, token-efficient formats.
 
-Instead of overwhelming AI with raw output, TOPA provides clean semantic data focusing on what actually needs attention - failures, errors, and actionable context.
+Instead of overwhelming AI with raw output, TOPAZ provides clean semantic data focusing on what actually needs attention - failures, errors, and actionable context.
 
 ### Exit Codes
 
