@@ -142,6 +142,14 @@ class Tryouts
                   { type: :malformed_expectation, syntax: syntax, content: content_part, line: index }
                 in /^##\s*=>\s*(.*)$/ # Commented out expectation (should be ignored)
                   { type: :comment, content: '=>' + $1.strip, line: index }
+                in line if looks_like_malformed_expectation?(line) # Comprehensive malformed expectation detection
+                  detected_syntax = extract_malformed_syntax(line)
+                  add_warning(ParserWarning.malformed_expectation(
+                    line_number: index + 1,
+                    syntax: detected_syntax,
+                    context: line.strip
+                  ))
+                  { type: :malformed_expectation, syntax: detected_syntax, content: line.strip, line: index }
                 in /^#\s*(.*)$/ # Single hash comment - potential description
                   { type: :potential_description, content: $1.strip, line: index }
                 in /^\s*$/ # Blank line
@@ -200,6 +208,41 @@ class Tryouts
         else
           token
         end
+      end
+    end
+
+    # Detect if a comment looks like a malformed expectation attempt
+    # This catches patterns that suggest someone tried to write an expectation
+    # but got the syntax wrong (missing parts, wrong spacing, extra characters, etc.)
+    def looks_like_malformed_expectation?(content)
+      # Skip if it's already handled by specific patterns above
+      return false if content.match?(/^##\s*/) # Description
+      return false if content.match?(/^#\s*TEST\s*\d*:\s*/) # TEST format
+      return false if content.match?(/^##\s*=>\s*/) # Commented out expectation
+
+      # Look for patterns that suggest expectation attempts:
+      # 1. Contains = and/or > in suspicious positions
+      # 2. Has spaces around = or > suggesting misunderstanding
+      # 3. Missing > or = from what looks like expectation syntax
+      # 4. Extra characters in expectation-like patterns
+
+      content.match?(/^#\s*([=><]|.*[=><])/) && # Contains =, >, or < after #
+      !content.match?(/^#\s*[^=><]*$/) # Not just a regular comment without expectation chars
+    end
+
+    # Extract the malformed syntax portion for warning display
+    def extract_malformed_syntax(content)
+      # Try to identify what the user was attempting to write
+      case content
+      when /^#\s*([=><][^=><]*[=><].*?)(\s|$)/ # Pattern with expectation chars
+        $1.strip
+      when /^#\s*([=><].*?)(\s|$)/ # Simple pattern starting with expectation char
+        $1.strip
+      when /^#\s*(.*?[=><].*?)(\s|$)/ # Pattern containing expectation chars
+        $1.strip
+      else
+        # Fallback: show the part after #
+        content.sub(/^#\s*/, '').split(/\s/).first || 'unknown'
       end
     end
 
