@@ -1,5 +1,7 @@
 # CLAUDE.md
 
+Ruby 3.2+ only
+
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ## Project Overview

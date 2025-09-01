@@ -6,15 +6,15 @@
 
 ## First broken expectation
 1 + 1
-#=$$$BOGUS$$$> 2
+#=$BOGUS$> 2
 
 ## Second broken expectation
 2 + 2
-#=$$$BOGUS$$$> 4
+#=$$BOGUS$$> 4
 
 ## Third broken expectation
 3 + 3
-#=$$$BOGUS$$$> 6
+#=$$$STILLBOGUS$$$> 6
 
 ## Fourth testcase, but first with a correct expectation
 4 + 4

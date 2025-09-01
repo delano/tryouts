@@ -35,5 +35,5 @@ puts "Hello, #{name}!"
 ## TEST: Empty output expectations (should fail intentionally for testing)
 # Note: These are intentionally commented to avoid test failures
 # puts "some output"
-# #=1> "different output"  # Would fail
-# #=2> "no stderr here"   # Would fail
+##=1> "different output"  # Would fail
+##=2> "no stderr here"   # Would fail

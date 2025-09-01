@@ -1,7 +1,7 @@
 # try/core/constant_shadowing_try.rb
 #
 # Tests for constant shadowing edge cases in type expectations
-# Verifies that #=:> class expectations work correctly even when
+# Verifies that class type expectations work correctly even when
 # class constants are shadowed by local variables or methods
 
 # Setup classes used in tests

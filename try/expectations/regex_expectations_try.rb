@@ -14,7 +14,7 @@
 
 ## TEST: Should fail with non-matching pattern
 "hello world"
-#=~<> /goodbye/
+#=~> /goodbye/
 
 ## TEST: Case insensitive match
 "HELLO WORLD"

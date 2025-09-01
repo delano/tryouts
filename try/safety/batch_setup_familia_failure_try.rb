@@ -1,11 +1,10 @@
-require_relative '../../lib/tryouts'
+# try/safety/batch_setup_familia_failure_try.rb
+
 require_relative '../test_helper'
 
-
-# Familia.apiversion = 'v1'
+# This is parse of the batch setup
 @ret = Bone.new('atoken2', 'smurf', 1001)
 puts 'end of setup'
-
 
 ## Familia::String#increment
 @ret.token
@@ -18,7 +17,5 @@ puts 'end of setup'
 ## Familia::String#decrement
 @ret.age
 #=> 1001
-
-
 
 puts 'this is the teardown'

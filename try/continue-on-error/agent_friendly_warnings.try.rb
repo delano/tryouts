@@ -12,6 +12,7 @@ value = "hello world"
 calculation = 3 * 4
 #=> 12
 
+## TEST: Array length calculation
 numbers = [1, 2, 3]
 numbers.length
 #=> 3
