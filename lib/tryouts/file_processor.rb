@@ -1,6 +1,6 @@
 # lib/tryouts/file_processor.rb
 
-require_relative 'parsers/prism_parser'
+require_relative 'parsers/legacy_parser'
 require_relative 'parsers/enhanced_parser'
 require_relative 'test_executor'
 require_relative 'cli/modes/inspect'
@@ -84,7 +84,7 @@ class Tryouts
       when :enhanced
         EnhancedParser.new(file, options)
       when :prism
-        PrismParser.new(file, options)
+        LegacyParser.new(file, options)
       end
     end
 

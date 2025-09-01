@@ -6,7 +6,7 @@ require_relative 'shared_methods'
 require_relative '../parser_warning'
 
 class Tryouts
-  # Fixed PrismParser with pattern matching for robust token filtering
+  # Fixed LegacyParser with pattern matching for robust token filtering
   module Parsers
     class BaseParser
       include Tryouts::Parsers::SharedMethods

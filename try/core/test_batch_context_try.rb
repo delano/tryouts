@@ -4,7 +4,7 @@
 require_relative '../../lib/tryouts'
 
 @test_file = 'try/core/basic_syntax_try.rb'
-@parser = Tryouts::PrismParser.new(@test_file)
+@parser = Tryouts::LegacyParser.new(@test_file)
 
 
 ## TEST: Parser creates valid testrun

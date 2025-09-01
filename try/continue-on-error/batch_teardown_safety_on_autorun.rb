@@ -15,4 +15,4 @@ MESSAGE
 #=> 2
 
 test_file = 'foo/bar/setup_baz_try.rb'
-Tryouts::PrismParser.new(test_file)
+Tryouts::LegacyParser.new(test_file)

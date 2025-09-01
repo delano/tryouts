@@ -1,11 +1,11 @@
-# lib/tryouts/parsers/prism_parser.rb
+# lib/tryouts/parsers/legacy_parser.rb
 
 require_relative '../test_case'
 require_relative 'base_parser'
 
 class Tryouts
-  # Fixed PrismParser with pattern matching for robust token filtering
-  class PrismParser < Tryouts::Parsers::BaseParser
+  # Fixed LegacyParser with pattern matching for robust token filtering
+  class LegacyParser < Tryouts::Parsers::BaseParser
 
     def parse
       return handle_syntax_errors if @prism_result.failure?
@@ -116,7 +116,7 @@ class Tryouts
 
     # Parser type identification for metadata
     def parser_type
-      :prism_v2_fixed
+      :legacy
     end
   end
 end

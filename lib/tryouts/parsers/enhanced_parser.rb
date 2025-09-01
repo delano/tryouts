@@ -1,7 +1,7 @@
 # lib/tryouts/parsers/enhanced_parser.rb
 
 # Enhanced parser using Prism's inhouse comment extraction capabilities
-# Drop-in replacement for PrismParser that eliminates HEREDOC parsing issues
+# Drop-in replacement for LegacyParser that eliminates HEREDOC parsing issues
 
 require_relative '../test_case'
 require_relative 'base_parser'
