@@ -158,11 +158,11 @@ jobs:
       fail-fast: true
       matrix:
         ruby: ["3.4", "3.5"]
-        parser: [enhanced, prism]
+        parser: [enhanced, legacy]
         include:
           - parser: enhanced
             parser_flag: "--enhanced-parser"
-          - parser: prism
+          - parser: legacy
             parser_flag: "--legacy-parser"
 
     steps:
