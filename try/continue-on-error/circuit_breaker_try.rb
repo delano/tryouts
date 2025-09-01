@@ -2,43 +2,43 @@
 
 ## TEST: First failure
 raise "intentional error 1"
-#=!<> nil
+#=<> nil
 
 ## TEST: Second failure
 raise "intentional error 2"
-#=!<> nil
+#=<> nil
 
 ## TEST: Third failure
 raise "intentional error 3"
-#=!<> nil
+#=<> nil
 
 ## TEST: Fourth failure
 raise "intentional error 4"
-#=!<> nil
+#=<> nil
 
 ## TEST: Fifth failure
 raise "intentional error 5"
-#=!<> nil
+#=<> nil
 
 ## TEST: Sixth failure
 raise "intentional error 6"
-#=!<> nil
+#=<> nil
 
 ## TEST: Seventh failure
 raise "intentional error 7"
-#=!<> nil
+#=<> nil
 
 ## TEST: Eighth failure
 raise "intentional error 8"
-#=!<> nil
+#=<> nil
 
 ## TEST: Ninth failure
 raise "intentional error 9"
-#=!<> nil
+#=<> nil
 
 ## TEST: Tenth failure - should trigger circuit breaker
 raise "intentional error 10"
-#=!<> nil
+#=<> nil
 
 ## TEST: This should be skipped by circuit breaker
 1 + 1

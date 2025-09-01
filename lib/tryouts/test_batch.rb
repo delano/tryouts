@@ -436,7 +436,7 @@ class Tryouts
 
       # For non-catastrophic errors, we still stop batch execution
       unless Tryouts.batch_stopping_error?(ex)
-        @output_manager&.error("Global setup failed: #{ex.message}")
+        @output_manager&.error("Global setup error: #{ex.message}")
         return
       end
 
