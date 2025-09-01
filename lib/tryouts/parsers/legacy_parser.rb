@@ -4,9 +4,75 @@ require_relative '../test_case'
 require_relative 'base_parser'
 
 class Tryouts
-  # Fixed LegacyParser with pattern matching for robust token filtering
+  # Legacy parser using line-by-line regex parsing for compatibility
+  #
+  # The LegacyParser provides a simpler, more straightforward approach to parsing
+  # tryout files using sequential line-by-line processing with pattern matching.
+  # While less sophisticated than the EnhancedParser, it offers predictable behavior
+  # and serves as a fallback option for edge cases.
+  #
+  # @example Basic usage
+  #   parser = Tryouts::LegacyParser.new(source_code, file_path)
+  #   testrun = parser.parse
+  #   puts testrun.test_cases.length
+  #
+  # @example Using legacy parser explicitly
+  #   # In CLI: tryouts --legacy-parser my_test.rb
+  #   # Or programmatically:
+  #   parser = Tryouts::LegacyParser.new(source, file)
+  #   result = parser.parse
+  #
+  # @!attribute [r] parser_type
+  #   @return [Symbol] Returns :legacy to identify parser type
+  #
+  # ## Characteristics
+  #
+  # ### 1. Simple Line-by-Line Processing
+  # - Processes each line sequentially with pattern matching
+  # - Straightforward regex-based approach
+  # - Easy to understand and debug parsing logic
+  #
+  # ### 2. Pattern Matching Classification
+  # - Uses Ruby 3.4+ pattern matching (`case/in`) for token classification
+  # - Modern syntax while maintaining simple parsing approach
+  # - Consistent with EnhancedParser's classification logic
+  #
+  # ### 3. Compatibility Focus
+  # - Maintains backward compatibility with older tryout files
+  # - Provides fallback parsing when EnhancedParser encounters issues
+  # - Useful for debugging parser-specific problems
+  #
+  # ## Limitations
+  #
+  # ### 1. HEREDOC Vulnerability
+  # - Cannot distinguish between real comments and content inside HEREDOCs
+  # - May incorrectly parse string content as tryout syntax
+  # - Requires careful handling of complex Ruby syntax
+  #
+  # ### 2. Limited Inline Comment Support
+  # - Basic handling of lines with both code and comments
+  # - Less sophisticated than EnhancedParser's multi-comment support
+  #
+  # ## When to Use
+  #
+  # - **Debugging**: When EnhancedParser produces unexpected results
+  # - **Compatibility**: With older Ruby versions or edge cases
+  # - **Simplicity**: When predictable line-by-line behavior is preferred
+  # - **Fallback**: As a secondary parsing option
+  #
+  # @see EnhancedParser For robust syntax-aware parsing (recommended default)
+  # @see BaseParser For shared parsing functionality
+  # @since 3.0.0
   class LegacyParser < Tryouts::Parsers::BaseParser
 
+    # Parse source code into a Testrun using line-by-line processing
+    #
+    # This method provides sequential line-by-line parsing that processes each
+    # line with pattern matching to classify tokens. While simpler than
+    # EnhancedParser, it may be vulnerable to HEREDOC content parsing issues.
+    #
+    # @return [Tryouts::Testrun] Structured test data with setup, test cases, teardown, and warnings
+    # @raise [Tryouts::TryoutSyntaxError] If source contains syntax errors or strict mode violations
     def parse
       return handle_syntax_errors if @prism_result.failure?
 
@@ -19,7 +85,21 @@ class Tryouts
 
     private
 
-    # Tokenize content using pattern matching for clean line classification
+    # Tokenize content using sequential line-by-line pattern matching
+    #
+    # Processes each line of source code individually, applying pattern matching
+    # to classify it as code, comment, expectation, etc. This approach is simple
+    # and predictable but cannot distinguish between real comments and content
+    # inside string literals or HEREDOCs.
+    #
+    # @return [Array<Hash>] Array of token hashes with keys :type, :content, :line, etc.
+    # @example Token structure
+    #   [
+    #     { type: :description, content: "Test case description", line: 5 },
+    #     { type: :code, content: "result = calculate(x)", line: 6 },
+    #     { type: :expectation, content: "42", line: 7, ast: <Prism::Node> }
+    #   ]
+    # @note Potential_descriptions are later reclassified based on test boundaries
     def tokenize_content
       tokens = []
 
