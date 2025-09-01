@@ -134,16 +134,18 @@ class Tryouts
       # Wait for all tasks to complete and collect results
       failure_count = 0
       futures.each_with_index do |future, idx|
+        begin
           result         = future.value # This blocks until the future completes
           failure_count += result unless result.zero?
 
           status = result.zero? ? Console.color(:green, 'PASS') : Console.color(:red, 'FAIL')
           file   = @files[idx]
           @output_manager.info "#{status} #{Console.pretty_path(file)} (#{result} failures)", 1
-      rescue StandardError => ex
+        rescue StandardError => ex
           failure_count += 1
           file           = @files[idx]
           @output_manager.info "#{Console.color(:red, 'ERROR')} #{Console.pretty_path(file)} (#{ex.message})", 1
+        end
       end
 
       # Shutdown the thread pool
