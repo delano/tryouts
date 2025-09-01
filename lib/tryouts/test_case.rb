@@ -36,6 +36,7 @@ class Tryouts
     def performance_time? = type == :performance_time
     def intentional_failure? = type == :intentional_failure
     def output? = type == :output
+    def non_nil? = type == :non_nil
     def diagnostic? = type == :diagnostic
   end
 
@@ -51,6 +52,8 @@ class Tryouts
     def performance_time? = type == :performance_time
     def intentional_failure? = type == :intentional_failure
     def output? = type == :output
+    def non_nil? = type == :non_nil
+    def diagnostic? = type == :diagnostic
 
     def stdout? = pipe == 1
     def stderr? = pipe == 2

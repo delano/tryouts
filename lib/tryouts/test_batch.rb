@@ -186,6 +186,7 @@ class Tryouts
           result_value: result.result_value,
           actual_results: result.actual_results,
           expected_results: result.expected_results,
+          diagnostic_results: result.diagnostic_results,
           error: result.error,
           captured_output: captured_output,
           elapsed_time: result.elapsed_time,
