@@ -12,9 +12,9 @@
 42
 #=:> Integer
 
-## TEST: Supports ancestors
+## TEST: Should fail with wrong type
 "hello"
-#=:<> Object
+#=:<> Integer
 
 ## TEST: Multiple expectations with String class check first
 value = "test_string"
