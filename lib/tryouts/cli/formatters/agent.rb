@@ -548,7 +548,7 @@ class Tryouts
 
         # Runtime - compact format
         platform = RUBY_PLATFORM.gsub(/darwin\d+/, 'darwin')  # Simplify darwin25 -> darwin
-        context_lines << "  runtime: ruby #{RUBY_VERSION} (#{platform})"
+        context_lines << "  runtime: ruby #{RUBY_VERSION} (#{platform}); tryouts #{Tryouts::VERSION}"
 
         # Package manager - only if present, compact format
         if defined?(Bundler)
