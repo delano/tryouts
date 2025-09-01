@@ -1,4 +1,7 @@
-## Test that setup failures result in non-zero exit code
+# lib/tryouts/test_executor.rb
+
+# Test that setup failures result in non-zero exit code
+
 
 # Create a test file with setup failure
 File.write('test_setup_failure.try.rb', "
