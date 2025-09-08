@@ -295,7 +295,9 @@ class Tryouts
           details = []
           details << "#{failed_count} failed" if failed_count > 0
           details << "#{error_count} errors" if error_count > 0
-          status_parts << "SUMMARY: #{issues_count}/#{@total_stats[:tests]} tests failed (#{details.join(', ')}, #{passed_count} passed#{time_str})"
+          summary = "#{passed_count} testcases passed, #{failed_count} failed"
+          summary += ", #{error_count} errors" if error_count > 0
+          status_parts << "SUMMARY: #{summary}#{time_str}"
         else
           # Agent doesn't need output in the positive case (i.e. for passing
           # tests). It just fills out the context window.
