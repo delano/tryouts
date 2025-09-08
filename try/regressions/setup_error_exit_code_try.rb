@@ -1,6 +1,6 @@
 ## Test that setup failures result in proper exit code 1
-## 
-## This regression test replicates the issue where setup failures 
+##
+## This regression test replicates the issue where setup failures
 ## would incorrectly exit with code 0 instead of 1 in agent mode.
 
 # Create a test file that has a setup failure similar to the real-world case
@@ -8,7 +8,7 @@ File.write('test_setup_failure_regression.try.rb', <<~TEST_FILE)
   # Setup that fails with a runtime error
   external_identifiers = require('object_identifiers')
   # This will raise a LoadError since object_identifiers doesn't exist
-  
+
   ## Test case that should not run due to setup failure
   puts 'This test should not execute'
   #=> nil

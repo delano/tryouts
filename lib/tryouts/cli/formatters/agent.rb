@@ -284,10 +284,6 @@ class Tryouts
           " (#{@total_stats[:elapsed_time].round(2)}s)"
         end
 
-        # Add execution context header for agent clarity
-        output << render_execution_context
-        output << ""
-
         # Count failures manually from collected file data (same as other render methods)
         failed_count = @collected_files.sum { |f| f[:failures].size }
         error_count = @collected_files.sum { |f| f[:errors].size }
@@ -299,7 +295,9 @@ class Tryouts
           details = []
           details << "#{failed_count} failed" if failed_count > 0
           details << "#{error_count} errors" if error_count > 0
-          status_parts << "FAIL: #{issues_count}/#{@total_stats[:tests]} tests (#{details.join(', ')}, #{passed_count} passed#{time_str})"
+          summary = "#{passed_count} testcases passed, #{failed_count} failed"
+          summary += ", #{error_count} errors" if error_count > 0
+          status_parts << "SUMMARY: #{summary}#{time_str}"
         else
           # Agent doesn't need output in the positive case (i.e. for passing
           # tests). It just fills out the context window.
@@ -314,14 +312,14 @@ class Tryouts
 
         files_with_issues = @collected_files.select { |f| f[:failures].any? || f[:errors].any? }
         if files_with_issues.any?
-          output << "Files:"
+          output << "FILES:"
           files_with_issues.each do |file_data|
             issue_count = file_data[:failures].size + file_data[:errors].size
             output << "  #{file_data[:path]}: #{issue_count} issue#{'s' if issue_count != 1}"
           end
         elsif @collected_files.any?
           # Show files that were processed successfully
-          output << "Files:"
+          output << "FILES:"
           @collected_files.each do |file_data|
             # Use the passed count from file_result if available, otherwise calculate
             passed_tests = file_data[:passed] ||
@@ -329,6 +327,10 @@ class Tryouts
             output << "  #{file_data[:path]}: #{passed_tests} test#{'s' if passed_tests != 1} passed"
           end
         end
+
+        # Add execution context at the end
+        output << ""
+        output << render_execution_context
 
         puts output.join("\n") if output.any?
       end
@@ -345,19 +347,21 @@ class Tryouts
 
         output = []
 
-        # Add execution context header for agent clarity
-        output << render_execution_context
-        output << ""
-
         if critical_files.empty?
           output << "No critical errors found"
+          # Add execution context at the end
+          output << ""
+          output << render_execution_context
           puts output.join("\n")
           return
         end
 
-        output << "CRITICAL: #{critical_files.size} file#{'s' if critical_files.size != 1} with errors#{time_str}"
+        # Summary first
+        output << "SUMMARY:"
+        output << "#{critical_files.size} file#{'s' if critical_files.size != 1} with critical errors#{time_str}"
         output << ""
 
+        # Error details
         critical_files.each do |file_data|
           unless @budget.has_budget?
             output << "... (truncated due to token limit)"
@@ -379,6 +383,9 @@ class Tryouts
           output << ""
         end
 
+        # Add execution context at the end
+        output << render_execution_context
+
         puts output.join("\n")
       end
 
@@ -391,15 +398,19 @@ class Tryouts
           " (#{@total_stats[:elapsed_time].round(2)}s)"
         end
 
-        # Add execution context header for agent clarity
-        output << render_execution_context
-        output << ""
-
         # Count actual failures from collected data
         failed_count = @collected_files.sum { |f| f[:failures].size }
         error_count = @collected_files.sum { |f| f[:errors].size }
         issues_count = failed_count + error_count
         passed_count = [@total_stats[:tests] - issues_count, 0].max
+
+        # Summary first
+        output << "SUMMARY:"
+        summary = "#{passed_count} testcases passed, #{failed_count} failed"
+        summary += ", #{error_count} errors" if error_count > 0
+        summary += " in #{@total_stats[:files]} files#{time_str}"
+        output << summary
+        output << ""
 
         # Show files with issues only
         files_with_issues = @collected_files.select { |f| f[:failures].any? || f[:errors].any? }
@@ -422,13 +433,8 @@ class Tryouts
           output << ""
         end
 
-        # Final summary line
-        summary = "Summary: \n"
-        summary += "#{passed_count} testcases passed, #{failed_count} failed"
-        summary += ", #{error_count} errors" if error_count > 0
-        summary += " in #{@total_stats[:files]} files#{time_str}"
-
-        output << summary
+        # Add execution context at the end
+        output << render_execution_context
 
         puts output.join("\n")
       end
@@ -553,7 +559,7 @@ class Tryouts
 
       def render_execution_context
         context_lines = []
-        context_lines << "EXECUTION_CONTEXT:"
+        context_lines << "CONTEXT:"
 
         # Command that was executed
         if @options[:original_command]
