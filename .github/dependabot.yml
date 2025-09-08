@@ -5,11 +5,11 @@
 
 version: 2
 updates:
-  - package-ecosystem: "Github Actions" 
+  - package-ecosystem: "Github Actions"
     directory: "/" # Location of package manifests
     schedule:
       interval: "weekly"
-  - package-ecosystem: "Bundler" 
-    directory: "/" 
+  - package-ecosystem: "Bundler"
+    directory: "/"
     schedule:
       interval: "weekly"
