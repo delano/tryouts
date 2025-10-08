@@ -1,44 +1,44 @@
 GIT
   remote: https://github.com/rspec/rspec
-  revision: 95fbf88255de04e4ba8288172292bda494c4f187
+  revision: ce23a3ad7c8a418259eaddd46785476218adfc1b
   specs:
-    rspec (3.14.0.pre)
-      rspec-core (= 3.14.0.pre)
-      rspec-expectations (= 3.14.0.pre)
-      rspec-mocks (= 3.14.0.pre)
+    rspec (4.0.0.pre)
+      rspec-core (= 4.0.0.pre)
+      rspec-expectations (= 4.0.0.pre)
+      rspec-mocks (= 4.0.0.pre)
 
 GIT
   remote: https://github.com/rspec/rspec
-  revision: 95fbf88255de04e4ba8288172292bda494c4f187
+  revision: ce23a3ad7c8a418259eaddd46785476218adfc1b
   glob: rspec-core/rspec-core.gemspec
   specs:
-    rspec-core (3.14.0.pre)
-      rspec-support (= 3.14.0.pre)
+    rspec-core (4.0.0.pre)
+      rspec-support (= 4.0.0.pre)
 
 GIT
   remote: https://github.com/rspec/rspec
-  revision: 95fbf88255de04e4ba8288172292bda494c4f187
+  revision: ce23a3ad7c8a418259eaddd46785476218adfc1b
   glob: rspec-expectations/rspec-expectations.gemspec
   specs:
-    rspec-expectations (3.14.0.pre)
-      diff-lcs (>= 1.2.0, < 2.0)
-      rspec-support (= 3.14.0.pre)
+    rspec-expectations (4.0.0.pre)
+      diff-lcs (>= 1.6.0, < 2.0)
+      rspec-support (= 4.0.0.pre)
 
 GIT
   remote: https://github.com/rspec/rspec
-  revision: 95fbf88255de04e4ba8288172292bda494c4f187
+  revision: ce23a3ad7c8a418259eaddd46785476218adfc1b
   glob: rspec-mocks/rspec-mocks.gemspec
   specs:
-    rspec-mocks (3.14.0.pre)
-      diff-lcs (>= 1.2.0, < 2.0)
-      rspec-support (= 3.14.0.pre)
+    rspec-mocks (4.0.0.pre)
+      diff-lcs (>= 1.6.0, < 2.0)
+      rspec-support (= 4.0.0.pre)
 
 GIT
   remote: https://github.com/rspec/rspec
-  revision: 95fbf88255de04e4ba8288172292bda494c4f187
+  revision: ce23a3ad7c8a418259eaddd46785476218adfc1b
   glob: rspec-support/rspec-support.gemspec
   specs:
-    rspec-support (3.14.0.pre)
+    rspec-support (4.0.0.pre)
 
 PATH
   remote: .
@@ -49,7 +49,7 @@ PATH
       minitest (~> 5.0)
       pastel (~> 0.8)
       prism (~> 1.0)
-      rspec (~> 3.0)
+      rspec (>= 3.0, < 5.0)
       tty-cursor (~> 0.7)
       tty-screen (~> 0.8)
 

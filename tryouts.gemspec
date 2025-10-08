@@ -23,7 +23,7 @@ Gem::Specification.new do |spec|
 
   # TTY ecosystem for live terminal formatting
   spec.add_dependency 'minitest', '~> 5.0'
-  spec.add_dependency 'rspec', '~> 3.0'
+  spec.add_dependency 'rspec', '>= 3.0', '< 5.0'
   spec.add_dependency 'pastel', '~> 0.8'
   spec.add_dependency 'tty-cursor', '~> 0.7'
   spec.add_dependency 'tty-screen', '~> 0.8'
