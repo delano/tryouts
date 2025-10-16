@@ -1,0 +1,92 @@
+name: Claude Code Review
+
+on:
+  pull_request:
+    branches:
+      - "feature/*"
+      - "fix/*"
+      - "wip/*"
+      - "rel/*"
+      - "develop"
+    types: [opened, synchronize, labeled]
+  workflow_dispatch:
+
+jobs:
+  claude-review:
+    # Optional: Filter by PR author
+    # if: |
+    #   github.event.pull_request.user.login == 'external-contributor' ||
+    #   github.event.pull_request.user.login == 'new-developer' ||
+    #   github.event.pull_request.author_association == 'FIRST_TIME_CONTRIBUTOR'
+    # if: ${{ !startsWith(github.head_ref, 'deps/') }}
+    runs-on: ubuntu-latest
+    if: |
+      (github.event.action == 'opened') ||
+      (github.event.action == 'labeled' && github.event.label.name == 'claude-review') ||
+      (github.event.action == 'synchronize' && contains(github.event.pull_request.labels.*.name, 'claude-review'))
+
+    permissions:
+      contents: read
+      pull-requests: read
+      issues: read
+      id-token: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4
+        with:
+          fetch-depth: 1
+
+      - name: Run Claude Code Review
+        id: claude-review
+        uses: anthropics/claude-code-action@beta
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+
+          # Optional: Specify model (defaults to Claude Sonnet 4, uncomment for Claude Opus 4)
+          # model: "claude-opus-4-20250514"
+
+          # Direct prompt for automated review (no @claude mention needed)
+          direct_prompt: |
+            Please review this pull request and provide feedback on:
+            - Code quality and best practices
+            - Potential bugs or issues
+            - Performance considerations
+            - Security concerns
+            - Test coverage
+
+            Use the repository's CLAUDE.md for guidance on style and conventions. Be constructive and helpful in your feedback.
+
+          # Optional: Use sticky comments to make Claude reuse the same comment on subsequent pushes to the same PR
+          use_sticky_comment: true
+
+          # Optional: Different prompts for different authors
+          # direct_prompt: |
+          #   ${{ github.event.pull_request.author_association == 'FIRST_TIME_CONTRIBUTOR' &&
+          #   'Welcome! Please review this PR from a first-time contributor. Be encouraging and provide detailed explanations for any suggestions.' ||
+          #   'Please provide a thorough code review focusing on our coding standards and best practices.' }}
+
+          # Optional: Add specific tools for running tests or linting
+          # allowed_tools: "Bash(npm run test),Bash(npm run lint),Bash(npm run typecheck)"
+
+          # Optional: Skip review for certain conditions
+          # if: |
+          #   !contains(github.event.pull_request.title, '[skip-review]') &&
+          #   !contains(github.event.pull_request.title, '[WIP]')
+
+      - name: Remove claude-review label
+        # Remove label whether success or failure - prevents getting stuck
+        if: always() && github.event.action != 'opened'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            try {
+              await github.rest.issues.removeLabel({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                name: 'claude-review'
+              });
+            } catch (error) {
+              console.log('Label not found or already removed');
+            }
