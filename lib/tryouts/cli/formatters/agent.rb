@@ -89,10 +89,11 @@ class Tryouts
       end
 
       def file_parsed(_file_path, test_count:, setup_present: false, teardown_present: false)
+        # Store per-file parsed test count for reference
+        # Total executed tests come from TestResultAggregator via grand_total()
         if @current_file_data
           @current_file_data[:tests] = test_count
         end
-        @total_stats[:tests] += test_count
       end
 
       def parser_warnings(file_path, warnings:)
@@ -117,9 +118,7 @@ class Tryouts
       end
 
       def file_result(file_path, total_tests:, failed_count:, error_count:, elapsed_time: nil)
-        # Always update global totals
-        @total_stats[:failures] += failed_count
-        @total_stats[:errors] += error_count
+        # Update elapsed time (other stats come from TestResultAggregator via grand_total)
         @total_stats[:elapsed_time] += elapsed_time if elapsed_time
 
         # Update per-file data - file_result is called AFTER file_end, so data is in @collected_files
@@ -168,24 +167,19 @@ class Tryouts
 
       # Summary operations - reliable trigger for rendering
       def batch_summary(failure_collector)
-        # This becomes the single, reliable trigger for rendering
-        grand_total(
-          total_tests: @total_stats[:tests],
-          failed_count: @collected_files.sum { |f| f[:failures].size },
-          error_count: @collected_files.sum { |f| f[:errors].size },
-          successful_files: @collected_files.size - @collected_files.count { |f| f[:failures].any? || f[:errors].any? },
-          total_files: @collected_files.size,
-          elapsed_time: @total_stats[:elapsed_time]
-        ) unless @output_rendered
+        # NOTE: We don't render here because test_runner.rb calls grand_total directly
+        # with accurate counts from the TestResultAggregator
       end
 
       def grand_total(total_tests:, failed_count:, error_count:, successful_files:, total_files:, elapsed_time:)
         return if @output_rendered  # Prevent double rendering
 
+        # Use the accurate counts from TestResultAggregator (passed as parameters)
+        # NOT the parsed counts we accumulated in file_parsed()
         @total_stats.merge!(
-          tests: total_tests,
-          failures: failed_count,
-          errors: error_count,
+          tests: total_tests,           # Actual executed test count from aggregator
+          failures: failed_count,       # Actual failures from aggregator
+          errors: error_count,          # Actual errors from aggregator
           successful_files: successful_files,
           total_files: total_files,
           elapsed_time: elapsed_time,
