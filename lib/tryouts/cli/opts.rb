@@ -73,17 +73,18 @@ class Tryouts
         #=1>  STDOUT content        #=2>  STDERR content      #=<>  Intentional failure
 
       Exception Testing:
-        # Method 1: Rescue and test exception
+        ## Method 1: Rescue and test exception
         begin
           risky_operation
-        rescue StandardError => e
+        rescue MySpecificError => e
           e.class
         end
-        #=> StandardError
+        #=> MySpecificError
 
-        # Method 2: Let it raise and test with #=!>
+        ## Method 2: Let it raise and test with #=!> and #=~>
         risky_operation
-        #=!> error.is_a?(StandardError)
+        #=!> MySpecificError
+        #=~> /Could not complete action/
     HELP
 
     class << self
