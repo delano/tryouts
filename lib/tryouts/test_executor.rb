@@ -34,6 +34,7 @@ class Tryouts
         shared_context: @options[:shared_context],
         verbose: @options[:verbose],
         fails_only: @options[:fails_only],
+        line_spec: @options[:line_spec],  # Pass line_spec for output filtering
         output_manager: @output_manager,
         global_tally: @global_tally,
       )

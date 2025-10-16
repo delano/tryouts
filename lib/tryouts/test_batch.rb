@@ -37,6 +37,7 @@ class Tryouts
       @start_time      = nil
       @test_case_count = 0
       @setup_failed    = false
+      @line_spec       = options[:line_spec]  # For output filtering only
 
       # Setup container for fresh context mode - preserves @instance_variables from setup
       @setup_container = nil
@@ -101,16 +102,26 @@ class Tryouts
           break
         end
 
-        @output_manager&.test_start(test_case, idx, @test_case_count)
+        # Apply line_spec filter for output notifications (test_start/test_end)
+        # but still execute ALL tests regardless of filter
+        if should_display_test_result?(test_case)
+          @output_manager&.test_start(test_case, idx, @test_case_count)
+        end
+
         result = execute_single_test(test_case, before_test_hook, &) # runs the test code
-        @output_manager&.test_end(test_case, idx, @test_case_count)
+
+        if should_display_test_result?(test_case)
+          @output_manager&.test_end(test_case, idx, @test_case_count)
+        end
 
         # Update circuit breaker state based on result
         update_circuit_breaker(result)
 
         result
       rescue StandardError => ex
-        @output_manager&.test_end(test_case, idx, @test_case_count)
+        if should_display_test_result?(test_case)
+          @output_manager&.test_end(test_case, idx, @test_case_count)
+        end
         # Create error result packet to maintain consistent data flow
         error_result = build_error_result(test_case, ex)
         process_test_result(error_result)
@@ -398,11 +409,14 @@ class Tryouts
         @failed_count += 1
       end
 
-      show_test_result(result)
+      # Apply line_spec filter for output only - test was still executed
+      if should_display_test_result?(result.test_case)
+        show_test_result(result)
 
-      # Show captured output if any exists
-      if result.has_output?
-        @output_manager&.test_output(result.test_case, result.captured_output, result)
+        # Show captured output if any exists
+        if result.has_output?
+          @output_manager&.test_output(result.test_case, result.captured_output, result)
+        end
       end
     end
 
@@ -581,6 +595,15 @@ class Tryouts
     # Check if test case has expectations that can handle exceptions gracefully
     def can_handle_exception?(test_case, _exception)
       test_case.expectations.any? { |exp| exp.result_type? || exp.regex_match? }
+    end
+
+    # Check if test result should be displayed based on line_spec filter
+    # All tests are EXECUTED regardless of line_spec, but only matching tests are DISPLAYED
+    def should_display_test_result?(test_case)
+      return true unless @line_spec
+
+      require_relative 'cli/line_spec_parser'
+      Tryouts::CLI::LineSpecParser.matches?(test_case, @line_spec)
     end
 
     def capture_output
