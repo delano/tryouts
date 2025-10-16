@@ -44,7 +44,7 @@ PATH
   remote: .
   specs:
     tryouts (3.6.1)
-      concurrent-ruby (~> 1.0)
+      concurrent-ruby (~> 1.0, < 2)
       irb
       minitest (~> 5.0)
       pastel (~> 0.8)
