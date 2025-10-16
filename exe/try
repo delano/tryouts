@@ -48,6 +48,9 @@ begin
   # Add original command to options for agent formatter
   options[:original_command] = original_command
 
+  # Track whether user explicitly provided paths
+  explicit_paths_given = !files.empty?
+
   # Expand files if directories are given, preserving line specs
   expanded_files = []
   files.each do |file_or_dir|
@@ -64,6 +67,12 @@ begin
     end
   end
   files          = expanded_files
+
+  # If user provided explicit paths but nothing matched, exit with error
+  if explicit_paths_given && files.empty?
+    warn "Error: No test files found matching the given paths"
+    exit 1
+  end
 
   # Default file discovery if no files specified
   if files.empty?
