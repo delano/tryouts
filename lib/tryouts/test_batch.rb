@@ -442,6 +442,17 @@ class Tryouts
 
       # For catastrophic errors, still raise to stop execution
       raise "Global setup failed (#{ex.class}): #{ex.message}"
+    rescue SystemExit, SignalException => ex
+      # Handle process control exceptions (exit, abort, signals) gracefully
+      @setup_failed = true
+      if @global_tally && @global_tally[:aggregator]
+        @global_tally[:aggregator].add_infrastructure_failure(
+          :setup, @testrun.source_file, "Setup terminated by #{ex.class}: #{ex.message}", ex
+        )
+      end
+
+      Tryouts.debug "Setup received #{ex.class}: #{ex.message}"
+      @output_manager&.error("Setup terminated by #{ex.class}: #{ex.message}")
     end
 
     # Setup execution for fresh context mode - creates @setup_container with @instance_variables
@@ -483,6 +494,17 @@ class Tryouts
 
       # For catastrophic errors, still raise to stop execution
       raise "Fresh context setup failed (#{ex.class}): #{ex.message}"
+    rescue SystemExit, SignalException => ex
+      # Handle process control exceptions (exit, abort, signals) gracefully
+      @setup_failed = true
+      if @global_tally && @global_tally[:aggregator]
+        @global_tally[:aggregator].add_infrastructure_failure(
+          :setup, @testrun.source_file, "Setup terminated by #{ex.class}: #{ex.message}", ex
+        )
+      end
+
+      Tryouts.debug "Setup received #{ex.class}: #{ex.message}"
+      @output_manager&.error("Setup terminated by #{ex.class}: #{ex.message}")
     end
 
     # Global teardown execution
@@ -521,6 +543,17 @@ class Tryouts
       else
         @output_manager&.error('Continuing despite teardown failure')
       end
+    rescue SystemExit, SignalException => ex
+      # Handle process control exceptions (exit, abort, signals) gracefully
+      if @global_tally && @global_tally[:aggregator]
+        @global_tally[:aggregator].add_infrastructure_failure(
+          :teardown, @testrun.source_file, "Teardown terminated by #{ex.class}: #{ex.message}", ex
+        )
+      end
+
+      Tryouts.debug "Teardown received #{ex.class}: #{ex.message}"
+      @output_manager&.error("Teardown terminated by #{ex.class}: #{ex.message}")
+      @output_manager&.error('Continuing despite teardown termination')
     end
 
     # Result finalization and summary display
