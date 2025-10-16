@@ -344,6 +344,12 @@ class Tryouts
     def evaluate_expectations(test_case, actual_result, context, execution_time_ns = nil, stdout_content = nil, stderr_content = nil, caught_exception = nil)
       return { passed: true, actual_results: [], expected_results: [] } if test_case.expectations.empty?
 
+      # Make error variable available to ALL expectations in exception test cases
+      # This allows #=/=> error.message.nil?, #=~> /pattern/ (auto-targets error.message), etc.
+      if caught_exception
+        context.define_singleton_method(:error) { caught_exception }
+      end
+
       evaluation_results = test_case.expectations.map do |expectation|
         evaluator = ExpectationEvaluators::Registry.evaluator_for(expectation, test_case, context)
 

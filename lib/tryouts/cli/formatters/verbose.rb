@@ -156,10 +156,10 @@ class Tryouts
 
         # Show failure details for failed tests
         if result_packet.failed? || result_packet.error?
-          show_failure_details(test_case, result_packet.actual_results, result_packet.expected_results)
+          show_failure_details(test_case, result_packet.actual_results, result_packet.expected_results, result_packet.result_value)
         # Show exception details for passed exception expectations
         elsif result_packet.passed? && has_exception_expectations?(test_case)
-          show_exception_details(test_case, result_packet.actual_results, result_packet.expected_results)
+          show_exception_details(test_case, result_packet.actual_results, result_packet.expected_results, result_packet.result_value)
         end
       end
 
@@ -273,7 +273,7 @@ class Tryouts
         test_case.expectations.any? { |exp| exp.type == :exception }
       end
 
-      def show_exception_details(test_case, actual_results, expected_results = [])
+      def show_exception_details(test_case, actual_results, expected_results = [], exception_object = nil)
         return if actual_results.empty?
 
         puts indent_text('Exception Details:', 2)
@@ -288,6 +288,19 @@ class Tryouts
             puts indent_text("Result: #{Console.color(:green, expected.inspect)}", 3) if expected
           end
         end
+
+        # Show backtrace when --stack flag is used
+        if @show_stack_traces && exception_object.is_a?(Exception) && exception_object.backtrace
+          puts
+          puts indent_text('Backtrace:', 2)
+          Console.pretty_backtrace(exception_object.backtrace, limit: 15).each do |line|
+            puts indent_text(Console.color(:dim, line), 3)
+          end
+          if exception_object.backtrace.length > 15
+            puts indent_text(Console.color(:dim, "... (#{exception_object.backtrace.length - 15} more lines)"), 3)
+          end
+        end
+
         puts
       end
 
@@ -309,7 +322,7 @@ class Tryouts
         puts
       end
 
-      def show_failure_details(test_case, actual_results, expected_results = [])
+      def show_failure_details(test_case, actual_results, expected_results = [], exception_object = nil)
         return if actual_results.empty?
 
         actual_results.each_with_index do |actual, idx|
@@ -345,6 +358,18 @@ class Tryouts
             show_string_diff(expected, actual)
           end
 
+          puts
+        end
+
+        # Show backtrace for exception expectation failures when --stack flag is used
+        if @show_stack_traces && exception_object.is_a?(Exception) && exception_object.backtrace
+          puts indent_text('Backtrace:', 2)
+          Console.pretty_backtrace(exception_object.backtrace, limit: 15).each do |line|
+            puts indent_text(Console.color(:dim, line), 3)
+          end
+          if exception_object.backtrace.length > 15
+            puts indent_text(Console.color(:dim, "... (#{exception_object.backtrace.length - 15} more lines)"), 3)
+          end
           puts
         end
       end

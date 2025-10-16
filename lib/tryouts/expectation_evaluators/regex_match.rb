@@ -42,9 +42,8 @@ class Tryouts
 
         # Auto-detect exceptions and use message for regex matching
         # This allows #=~> /pattern/ to work naturally with exception messages
+        # Note: error variable is already available in context (set in evaluate_expectations)
         string_result = if actual_result.is_a?(Exception)
-                          # Make error available in context for manual access if needed
-                          @context.define_singleton_method(:error) { actual_result }
                           actual_result.message  # Match against error message
                         else
                           actual_result.to_s     # Normal case: convert to string
