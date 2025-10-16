@@ -5,13 +5,9 @@ source 'https://rubygems.org'
 gemspec
 
 group :development do
-  gem 'byebug', require: false
-  # Enable for Debug Adapter Protocol. Not included with the development group
-  # group because it lags on byebug version.
-  # gem 'byebug-dap', require: false
-  gem 'pry', require: false
-  gem 'pry-byebug', require: false
-  gem 'rack-proxy', require: false
+  # Run with RUBY_DEBUG_IRB_CONSOLE=true to get proper interactive console
+  gem 'debug', require: false
+
   gem 'rubocop', '~> 1.81.1', require: false
   gem 'rubocop-performance', require: false
   gem 'rubocop-rspec', require: false
