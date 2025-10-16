@@ -50,6 +50,7 @@ NOTE: Do not say things like, "You're absolutely right!".
   - `summary`: Overview of test results only
   - `first-failure`: Stop at first failure with details
   - `critical`: Only show critical issues and summary
+- **Framework tips**: `bundle exec try --agent --agent-tips` (includes reminders about instance variables, multiple expectations, exception testing)
 
 **Framework integration:**
 - **RSpec**: `bundle exec try --rspec` (generates RSpec-compatible output)

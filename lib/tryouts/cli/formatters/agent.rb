@@ -652,6 +652,12 @@ class Tryouts
           end
         end
 
+        # Add framework tips if requested
+        if @options[:agent_tips]
+          context_lines << ""
+          context_lines << render_framework_tips
+        end
+
         context_lines.join("\n")
       end
 
@@ -748,6 +754,17 @@ class Tryouts
       rescue Timeout::Error, StandardError
         # Return empty hash on any error (timeout, permission, etc.)
         {}
+      end
+
+      # Render framework tips and reminders for LLM context
+      def render_framework_tips
+        tips = []
+        tips << "Framework Tips:"
+        tips << "  • Instance variables (@var) persist across testcases; local variables do not"
+        tips << "  • Each testcase can have multiple expectations (multiple #=> lines)"
+        tips << "  • Exception testing: Use #=!> to signal expected exception; 'error' variable becomes available"
+        tips << "  • In exception tests, #=~> automatically refers to error.message for pattern matching"
+        tips.join("\n")
       end
     end
   end

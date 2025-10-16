@@ -70,7 +70,7 @@ begin
 
   # If user provided explicit paths but nothing matched, exit with error
   if explicit_paths_given && files.empty?
-    warn "Error: No test files found matching the given paths"
+    warn 'Error: No test files found matching the given paths'
     exit 1
   end
 

@@ -24,6 +24,7 @@ class Tryouts
         --agent-focus first-failure                 # Show first failure per file
         --agent-focus critical                      # Show errors/exceptions only
         --agent-limit 1000                          # Limit output to 1000 tokens
+        --agent-tips                                # Include framework tips for LLMs
 
       File Naming & Organization:
         Files must end with '_try.rb' or '.try.rb' (e.g., auth_service_try.rb, user_model.try.rb)
@@ -141,6 +142,10 @@ class Tryouts
                   'Focus mode: failures, first-failure, summary, critical (default: failures)') do |focus|
             options[:agent] = true
             options[:agent_focus] = focus.to_sym
+          end
+          opts.on('--agent-tips', 'Include tryouts framework tips and reminders in agent output') do
+            options[:agent] = true
+            options[:agent_tips] = true
           end
 
           opts.separator "\nParser Options:"
