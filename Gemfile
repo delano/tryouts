@@ -12,10 +12,11 @@ group :development do
   gem 'pry', require: false
   gem 'pry-byebug', require: false
   gem 'rack-proxy', require: false
-  gem 'rubocop', '~>1.79', require: false
+  gem 'rubocop', '~> 1.81.1', require: false
   gem 'rubocop-performance', require: false
   gem 'rubocop-rspec', require: false
   gem 'rubocop-thread_safety', require: false
+  gem 'ruby-lsp', require: false
   gem 'stackprof', require: false
   gem 'syntax_tree', require: false
 end
