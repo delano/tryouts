@@ -325,8 +325,19 @@ class Tryouts
             puts indent_text("Expected: #{Console.color(:green, expected_line.content)}", 2)
             puts indent_text("Actual:   #{Console.color(:red, actual.inspect)}", 2)
           else
-            # For error cases (empty expected_results), just show the error
-            puts indent_text("Error:   #{Console.color(:red, actual.inspect)}", 2)
+            # For error cases (empty expected_results), show formatted error with stack trace
+            if actual.is_a?(String) && actual.include?("\n")
+              # Multi-line error (with stack trace) - format properly
+              lines = actual.split("\n")
+              puts indent_text("Error:   #{Console.color(:red, lines.first)}", 2)
+              # Show remaining lines (stack trace) with proper indentation
+              lines[1..].each do |line|
+                puts indent_text("  #{Console.color(:red, line)}", 2)
+              end
+            else
+              # Single-line error
+              puts indent_text("Error:   #{Console.color(:red, actual.inspect)}", 2)
+            end
           end
 
           # Show difference if both are strings
