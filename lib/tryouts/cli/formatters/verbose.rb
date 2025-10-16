@@ -384,9 +384,10 @@ class Tryouts
         # No output in fails mode
       end
 
-      # Suppress file result summaries in fails-only mode
+      # Show file result summaries in fails-only mode (matching compact behavior)
       def file_result(_file_path, total_tests:, failed_count:, error_count:, elapsed_time: nil)
-        # No output in fails mode - let the batch_summary handle failures
+        # Always show summary - this matches compact formatter behavior
+        super
       end
 
       def live_status_capabilities
