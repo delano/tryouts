@@ -51,6 +51,8 @@ NOTE: Do not say things like, "You're absolutely right!".
   - `first-failure`: Stop at first failure with details
   - `critical`: Only show critical issues and summary
 - **Framework tips**: `bundle exec try --agent --agent-tips` (includes reminders about instance variables, multiple expectations, exception testing)
+- **Re-run command**: `bundle exec try --agent --agent-command` (outputs copy-paste command for re-running failures with -vfs)
+- **Suppress failures**: `bundle exec try --agent --agent-no-failures` (hides detailed failure list, shows summary/command only)
 
 **Framework integration:**
 - **RSpec**: `bundle exec try --rspec` (generates RSpec-compatible output)

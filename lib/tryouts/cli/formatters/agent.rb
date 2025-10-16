@@ -412,10 +412,10 @@ class Tryouts
         output << summary
         output << ""
 
-        # Show files with issues only
+        # Show files with issues only (unless suppressed)
         files_with_issues = @collected_files.select { |f| f[:failures].any? || f[:errors].any? }
 
-        if files_with_issues.any?
+        if files_with_issues.any? && !@options[:agent_no_failures]
           files_with_issues.each do |file_data|
             break unless @budget.has_budget?
 
@@ -658,6 +658,12 @@ class Tryouts
           context_lines << render_framework_tips
         end
 
+        # Add re-run command if requested and there are failures
+        if @options[:agent_command] && has_failures?
+          context_lines << ""
+          context_lines << render_rerun_command
+        end
+
         context_lines.join("\n")
       end
 
@@ -765,6 +771,27 @@ class Tryouts
         tips << "  • Exception testing: Use #=!> to signal expected exception; 'error' variable becomes available"
         tips << "  • In exception tests, #=~> automatically refers to error.message for pattern matching"
         tips.join("\n")
+      end
+
+      # Render copy-paste command for re-running failures with verbose-fails-stack
+      def render_rerun_command
+        files_with_issues = @collected_files.select { |f| f[:failures].any? || f[:errors].any? }
+        return "" if files_with_issues.empty?
+
+        cmd = []
+        cmd << "Re-run Command (verbose-fails-stack):"
+
+        # Build command parts
+        base_cmd = @options[:original_command]&.first || "try"
+        file_paths = files_with_issues.map { |f| f[:path] }.join(" ")
+
+        cmd << "  #{base_cmd} -vfs #{file_paths}"
+        cmd.join("\n")
+      end
+
+      # Check if there are any failures or errors
+      def has_failures?
+        @collected_files.any? { |f| f[:failures].any? || f[:errors].any? }
       end
     end
   end
