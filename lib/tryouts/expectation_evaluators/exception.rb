@@ -44,20 +44,37 @@ class Tryouts
       end
 
       def evaluate_exception_condition(caught_error)
-        @context.define_singleton_method(:error) { caught_error }
+        # Note: error variable is already available in context (set in evaluate_expectations)
 
         expectation_result = ExpectationResult.from_result(caught_error)
-        expected_value     = eval_expectation_content(@expectation.content, expectation_result)
+        expected_value = eval_expectation_content(@expectation.content, expectation_result)
 
-        build_result(
-          passed: !!expected_value,
-          actual: caught_error.message,
-          expected: expected_value,
-        )
+        # Support two syntaxes:
+        # 1. Class constant: #=!> StandardError (checks exception class)
+        # 2. Boolean expression: #=!> error.message == "test" (checks truthy value)
+        if expected_value.is_a?(Class)
+          # Class-based exception checking (new behavior)
+          # Check if caught exception is instance of expected class (or subclass)
+          exception_matches = caught_error.is_a?(expected_value)
+
+          build_result(
+            passed: exception_matches,
+            actual: caught_error.class.name,
+            expected: expected_value.name,
+          )
+        else
+          # Boolean/truthy expression checking (legacy behavior)
+          # This supports expressions like: error.message == "test"
+          build_result(
+            passed: !!expected_value,
+            actual: caught_error.message,
+            expected: expected_value,
+          )
+        end
       rescue StandardError => ex
         build_result(
           passed: false,
-          actual: caught_error.message,
+          actual: caught_error.class.name,
           expected: "EXPECTED: #{ex.message}",
           error: ex,
         )

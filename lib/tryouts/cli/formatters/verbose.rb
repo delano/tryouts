@@ -156,10 +156,10 @@ class Tryouts
 
         # Show failure details for failed tests
         if result_packet.failed? || result_packet.error?
-          show_failure_details(test_case, result_packet.actual_results, result_packet.expected_results)
+          show_failure_details(test_case, result_packet.actual_results, result_packet.expected_results, result_packet.result_value)
         # Show exception details for passed exception expectations
         elsif result_packet.passed? && has_exception_expectations?(test_case)
-          show_exception_details(test_case, result_packet.actual_results, result_packet.expected_results)
+          show_exception_details(test_case, result_packet.actual_results, result_packet.expected_results, result_packet.result_value)
         end
       end
 
@@ -273,7 +273,7 @@ class Tryouts
         test_case.expectations.any? { |exp| exp.type == :exception }
       end
 
-      def show_exception_details(test_case, actual_results, expected_results = [])
+      def show_exception_details(test_case, actual_results, expected_results = [], exception_object = nil)
         return if actual_results.empty?
 
         puts indent_text('Exception Details:', 2)
@@ -288,6 +288,19 @@ class Tryouts
             puts indent_text("Result: #{Console.color(:green, expected.inspect)}", 3) if expected
           end
         end
+
+        # Show backtrace when --stack flag is used
+        if @show_stack_traces && exception_object.is_a?(Exception) && exception_object.backtrace
+          puts
+          puts indent_text('Backtrace:', 2)
+          Console.pretty_backtrace(exception_object.backtrace, limit: 15).each do |line|
+            puts indent_text(Console.color(:dim, line), 3)
+          end
+          if exception_object.backtrace.length > 15
+            puts indent_text(Console.color(:dim, "... (#{exception_object.backtrace.length - 15} more lines)"), 3)
+          end
+        end
+
         puts
       end
 
@@ -309,7 +322,7 @@ class Tryouts
         puts
       end
 
-      def show_failure_details(test_case, actual_results, expected_results = [])
+      def show_failure_details(test_case, actual_results, expected_results = [], exception_object = nil)
         return if actual_results.empty?
 
         actual_results.each_with_index do |actual, idx|
@@ -325,8 +338,19 @@ class Tryouts
             puts indent_text("Expected: #{Console.color(:green, expected_line.content)}", 2)
             puts indent_text("Actual:   #{Console.color(:red, actual.inspect)}", 2)
           else
-            # For error cases (empty expected_results), just show the error
-            puts indent_text("Error:   #{Console.color(:red, actual.inspect)}", 2)
+            # For error cases (empty expected_results), show formatted error with stack trace
+            if actual.is_a?(String) && actual.include?("\n")
+              # Multi-line error (with stack trace) - format properly
+              lines = actual.split("\n")
+              puts indent_text("Error:   #{Console.color(:red, lines.first)}", 2)
+              # Show remaining lines (stack trace) with proper indentation
+              lines[1..].each do |line|
+                puts indent_text("  #{Console.color(:red, line)}", 2)
+              end
+            else
+              # Single-line error
+              puts indent_text("Error:   #{Console.color(:red, actual.inspect)}", 2)
+            end
           end
 
           # Show difference if both are strings
@@ -334,6 +358,18 @@ class Tryouts
             show_string_diff(expected, actual)
           end
 
+          puts
+        end
+
+        # Show backtrace for exception expectation failures when --stack flag is used
+        if @show_stack_traces && exception_object.is_a?(Exception) && exception_object.backtrace
+          puts indent_text('Backtrace:', 2)
+          Console.pretty_backtrace(exception_object.backtrace, limit: 15).each do |line|
+            puts indent_text(Console.color(:dim, line), 3)
+          end
+          if exception_object.backtrace.length > 15
+            puts indent_text(Console.color(:dim, "... (#{exception_object.backtrace.length - 15} more lines)"), 3)
+          end
           puts
         end
       end
@@ -384,9 +420,10 @@ class Tryouts
         # No output in fails mode
       end
 
-      # Suppress file result summaries in fails-only mode
+      # Show file result summaries in fails-only mode (matching compact behavior)
       def file_result(_file_path, total_tests:, failed_count:, error_count:, elapsed_time: nil)
-        # No output in fails mode - let the batch_summary handle failures
+        # Always show summary - this matches compact formatter behavior
+        super
       end
 
       def live_status_capabilities
