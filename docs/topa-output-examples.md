@@ -11,7 +11,7 @@ STATUS_LINE
 SUMMARY_LINE
 ```
 
-All examples below are actual outputs from Tryouts v3.4.0 agent mode.
+All examples below are actual outputs from Tryouts v3.7.1 agent mode.
 
 ## Example 1: Passing Tests (Agent Mode)
 

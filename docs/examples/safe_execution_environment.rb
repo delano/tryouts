@@ -1,4 +1,7 @@
-# lib/tryouts/safe_execution_environment.rb
+# docs/examples/safe_execution_environment.rb
+#
+# NOTE: This is an example/template file for demonstration purposes.
+# This functionality is not currently implemented in the main codebase.
 
 require_relative 'safety_config'
 
