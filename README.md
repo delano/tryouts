@@ -93,7 +93,7 @@ Each test file is made up of three sections:
   | `#=>`  | Traditional value equality | `#=> [1, 2, 3]`                     | result, _     |
   | `#==>` | Must be exactly true       | `#==> result.include?(2)`            | result, _     |
   | `#=/=>`| Must be exactly false      | `#=/=> _.empty?`                     | result, _     |
-  | `#=|>` | Must be true OR false     | `#=|> 0.positive?`                   | result, _     |
+  | `#=\|>` | Must be true OR false     | `#=\|> 0.positive?`                   | result, _     |
   | `#=!>` | Must raise an exception    | `#=!> error.is_a?(ZeroDivisionError)` | error         |
   | `#=:>` | Must match result type     | `#=:> String`                         | result, _     |
   | `#=~>` | Must match regex pattern   | `#=~> /^[^@]+@[^@]+\.[^@]+$/`         | result, _     |
