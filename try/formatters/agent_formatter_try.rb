@@ -1,3 +1,7 @@
+# try/formatters/agent_formatter_try.rb
+#
+# frozen_string_literal: true
+
 # Comprehensive tests for AgentFormatter functionality
 # Tests agent-optimized output modes for LLM context management
 

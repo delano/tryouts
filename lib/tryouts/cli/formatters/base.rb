@@ -1,4 +1,6 @@
 # lib/tryouts/cli/formatters/base.rb
+#
+# frozen_string_literal: true
 
 require_relative 'output_manager'
 

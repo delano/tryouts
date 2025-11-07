@@ -1,4 +1,6 @@
-# lib/tryouts/test_executor.rb
+# try/regressions/exit_code_fix_try.rb
+#
+# frozen_string_literal: true
 
 # Test that setup failures result in non-zero exit code
 

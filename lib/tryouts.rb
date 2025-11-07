@@ -1,4 +1,6 @@
 # lib/tryouts.rb
+#
+# frozen_string_literal: true
 
 require 'stringio'
 require 'timeout'

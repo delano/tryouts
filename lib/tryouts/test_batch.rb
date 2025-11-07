@@ -1,4 +1,6 @@
-# lib/tryouts/testbatch.rb
+# lib/tryouts/test_batch.rb
+#
+# frozen_string_literal: true
 
 require 'stringio'
 require_relative 'expectation_evaluators/registry'

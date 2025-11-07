@@ -1,4 +1,7 @@
 # try/debug/setup_exit_handling_try.rb
+#
+# frozen_string_literal: true
+
 # Test that setup handles SystemExit gracefully
 
 # Setup calls exit - should be caught and reported

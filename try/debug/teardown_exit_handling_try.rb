@@ -1,4 +1,7 @@
 # try/debug/teardown_exit_handling_try.rb
+#
+# frozen_string_literal: true
+
 # Test that teardown handles SystemExit gracefully
 
 ## Test runs normally

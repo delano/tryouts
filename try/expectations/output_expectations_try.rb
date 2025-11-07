@@ -1,4 +1,6 @@
 # try/expectations/output_expectations_try.rb
+#
+# frozen_string_literal: true
 
 ## TEST: Simple stdout string contains
 puts "Hello, World!"

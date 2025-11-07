@@ -1,3 +1,7 @@
+# try/continue-on-error/line_number_real_test_noautorun.rb
+#
+# frozen_string_literal: true
+
 #!/usr/bin/env ruby
 # Real test to verify line number consistency fix in practice
 # This creates actual failing tests and checks error output for consistent line numbers

@@ -1,3 +1,7 @@
+# try/formatters/token_budget_try.rb
+#
+# frozen_string_literal: true
+
 # Comprehensive tests for TokenBudget class
 # Tests token estimation, budget management, and smart truncation
 

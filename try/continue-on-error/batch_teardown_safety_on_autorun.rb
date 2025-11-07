@@ -1,4 +1,6 @@
-# try/core/test_batch_teardown_safety_try.rb
+# try/continue-on-error/batch_teardown_safety_on_autorun.rb
+#
+# frozen_string_literal: true
 #
 # Tests for extenuating circumstances
 

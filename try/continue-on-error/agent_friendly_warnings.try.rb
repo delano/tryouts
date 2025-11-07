@@ -1,4 +1,6 @@
-# try/debug/agent_friendly_warnings.try.rb
+# try/continue-on-error/agent_friendly_warnings.try.rb
+#
+# frozen_string_literal: true
 
 ## Test with proper description
 result = 1 + 1

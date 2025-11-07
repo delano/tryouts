@@ -1,4 +1,7 @@
 # try/debug/complex_line_number_try.rb
+#
+# frozen_string_literal: true
+
 # Complex test with heredocs and varied comment patterns to trigger line number issues
 
 # Large setup block with heredocs and complex patterns

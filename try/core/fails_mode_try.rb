@@ -1,4 +1,7 @@
 # try/core/fails_mode_try.rb
+#
+# frozen_string_literal: true
+
 # Tests for fails mode functionality
 
 # This should pass

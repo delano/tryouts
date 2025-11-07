@@ -1,4 +1,6 @@
 # lib/tryouts/console.rb
+#
+# frozen_string_literal: true
 
 require 'pathname'
 

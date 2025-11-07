@@ -1,4 +1,7 @@
 # try/core/teardown_handling_try.rb
+#
+# frozen_string_literal: true
+
 # Tests for teardown detection functionality
 
 require_relative '../../lib/tryouts'

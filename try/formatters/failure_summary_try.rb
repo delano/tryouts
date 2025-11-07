@@ -1,4 +1,6 @@
 # try/formatters/failure_summary_try.rb
+#
+# frozen_string_literal: true
 
 ## TEST: FailureCollector can be created
 collector = Tryouts::FailureCollector.new

@@ -1,4 +1,6 @@
 # try/core/fresh_context_try.rb
+#
+# frozen_string_literal: true
 
 # Test demonstrating fresh context behavior with instance variables
 # In fresh context mode (--no-shared-context), each test case gets a new execution context

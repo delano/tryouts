@@ -1,4 +1,7 @@
 # try/translators/minitest_translator_try.rb
+#
+# frozen_string_literal: true
+
 # Tests for MinitestTranslator functionality
 
 require_relative '../test_helper'

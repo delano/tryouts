@@ -1,4 +1,6 @@
-# try/continue-on-error/batch_safety_run_individually.rb
+# try/continue-on-error/batch_safety_run_no_autorun.rb
+#
+# frozen_string_literal: true
 #
 # Tests for extenuating circumstances
 

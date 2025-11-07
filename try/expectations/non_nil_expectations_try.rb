@@ -1,4 +1,7 @@
 # try/expectations/non_nil_expectations_try.rb
+#
+# frozen_string_literal: true
+
 # Tests for the non-nil expectation syntax
 
 puts 'Testing non-nil expectations...'

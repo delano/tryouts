@@ -1,4 +1,6 @@
 # lib/tryouts/expectation_evaluators/exception.rb
+#
+# frozen_string_literal: true
 
 require_relative 'base'
 

@@ -1,4 +1,6 @@
 # try/core/shared_context_try.rb
+#
+# frozen_string_literal: true
 
 # Test demonstrating shared context behavior with instance variables
 # In shared context mode (default), instance variables persist across all test cases

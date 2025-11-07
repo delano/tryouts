@@ -1,4 +1,6 @@
-# try/formatters/failure_formatting_try.rb
+# try/continue-on-error/failure_formatting_try.rb
+#
+# frozen_string_literal: true
 
 ## TEST: Regular expectation failure (the lists do not match)
 [1, 2, 3]

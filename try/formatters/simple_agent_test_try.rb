@@ -1,3 +1,7 @@
+# try/formatters/simple_agent_test_try.rb
+#
+# frozen_string_literal: true
+
 # Simple agent mode functionality test
 
 require_relative '../../lib/tryouts/cli/formatters/agent'

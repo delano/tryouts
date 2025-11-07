@@ -1,4 +1,7 @@
 # try/translators/rspec_translator_try.rb
+#
+# frozen_string_literal: true
+
 # Tests for RSpecTranslator functionality
 
 require_relative '../test_helper'

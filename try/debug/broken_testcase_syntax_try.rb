@@ -1,4 +1,6 @@
 # try/debug/broken_testcase_syntax_try.rb
+#
+# frozen_string_literal: true
 
 # Intentionally incorrect expectation syntax should still be parsed
 # in a way that doesn't lump everything into a setup section up to

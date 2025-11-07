@@ -1,4 +1,6 @@
 # lib/tryouts/expectation_evaluators/expectation_result.rb
+#
+# frozen_string_literal: true
 
 class Tryouts
   module ExpectationEvaluators

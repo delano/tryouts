@@ -1,4 +1,7 @@
 # try/core/test_batch_setup_try.rb
+#
+# frozen_string_literal: true
+
 # Tests for TestBatch setup execution logic
 
 require_relative '../../lib/tryouts'

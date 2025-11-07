@@ -1,4 +1,6 @@
-# try/expectations/regex_expectations_try.rb
+# try/continue-on-error/regex_expectations_try.rb
+#
+# frozen_string_literal: true
 
 # NOTE: These fail in the legacy parser
 

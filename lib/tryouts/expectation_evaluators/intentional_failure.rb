@@ -1,4 +1,6 @@
 # lib/tryouts/expectation_evaluators/intentional_failure.rb
+#
+# frozen_string_literal: true
 
 require_relative 'base'
 require_relative 'regular'

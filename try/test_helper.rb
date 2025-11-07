@@ -1,4 +1,6 @@
 # try/test_helper.rb
+#
+# frozen_string_literal: true
 
 # Coverage is handled by the CLI entry point to avoid double initialization
 

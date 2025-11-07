@@ -1,4 +1,6 @@
-# try/safety/batch_setup_familia_failure_try.rb
+# try/debug/comments_with_equals_sign_try.rb
+#
+# frozen_string_literal: true
 
 require_relative '../test_helper'
 

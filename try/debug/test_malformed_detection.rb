@@ -1,3 +1,7 @@
+# try/debug/test_malformed_detection.rb
+#
+# frozen_string_literal: true
+
 # Test malformed expectation detection
 
 ## TEST: Valid expectation should work

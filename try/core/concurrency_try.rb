@@ -1,4 +1,7 @@
 # try/core/concurrency_try.rb
+#
+# frozen_string_literal: true
+
 # Tests for thread safety and atomic operations in TestResultAggregator
 
 require_relative '../../lib/tryouts/test_result_aggregator'

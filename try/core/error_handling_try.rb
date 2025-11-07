@@ -1,4 +1,7 @@
 # try/core/error_handling_try.rb
+#
+# frozen_string_literal: true
+
 # Tests for error handling and deliberate failures
 
 ## Test failure example (intentional failure)

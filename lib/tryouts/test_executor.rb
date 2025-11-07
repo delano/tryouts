@@ -1,4 +1,6 @@
 # lib/tryouts/test_executor.rb
+#
+# frozen_string_literal: true
 
 require_relative 'test_batch'
 

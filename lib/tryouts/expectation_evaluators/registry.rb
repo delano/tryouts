@@ -1,4 +1,6 @@
 # lib/tryouts/expectation_evaluators/registry.rb
+#
+# frozen_string_literal: true
 
 require_relative 'expectation_result'
 require_relative 'base'

@@ -1,3 +1,7 @@
+# try/continue-on-error/line_number_edge_cases_debug_noautorun.rb
+#
+# frozen_string_literal: true
+
 #!/usr/bin/env ruby
 # Debug script for edge cases that might trigger line number off-by-one bugs
 # This tests scenarios that could cause inconsistencies in line number tracking

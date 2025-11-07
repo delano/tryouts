@@ -1,4 +1,7 @@
 # try/formatters/console_formatting_try.rb
+#
+# frozen_string_literal: true
+
 # Tests for Console module ANSI colors and formatting
 require_relative '../test_helper'
 require_relative '../../lib/tryouts/console'

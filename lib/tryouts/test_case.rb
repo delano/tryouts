@@ -1,4 +1,6 @@
-# lib/tryouts/testcase.rb
+# lib/tryouts/test_case.rb
+#
+# frozen_string_literal: true
 
 # Modern data structures using Ruby 3.2+ Data classes
 class Tryouts

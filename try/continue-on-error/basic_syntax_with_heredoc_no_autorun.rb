@@ -1,4 +1,6 @@
-# try/core/basic_syntax_try.rb
+# try/continue-on-error/basic_syntax_with_heredoc_no_autorun.rb
+#
+# frozen_string_literal: true
 # Tests for basic tryout syntax, expectations, and setup/teardown
 
 # A friendly output message

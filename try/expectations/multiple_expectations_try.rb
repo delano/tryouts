@@ -1,4 +1,6 @@
 # try/expectations/multiple_expectations_try.rb
+#
+# frozen_string_literal: true
 
 ## TEST1: Returns an array, has multiple expectations
 [1, 2, 3]
