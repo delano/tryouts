@@ -1,3 +1,7 @@
+# try/debug/test_inline_comment_fix.rb
+#
+# frozen_string_literal: true
+
 # Test inline comment exclusion
 
 ## TEST: Inline comments should not be treated as expectations

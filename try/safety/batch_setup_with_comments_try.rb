@@ -1,3 +1,7 @@
+# try/safety/batch_setup_with_comments_try.rb
+#
+# frozen_string_literal: true
+
 puts "start of setup"
 require_relative '../../lib/tryouts'
 

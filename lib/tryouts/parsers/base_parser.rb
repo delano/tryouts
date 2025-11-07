@@ -1,4 +1,6 @@
 # lib/tryouts/parsers/base_parser.rb
+#
+# frozen_string_literal: true
 
 require 'prism'
 

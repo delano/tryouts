@@ -1,4 +1,6 @@
 # try/expectations/combined_features_try.rb
+#
+# frozen_string_literal: true
 
 ## TEST: Intentional failure with output - stderr should NOT contain specific text
 puts "This goes to stdout"

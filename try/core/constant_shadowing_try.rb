@@ -1,5 +1,8 @@
 # try/core/constant_shadowing_try.rb
 #
+# frozen_string_literal: true
+
+#
 # Tests for constant shadowing edge cases in type expectations
 # Verifies that class type expectations work correctly even when
 # class constants are shadowed by local variables or methods

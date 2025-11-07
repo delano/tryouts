@@ -1,4 +1,6 @@
 # lib/tryouts/cli/formatters/agent.rb
+#
+# frozen_string_literal: true
 
 require_relative 'token_budget'
 

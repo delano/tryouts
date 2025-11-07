@@ -1,3 +1,7 @@
+# try/debug/parser_comparison.rb
+#
+# frozen_string_literal: true
+
 #!/usr/bin/env ruby
 # Parser comparison testing script
 # Compares outputs of LegacyParser vs EnhancedParser

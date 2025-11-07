@@ -1,3 +1,7 @@
+# try/continue-on-error/line_number_analysis_and_fix_noautorun.rb
+#
+# frozen_string_literal: true
+
 #!/usr/bin/env ruby
 # Line Number Analysis and Fix Documentation
 #

@@ -1,4 +1,7 @@
 # try/debug/exception_regex_issues_try.rb
+#
+# frozen_string_literal: true
+
 # Test file to demonstrate actual issues with exception expectations and regex matching
 
 ## TEST: Exception type expectation should check the class, not fail with error

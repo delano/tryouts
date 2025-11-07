@@ -1,4 +1,7 @@
 # try/core/advanced_syntax_try.rb
+#
+# frozen_string_literal: true
+
 # Tests for advanced features: exceptions, helper methods, multiple expectations
 
 puts 'if you can see this, step2 setup succeeded'

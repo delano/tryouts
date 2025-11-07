@@ -1,4 +1,6 @@
 # lib/tryouts/parser_warning.rb
+#
+# frozen_string_literal: true
 
 class Tryouts
   # Data structure for parser warnings

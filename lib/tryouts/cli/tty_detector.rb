@@ -1,4 +1,6 @@
 # lib/tryouts/cli/tty_detector.rb
+#
+# frozen_string_literal: true
 
 require 'tty-screen'
 

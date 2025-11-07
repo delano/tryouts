@@ -1,5 +1,7 @@
 # docs/examples/safety_config.rb
 #
+# frozen_string_literal: true
+#
 # NOTE: This is an example/template file for demonstration purposes.
 # This functionality is not currently implemented in the main codebase.
 

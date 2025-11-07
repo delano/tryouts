@@ -1,4 +1,6 @@
-# try/core/basic_syntax_try.rb
+# try/core/basic_syntax_with_disruptive_comments_try.rb
+#
+# frozen_string_literal: true
 
 # Tests for basic tryout syntax, expectations, and setup/teardown
 

@@ -1,4 +1,6 @@
 # lib/tryouts/cli/formatters/token_budget.rb
+#
+# frozen_string_literal: true
 
 class Tryouts
   class CLI

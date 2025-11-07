@@ -1,4 +1,6 @@
 # try/expectations/comprehensive_expectations_try.rb
+#
+# frozen_string_literal: true
 
 ## TEST: Regular expectation with clean expected display
 [1, 2, 3]

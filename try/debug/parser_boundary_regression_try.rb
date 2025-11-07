@@ -1,4 +1,7 @@
 # try/debug/parser_boundary_regression_try.rb
+#
+# frozen_string_literal: true
+
 # Regression tests for parser section boundary detection
 # These tests verify that both parsers handle identical boundary cases correctly
 

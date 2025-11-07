@@ -1,4 +1,6 @@
 # lib/tryouts/translators/rspec_translator.rb
+#
+# frozen_string_literal: true
 
 class Tryouts
   module Translators

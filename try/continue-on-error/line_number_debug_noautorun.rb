@@ -1,3 +1,7 @@
+# try/continue-on-error/line_number_debug_noautorun.rb
+#
+# frozen_string_literal: true
+
 #!/usr/bin/env ruby
 # Debug script to analyze line number behavior in the tryouts parser
 # This file helps identify the source of the off-by-one line number bug

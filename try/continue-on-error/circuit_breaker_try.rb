@@ -1,3 +1,7 @@
+# try/continue-on-error/circuit_breaker_try.rb
+#
+# frozen_string_literal: true
+
 # Circuit breaker test - create multiple failing tests to trigger circuit breaker
 
 ## TEST: First failure

@@ -1,4 +1,6 @@
 # lib/tryouts/failure_collector.rb
+#
+# frozen_string_literal: true
 
 require_relative 'console'
 

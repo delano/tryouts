@@ -1,4 +1,6 @@
 # lib/tryouts/file_processor.rb
+#
+# frozen_string_literal: true
 
 require_relative 'parsers/legacy_parser'
 require_relative 'parsers/enhanced_parser'

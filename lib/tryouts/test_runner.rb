@@ -1,4 +1,6 @@
 # lib/tryouts/test_runner.rb
+#
+# frozen_string_literal: true
 
 require 'concurrent'
 require_relative 'parsers/legacy_parser'

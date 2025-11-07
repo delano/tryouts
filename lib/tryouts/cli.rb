@@ -1,4 +1,6 @@
 # lib/tryouts/cli.rb
+#
+# frozen_string_literal: true
 
 require 'optparse'
 

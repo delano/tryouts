@@ -1,3 +1,7 @@
+# try/regressions/setup_error_exit_code_try.rb
+#
+# frozen_string_literal: true
+
 ## Test that setup failures result in proper exit code 1
 ##
 ## This regression test replicates the issue where setup failures

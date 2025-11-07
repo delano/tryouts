@@ -1,4 +1,7 @@
 # try/core/basic_syntax_try.rb
+#
+# frozen_string_literal: true
+
 # Tests for basic tryout syntax, expectations, and setup/teardown
 
 puts 'If you see this the setup ran correctly.'

@@ -1,3 +1,7 @@
+# try/debug/prism_inhouse_parser_prototype.rb
+#
+# frozen_string_literal: true
+
 # Prototype implementation of PrismInhouseParser
 # Demonstrates hybrid approach using Prism's inhouse comment extraction
 

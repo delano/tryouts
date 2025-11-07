@@ -1,4 +1,7 @@
 # try/core/class_functionality_try.rb
+#
+# frozen_string_literal: true
+
 # Tests for core Tryouts class functionality
 require_relative '../test_helper'
 

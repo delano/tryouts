@@ -1,4 +1,6 @@
-# try/debug/line_number_regression_try.rb
+# try/continue-on-error/line_number_regression_try.rb
+#
+# frozen_string_literal: true
 
 # Test file to identify line number discrepancies between parsers
 # NOTE: Some tests are designed to fail to verify accurate error line reporting

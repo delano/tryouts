@@ -1,4 +1,6 @@
-# try/expectations/type_expectations_try.rb
+# try/continue-on-error/type_expectations_try.rb
+#
+# frozen_string_literal: true
 
 ## TEST: Result type expectations work correctly
 "hello world"

@@ -1,4 +1,6 @@
 # try/expectations/performance_timing_try.rb
+#
+# frozen_string_literal: true
 
 ## TEST: Very fast operation should pass loose timing
 1 + 1

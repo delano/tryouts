@@ -1,4 +1,6 @@
 # lib/tryouts/cli/formatters/live_status_manager.rb
+#
+# frozen_string_literal: true
 
 require_relative 'test_run_state'
 require_relative 'tty_status_display'

@@ -1,4 +1,6 @@
 # lib/tryouts/cli/formatters/output_manager.rb
+#
+# frozen_string_literal: true
 
 require_relative 'live_status_manager'
 

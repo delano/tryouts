@@ -1,4 +1,6 @@
 # try/expectations/intentional_failure_try.rb
+#
+# frozen_string_literal: true
 
 ## TEST: Basic intentional failure - should pass when expectation fails
 1 + 1

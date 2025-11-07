@@ -1,4 +1,6 @@
 # lib/tryouts/parsers/enhanced_parser.rb
+#
+# frozen_string_literal: true
 
 require_relative '../test_case'
 require_relative 'base_parser'

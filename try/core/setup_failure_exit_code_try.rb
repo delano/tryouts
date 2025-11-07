@@ -1,3 +1,7 @@
+# try/core/setup_failure_exit_code_try.rb
+#
+# frozen_string_literal: true
+
 # Test that setup failures return non-zero exit codes
 # This test verifies the fix for issue where setup failures returned 0 instead of proper error codes
 

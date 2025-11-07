@@ -1,3 +1,7 @@
+# try/core/single_hash_test_try.rb
+#
+# frozen_string_literal: true
+
 # This is a setup comment
 setup_value = "setup"
 

@@ -1,3 +1,7 @@
+# try/core/single_hash_comments_try.rb
+#
+# frozen_string_literal: true
+
 # Setup with single hash comments should not break parsing
 require_relative '../../lib/tryouts'
 

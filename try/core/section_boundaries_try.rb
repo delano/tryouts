@@ -1,4 +1,7 @@
 # try/core/section_boundaries_try.rb
+#
+# frozen_string_literal: true
+
 # Tests for proper section boundary detection - setup, test, teardown
 
 # Setup section with various comment patterns that should NOT create new blocks

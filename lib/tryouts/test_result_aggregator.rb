@@ -1,4 +1,6 @@
 # lib/tryouts/test_result_aggregator.rb
+#
+# frozen_string_literal: true
 
 require_relative 'failure_collector'
 require 'concurrent'

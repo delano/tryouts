@@ -1,3 +1,7 @@
+# try/demo_live_try.rb
+#
+# frozen_string_literal: true
+
 # Setup
 puts 'Starting comprehensive live formatter demo...'
 puts 'This demo showcases real-time status updates during test execution'
