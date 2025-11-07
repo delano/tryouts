@@ -1,4 +1,7 @@
-# lib/tryouts/safety_config.rb
+# docs/examples/safety_config.rb
+#
+# NOTE: This is an example/template file for demonstration purposes.
+# This functionality is not currently implemented in the main codebase.
 
 class Tryouts
   module SafetyConfig

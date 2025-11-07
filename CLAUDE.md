@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Tryouts v3.0 is a modern Ruby test framework that allows writing tests in documentation-style format using comments. Tests read like documentation where expectations are written as comments (`#=>`) following Ruby code blocks. This version represents a complete modernization from tree-sitter to Prism parser with Ruby 3.4+ features.
+Tryouts v3.0 is a modern Ruby test framework that allows writing tests in documentation-style format using comments. Tests read like documentation where expectations are written as comments (`#=>`) following Ruby code blocks. This version represents a complete modernization from tree-sitter to Prism parser with Ruby 3.2+ features.
 
 Tryouts are meant to double as documentation so the ruby code should be plain and reminiscent of real code. i.e. avoid using mocks, harnesses, and any test-code tropes.
 
@@ -27,7 +27,7 @@ NOTE: Do not say things like, "You're absolutely right!".
 - Pattern matching throughout (`case...in` syntax) for parsing and classification
 - `Data.define` classes for immutable data structures
 - Prism native parser (no external grammar compilation needed)
-- Ruby 3.4+ syntax and idioms
+- Ruby 3.2+ syntax and idioms
 
 ## Writing tests (Coles Notes)
 
@@ -107,7 +107,7 @@ bundle exec pry
 
 ```bash
 # Ruby
-rbenv local 3.4.4
+rbenv local 3.2.0
 /Users/d/.rbenv/shims/ruby
 ```
 
@@ -207,7 +207,7 @@ Files are processed in lexical order.
 - `1+`: Number of failing tests
 
 ### Key Dependencies
-- **Ruby** (>= 3.4.4)
+- **Ruby** (>= 3.2.0)
 - **prism** (~> 1.0): Native Ruby parser
 - **rspec**, **minitest**: Framework integration
 - **rubocop**: Code quality with performance and thread safety extensions

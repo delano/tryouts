@@ -42,7 +42,7 @@ try try/core/basic_syntax_try.rb
 
 ## Writing Tests
 
-Tryouts use a comment-based syntax for expecations:
+Tryouts use a comment-based syntax for expectations:
 
 ```ruby
 # Setup code runs before all tests
@@ -93,14 +93,15 @@ Each test file is made up of three sections:
   | `#=>`  | Traditional value equality | `#=> [1, 2, 3]`                     | result, _     |
   | `#==>` | Must be exactly true       | `#==> result.include?(2)`            | result, _     |
   | `#=/=>`| Must be exactly false      | `#=/=> _.empty?`                     | result, _     |
-  | `#=\|>` | Must be true OR false     | `#=\|> 0.positive?`                   | result, _     |
+  | `#=|>` | Must be true OR false     | `#=|> 0.positive?`                   | result, _     |
   | `#=!>` | Must raise an exception    | `#=!> error.is_a?(ZeroDivisionError)` | error         |
   | `#=:>` | Must match result type     | `#=:> String`                         | result, _     |
   | `#=~>` | Must match regex pattern   | `#=~> /^[^@]+@[^@]+\.[^@]+$/`         | result, _     |
   | `#=%>` | Must complete within time  | `#=%> 2000 # in milliseconds`         | result, _     |
+  | `#=*>` | Must be non-nil            | `#=*> result`                         | result, _     |
   | `#=1>` | Match content in STDOUT    | `#=1> "You have great success"`       | result, _     |
   | `#=2>` | Match content in STDERR    | `#=2> /[a-zA-Z0-9]+-?[0-9]{1,5}`      | result, _     |
-  | `#=<>` | Fails on purpose           | `#==<> result.include?(4)`            | result, _     |
+  | `#=<>` | Fails on purpose           | `#=<> result.include?(4)`            | result, _     |
 
 
 ### Using other test runners
