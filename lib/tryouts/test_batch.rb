@@ -24,6 +24,13 @@ class Tryouts
 
   # Modern TestBatch using Ruby 3.4+ patterns and formatter system
   class TestBatch
+    # $stdout/$stderr are process-global, not Fiber- or thread-local. Under
+    # --parallel (Concurrent::ThreadPoolExecutor), concurrent output-capture
+    # tests would clobber each other's redirect and could leave $stdout pointing
+    # at a dead StringIO process-wide. Serialize the redirect/execute/restore
+    # section so only output-capturing tests contend on this lock.
+    OUTPUT_CAPTURE_MUTEX = Mutex.new
+
     attr_reader :testrun, :failed_count, :container, :status, :results, :formatter, :output_manager
 
     def initialize(testrun, **options)
@@ -308,19 +315,22 @@ class Tryouts
       build_error_result(test_case, StandardError.new("Test terminated by #{ex.class}: #{ex.message}"))
     end
 
-    # Execute test code with Fiber-based stdout/stderr capture
+    # Execute test code while capturing its stdout/stderr.
+    #
+    # $stdout/$stderr are process-global. The redirect below mutates them for the
+    # whole process, so the OUTPUT_CAPTURE_MUTEX serializes this section to keep
+    # concurrent --parallel runs from corrupting each other's output or leaving a
+    # dangling StringIO behind. See OUTPUT_CAPTURE_MUTEX for details.
     def execute_with_output_capture(container, code, path, range)
-      # Fiber-local storage for output redirection
-      original_stdout = $stdout
-      original_stderr = $stderr
-
       # Create StringIO objects for capturing output
       captured_stdout = StringIO.new
       captured_stderr = StringIO.new
 
-      begin
-        # Redirect output streams using Fiber-local variables
-        Fiber.new do
+      OUTPUT_CAPTURE_MUTEX.synchronize do
+        original_stdout = $stdout
+        original_stderr = $stderr
+
+        begin
           $stdout = captured_stdout
           $stderr = captured_stderr
 
@@ -330,15 +340,12 @@ class Tryouts
           execution_end_ns   = Process.clock_gettime(Process::CLOCK_MONOTONIC, :nanosecond)
           execution_time_ns  = execution_end_ns - execution_start_ns
 
-          [result_value, execution_time_ns]
-        end.resume.tap do |result_value, execution_time_ns|
-          # Return captured content along with result
-          return [result_value, execution_time_ns, captured_stdout.string, captured_stderr.string]
+          [result_value, execution_time_ns, captured_stdout.string, captured_stderr.string]
+        ensure
+          # Always restore original streams
+          $stdout = original_stdout
+          $stderr = original_stderr
         end
-      ensure
-        # Always restore original streams
-        $stdout = original_stdout
-        $stderr = original_stderr
       end
     end
 
