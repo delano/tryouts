@@ -3,7 +3,6 @@
 # frozen_string_literal: true
 
 require 'concurrent'
-require_relative 'parsers/legacy_parser'
 require_relative 'parsers/enhanced_parser'
 require_relative 'test_batch'
 require_relative 'translators/rspec_translator'

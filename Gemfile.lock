@@ -43,7 +43,7 @@ GIT
 PATH
   remote: .
   specs:
-    tryouts (3.7.1)
+    tryouts (4.0.0.pre1)
       concurrent-ruby (~> 1.0, < 2)
       irb
       minitest (~> 5.0)
@@ -62,7 +62,6 @@ GEM
       irb (~> 1.10)
       reline (>= 0.3.8)
     diff-lcs (1.6.2)
-    docile (1.4.1)
     erb (6.0.1.1)
     io-console (0.8.1)
     irb (1.15.2)
@@ -86,9 +85,6 @@ GEM
     prettier_print (1.2.1)
     prettyprint (0.2.0)
     prism (1.9.0)
-    psych (5.2.6)
-      date
-      stringio
     racc (1.8.1)
     rack (3.1.21)
     rack-test (2.2.0)

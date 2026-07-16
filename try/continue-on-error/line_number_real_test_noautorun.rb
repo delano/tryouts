@@ -6,7 +6,7 @@
 # Real test to verify line number consistency fix in practice
 # This creates actual failing tests and checks error output for consistent line numbers
 
-require_relative '../../lib/tryouts/parsers/legacy_parser'
+require_relative '../../lib/tryouts/parsers/enhanced_parser'
 require_relative '../../lib/tryouts/parsers/enhanced_parser'
 # Don't require verbose formatter to avoid dependency issues
 require_relative '../../lib/tryouts/failure_collector'
@@ -39,7 +39,7 @@ puts
 
 begin
   # Parse the file
-  parser = Tryouts::LegacyParser.new(temp_file.path)
+  parser = Tryouts::EnhancedParser.new(temp_file.path)
   testrun = parser.parse
   test_case = testrun.test_cases.first
 

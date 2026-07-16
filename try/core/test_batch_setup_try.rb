@@ -7,7 +7,7 @@
 require_relative '../../lib/tryouts'
 
 @test_file = 'try/core/basic_syntax_try.rb'
-@parser = Tryouts::LegacyParser.new(@test_file)
+@parser = Tryouts::EnhancedParser.new(@test_file)
 @testrun = @parser.parse
 
 ## TEST: Parser successfully parses test file
