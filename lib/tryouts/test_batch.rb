@@ -51,6 +51,12 @@ class Tryouts
       @start_time      = nil
       @test_case_count = 0
       @setup_failed    = false
+      @orphan_failed   = false
+
+      # Shared-context mode evaluates every block against this one reused
+      # Binding so local variables persist across blocks like a plain Ruby
+      # script. Fresh-context mode keeps per-container instance_eval isolation.
+      @binding = options[:shared_context] ? acquire_container_binding(@container) : nil
       @line_spec       = options[:line_spec]  # For output filtering only
 
       # Setup container for fresh context mode - preserves @instance_variables from setup
@@ -74,7 +80,7 @@ class Tryouts
       return false if empty?
 
       @start_time      = Time.now
-      @test_case_count = test_cases.size
+      @test_case_count = @testrun.total_tests
 
       @output_manager&.execution_phase(@test_case_count)
       @output_manager&.info("Context: #{@options[:shared_context] ? 'shared' : 'fresh'}", 1)
@@ -107,6 +113,16 @@ class Tryouts
 
       idx               = 0
       execution_results = test_cases.map do |test_case|
+        # Orphan blocks run for side effects only, in source order. A raise
+        # aborts the batch like a setup failure: every subsequent test's
+        # context is suspect.
+        if test_case.is_a?(OrphanBlock)
+          execute_orphan_block(test_case)
+          break if @orphan_failed
+
+          next
+        end
+
         @output_manager&.trace("Test #{idx + 1}/#{@test_case_count}: #{test_case.description}", 2)
         idx += 1
 
@@ -144,6 +160,14 @@ class Tryouts
         update_circuit_breaker(error_result)
 
         error_result
+      end
+
+      if @orphan_failed
+        @output_manager&.error('Stopping batch execution due to orphan code block failure')
+        @status = :failed
+        @failed_count += 1
+        finalize_results(execution_results || [])
+        return false
       end
 
       # Used for a separate purpose then execution_phase.
@@ -184,6 +208,29 @@ class Tryouts
     end
 
     private
+
+    # Must be its own method, never inlined at a call site, and must use
+    # instance_eval on a STRING, not a block. A block literal fixes
+    # Module.nesting to wherever it is lexically written ([Tryouts::TestBatch]
+    # here), which would make every container's `class Foo` definitions land in
+    # one shared namespace across files. instance_eval(string) instead sets the
+    # default definee to the receiver's own singleton class, preserving the
+    # per-container class/def isolation that instance_eval(code_string) gives.
+    def acquire_container_binding(container)
+      container.instance_eval('binding', __FILE__, __LINE__)
+    end
+
+    # Evaluate a block of test code against the given container. Shared-context
+    # mode reuses the one Binding acquired at initialization; each block is
+    # still its own eval call (individually rescuable and timeoutable), only
+    # the state that persists between calls changes.
+    def eval_code(container, code, path, line)
+      if @binding && container.equal?(@container)
+        @binding.eval(code, path, line)
+      else
+        container.instance_eval(code, path, line)
+      end
+    end
 
     # Pattern matching for execution strategy selection
     def execute_single_test(test_case, before_test_hook = nil)
@@ -259,7 +306,7 @@ class Tryouts
           code  = test_case.code
           path  = test_case.path
           range = test_case.line_range
-          container.instance_eval(code, path, range.first + 1)
+          eval_code(container, code, path, range.first + 1)
         rescue SystemStackError, NoMemoryError, SecurityError, ScriptError => ex
           # Handle system-level exceptions that don't inherit from StandardError
           # ScriptError includes: LoadError, SyntaxError, NotImplementedError
@@ -295,7 +342,7 @@ class Tryouts
             else
               # Regular execution with timing capture only
               execution_start_ns = Process.clock_gettime(Process::CLOCK_MONOTONIC, :nanosecond)
-              result_value       = container.instance_eval(code, path, range.first + 1)
+              result_value       = eval_code(container, code, path, range.first + 1)
               execution_end_ns   = Process.clock_gettime(Process::CLOCK_MONOTONIC, :nanosecond)
               execution_time_ns  = execution_end_ns - execution_start_ns
 
@@ -341,7 +388,7 @@ class Tryouts
 
           # Execute with timing capture
           execution_start_ns = Process.clock_gettime(Process::CLOCK_MONOTONIC, :nanosecond)
-          result_value       = container.instance_eval(code, path, range.first + 1)
+          result_value       = eval_code(container, code, path, range.first + 1)
           execution_end_ns   = Process.clock_gettime(Process::CLOCK_MONOTONIC, :nanosecond)
           execution_time_ns  = execution_end_ns - execution_start_ns
 
@@ -440,6 +487,49 @@ class Tryouts
       end
     end
 
+    # Orphan blocks are setup-like glue between test cases: silent on success
+    # (no pass/fail, not counted in tallies), a file-level error on failure.
+    # In fresh-context mode they run against the setup container so their
+    # @instance_variables propagate to subsequent tests' fresh copies.
+    def execute_orphan_block(orphan)
+      return if orphan.code.strip.empty?
+
+      target = if shared_context?
+                 @container
+               else
+                 @setup_container ||= Object.new
+               end
+
+      @output_manager&.info("Running orphan code block (#{orphan.path}:#{orphan.line_range.first + 1})", 2)
+
+      captured_output = capture_output do
+        eval_code(target, orphan.code, orphan.path, orphan.line_range.first + 1)
+      end
+
+      @output_manager&.setup_output(captured_output) if captured_output && !captured_output.empty?
+    rescue StandardError => ex
+      @orphan_failed = true
+      if @global_tally && @global_tally[:aggregator]
+        @global_tally[:aggregator].add_infrastructure_failure(
+          :orphan, @testrun.source_file, ex.message, ex
+        )
+      end
+
+      Tryouts.debug "Orphan code block failed (#{ex.class}): #{ex.message}"
+      Tryouts.trace ex.backtrace
+
+      @output_manager&.error("Orphan code block failed (#{orphan.path}:#{orphan.line_range.first + 1}): #{ex.message}")
+    rescue SystemExit, SignalException => ex
+      @orphan_failed = true
+      if @global_tally && @global_tally[:aggregator]
+        @global_tally[:aggregator].add_infrastructure_failure(
+          :orphan, @testrun.source_file, "Orphan block terminated by #{ex.class}: #{ex.message}", ex
+        )
+      end
+
+      @output_manager&.error("Orphan code block terminated by #{ex.class}: #{ex.message}")
+    end
+
     # Global setup execution for shared context mode
     def execute_global_setup
       setup = @testrun.setup
@@ -449,7 +539,7 @@ class Tryouts
 
         # Capture setup output instead of letting it print directly
         captured_output = capture_output do
-          @container.instance_eval(setup.code, setup.path, setup.line_range.first + 1)
+          eval_code(@container, setup.code, setup.path, setup.line_range.first + 1)
         end
 
         @output_manager&.setup_output(captured_output) if captured_output && !captured_output.empty?
@@ -550,7 +640,7 @@ class Tryouts
 
         # Capture teardown output instead of letting it print directly
         captured_output = capture_output do
-          @container.instance_eval(teardown.code, teardown.path, teardown.line_range.first + 1)
+          eval_code(@container, teardown.code, teardown.path, teardown.line_range.first + 1)
         end
 
         @output_manager&.teardown_output(captured_output) if captured_output && !captured_output.empty?

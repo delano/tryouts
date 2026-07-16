@@ -63,19 +63,30 @@ class Tryouts
     end
   end
 
+  # Code with no description and no expectations that sits between test cases.
+  # Executed in source order for its side effects, but never evaluated against
+  # expectations and never counted in test tallies.
+  OrphanBlock = Data.define(:code, :line_range, :path) do
+    def empty?
+      code.empty?
+    end
+  end
+
   Teardown = Data.define(:code, :line_range, :path) do
     def empty?
       code.empty?
     end
   end
 
+  # test_cases is a single ordered array of TestCase | OrphanBlock — the
+  # interleaving order is load-bearing for shared-context local-variable state.
   Testrun = Data.define(:setup, :test_cases, :teardown, :source_file, :metadata, :warnings) do
     def total_tests
-      test_cases.size
+      test_cases.count { |tc| tc.is_a?(TestCase) }
     end
 
     def empty?
-      test_cases.empty?
+      total_tests.zero?
     end
   end
 

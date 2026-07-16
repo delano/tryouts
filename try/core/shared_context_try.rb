@@ -2,8 +2,10 @@
 #
 # frozen_string_literal: true
 
-# Test demonstrating shared context behavior with instance variables
-# In shared context mode (default), instance variables persist across all test cases
+# Test demonstrating shared context behavior
+# In shared context mode (default), instance variables AND local variables
+# persist across all test cases - every block is evaluated against one reused
+# Binding, so files behave like a plain Ruby script executing top to bottom.
 # This test validates the core behavior of Tryouts' execution context
 
 ## Test 1: Set instance variable in test case
@@ -39,9 +41,9 @@ local_var = "local"
 [local_var, @instance_var]
 #=> ["local", "instance"]
 
-## Test 8: Previous test's local variable not available, but instance variable is
-@instance_var
-#=> "instance"
+## Test 8: Local variables now persist across test cases too (v4 script semantics)
+local_var
+#=> "local"
 
 ## Test 9: Instance variables survive across different types of expectations
 @counter = 0

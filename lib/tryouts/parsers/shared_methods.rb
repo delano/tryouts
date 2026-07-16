@@ -210,12 +210,21 @@ class Tryouts
       # Process classified test blocks into domain objects
       def process_test_blocks(classified_blocks)
         setup_blocks    = classified_blocks.filter { |block| block[:type] == :setup }
-        test_blocks     = classified_blocks.filter { |block| block[:type] == :test }
         teardown_blocks = classified_blocks.filter { |block| block[:type] == :teardown }
+
+        # Test cases and orphan blocks stay interleaved in source order: the
+        # executor runs them sequentially and an orphan executed out of position
+        # would corrupt the shared-context local-variable timeline.
+        test_cases = classified_blocks.filter_map do |block|
+          case block[:type]
+          when :test then build_test_case(block)
+          when :orphan then build_orphan_block(block)
+          end
+        end
 
         testrun = Testrun.new(
           setup: build_setup(setup_blocks),
-          test_cases: test_blocks.map { |block| build_test_case(block) },
+          test_cases: test_cases,
           teardown: build_teardown(teardown_blocks),
           source_file: @source_path,
           metadata: { parsed_at: @parsed_at, parser: parser_type },
@@ -244,6 +253,21 @@ class Tryouts
         Teardown.new(
           code: extract_pure_code_from_blocks(teardown_blocks),
           line_range: calculate_block_range(teardown_blocks),
+          path: @source_path,
+        )
+      end
+
+      # Orphan blocks (code with no description and no expectations, sandwiched
+      # between real test cases) are collected for execution instead of being
+      # silently dropped. Comment-only blocks carry no executable code and
+      # produce nothing.
+      def build_orphan_block(block)
+        code = extract_pure_code_from_blocks([block])
+        return nil if code.strip.empty?
+
+        OrphanBlock.new(
+          code: code,
+          line_range: calculate_block_range([block]),
           path: @source_path,
         )
       end
@@ -344,7 +368,7 @@ class Tryouts
                        in { expectations: Array => exps } if !exps.empty?
                          :test
                        else
-                         :preamble
+                         :orphan
                        end
 
           block.merge(type: block_type, end_line: calculate_end_line(block))

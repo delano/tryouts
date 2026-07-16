@@ -63,6 +63,12 @@ class Tryouts
 
           # Generate test methods
           testrun.test_cases.each_with_index do |test_case, index|
+            # Orphan blocks become plain statements in the class body, in source order
+            if test_case.is_a?(Tryouts::OrphanBlock)
+              class_eval(test_case.code, testrun.source_file) unless test_case.empty?
+              next
+            end
+
             next if test_case.empty? || !test_case.expectations?
 
             method_name = "test_#{index.to_s.rjust(3, '0')}_#{parameterize(test_case.description)}"
@@ -121,6 +127,15 @@ class Tryouts
         end
 
         testrun.test_cases.each_with_index do |test_case, index|
+          # Orphan blocks become plain statements in the class body, in source order
+          if test_case.is_a?(Tryouts::OrphanBlock)
+            unless test_case.empty?
+              test_case.code.lines.each { |line| lines << "  #{line.chomp}" }
+              lines << ''
+            end
+            next
+          end
+
           next if test_case.empty? || !test_case.expectations?
 
           method_name = "test_#{index.to_s.rjust(3, '0')}_#{parameterize(test_case.description)}"
