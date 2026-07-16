@@ -284,7 +284,7 @@ class Tryouts
         result_value, _, _, _, expectations_result =
           execute_with_timeout(test_timeout, test_case) do
             if needs_output_capture
-              # Execute with output capture using Fiber-local isolation
+              # Execute with output capture (serialized process-global redirect)
               result_value, execution_time_ns, stdout_content, stderr_content =
                 execute_with_output_capture(container, code, path, range)
 
