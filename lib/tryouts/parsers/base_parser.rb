@@ -13,8 +13,7 @@ class Tryouts
     #
     # BaseParser establishes the foundation for parsing tryout files by handling
     # file loading, Prism integration, and providing shared parsing infrastructure.
-    # All concrete parser implementations (EnhancedParser, LegacyParser) inherit
-    # from this class.
+    # All concrete parser implementations (EnhancedParser) inherit from this class.
     #
     # @abstract Subclass and implement {#parse} to create a concrete parser
     # @example Implementing a custom parser
@@ -77,7 +76,6 @@ class Tryouts
     # 4. Provide a unique `parser_type` identifier
     #
     # @see EnhancedParser For Prism-based comment extraction
-    # @see LegacyParser For line-by-line parsing approach
     # @see SharedMethods For common parsing utilities
     # @since 3.0.0
     class BaseParser

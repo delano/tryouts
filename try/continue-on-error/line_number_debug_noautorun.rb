@@ -6,7 +6,7 @@
 # Debug script to analyze line number behavior in the tryouts parser
 # This file helps identify the source of the off-by-one line number bug
 
-require_relative '../../lib/tryouts/parsers/legacy_parser'
+require_relative '../../lib/tryouts/parsers/enhanced_parser'
 require_relative '../../lib/tryouts/parsers/enhanced_parser'
 
 puts "=== Line Number Debug Analysis ==="
@@ -47,7 +47,7 @@ puts
 
 begin
   # Parse the file
-  parser = Tryouts::LegacyParser.new(temp_file.path)
+  parser = Tryouts::EnhancedParser.new(temp_file.path)
   testrun = parser.parse
 
   puts "=== Parser Analysis ==="
@@ -79,7 +79,7 @@ begin
 
   puts "=== Tokenization Debug ==="
   # Access the parser's internal state to see how tokens are created
-  parser_debug = Tryouts::LegacyParser.new(temp_file.path)
+  parser_debug = Tryouts::EnhancedParser.new(temp_file.path)
   lines = File.readlines(temp_file.path).map(&:chomp)
   parser_debug.instance_variable_set(:@lines, lines)
   parser_debug.instance_variable_set(:@source_content, test_content)
