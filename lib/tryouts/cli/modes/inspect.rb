@@ -15,7 +15,7 @@ class Tryouts
 
       def handle
         @output_manager.raw("Inspecting: #{@file}")
-        @output_manager.separator(:heavy)
+        @output_manager.raw('=' * 60)
         @output_manager.raw("Found #{@testrun.total_tests} test cases")
         @output_manager.raw("Setup code: #{@testrun.setup.empty? ? 'None' : 'Present'}")
         @output_manager.raw("Teardown code: #{@testrun.teardown.empty? ? 'None' : 'Present'}")
