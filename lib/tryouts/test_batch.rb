@@ -2,6 +2,7 @@
 #
 # frozen_string_literal: true
 
+require 'monitor'
 require 'stringio'
 require_relative 'expectation_evaluators/registry'
 
@@ -24,6 +25,17 @@ class Tryouts
 
   # Modern TestBatch using Ruby 3.4+ patterns and formatter system
   class TestBatch
+    # $stdout/$stderr are process-global, not Fiber- or thread-local. Under
+    # --parallel (Concurrent::ThreadPoolExecutor), concurrent redirects would
+    # clobber each other and could leave $stdout pointing at a dead StringIO
+    # process-wide. Every redirect path (capture_output for setup/teardown and
+    # each test, plus execute_with_output_capture) synchronizes on this lock so
+    # the redirect/execute/restore window is serialized across threads.
+    #
+    # A Monitor (reentrant) is required because execute_with_output_capture runs
+    # nested inside capture_output; a plain Mutex would self-deadlock.
+    OUTPUT_CAPTURE_MONITOR = Monitor.new
+
     attr_reader :testrun, :failed_count, :container, :status, :results, :formatter, :output_manager
 
     def initialize(testrun, **options)
@@ -272,7 +284,7 @@ class Tryouts
         result_value, _, _, _, expectations_result =
           execute_with_timeout(test_timeout, test_case) do
             if needs_output_capture
-              # Execute with output capture using Fiber-local isolation
+              # Execute with output capture (serialized process-global redirect)
               result_value, execution_time_ns, stdout_content, stderr_content =
                 execute_with_output_capture(container, code, path, range)
 
@@ -308,19 +320,22 @@ class Tryouts
       build_error_result(test_case, StandardError.new("Test terminated by #{ex.class}: #{ex.message}"))
     end
 
-    # Execute test code with Fiber-based stdout/stderr capture
+    # Execute test code while capturing its stdout/stderr.
+    #
+    # $stdout/$stderr are process-global. The redirect below mutates them for the
+    # whole process, so OUTPUT_CAPTURE_MONITOR serializes this section to keep
+    # concurrent --parallel runs from corrupting each other's output or leaving a
+    # dangling StringIO behind. See OUTPUT_CAPTURE_MONITOR for details.
     def execute_with_output_capture(container, code, path, range)
-      # Fiber-local storage for output redirection
-      original_stdout = $stdout
-      original_stderr = $stderr
-
       # Create StringIO objects for capturing output
       captured_stdout = StringIO.new
       captured_stderr = StringIO.new
 
-      begin
-        # Redirect output streams using Fiber-local variables
-        Fiber.new do
+      OUTPUT_CAPTURE_MONITOR.synchronize do
+        original_stdout = $stdout
+        original_stderr = $stderr
+
+        begin
           $stdout = captured_stdout
           $stderr = captured_stderr
 
@@ -330,15 +345,12 @@ class Tryouts
           execution_end_ns   = Process.clock_gettime(Process::CLOCK_MONOTONIC, :nanosecond)
           execution_time_ns  = execution_end_ns - execution_start_ns
 
-          [result_value, execution_time_ns]
-        end.resume.tap do |result_value, execution_time_ns|
-          # Return captured content along with result
-          return [result_value, execution_time_ns, captured_stdout.string, captured_stderr.string]
+          [result_value, execution_time_ns, captured_stdout.string, captured_stderr.string]
+        ensure
+          # Always restore original streams
+          $stdout = original_stdout
+          $stderr = original_stderr
         end
-      ensure
-        # Always restore original streams
-        $stdout = original_stdout
-        $stderr = original_stderr
       end
     end
 
@@ -614,19 +626,28 @@ class Tryouts
       Tryouts::CLI::LineSpecParser.matches?(test_case, @line_spec)
     end
 
+    # Redirects the process-global $stdout/$stderr to StringIO for the duration of
+    # the block. This is the outer capture used by setup, teardown, and every test
+    # (execute_with_output_capture nests inside it for output-expectation tests).
+    # Synchronizes on OUTPUT_CAPTURE_MONITOR so the redirect/restore window is
+    # serialized across --parallel threads that share these process-global streams.
     def capture_output
-      old_stdout = $stdout
-      old_stderr = $stderr
-      $stdout    = StringIO.new
-      $stderr    = StringIO.new
+      OUTPUT_CAPTURE_MONITOR.synchronize do
+        old_stdout = $stdout
+        old_stderr = $stderr
+        $stdout    = StringIO.new
+        $stderr    = StringIO.new
 
-      yield
+        begin
+          yield
 
-      captured = $stdout.string + $stderr.string
-      captured.empty? ? nil : captured
-    ensure
-      $stdout = old_stdout
-      $stderr = old_stderr
+          captured = $stdout.string + $stderr.string
+          captured.empty? ? nil : captured
+        ensure
+          $stdout = old_stdout
+          $stderr = old_stderr
+        end
+      end
     end
 
     def handle_batch_error(exception)
