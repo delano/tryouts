@@ -85,13 +85,16 @@ class Tryouts
             method_name = "test_#{index.to_s.rjust(3, '0')}_#{MinitestTranslator.parameterize(test_case.description)}"
             define_method(method_name) do
               if test_case.exception_expectations?
-                # Handle exception expectations
-                assert_raises(StandardError) do
+                # Handle exception expectations. The raised exception is bound to
+                # a local named `error`, which is what #=!> expectations refer to,
+                # so the expectation is eval'd against this binding rather than
+                # instance_eval'd.
+                error = assert_raises(StandardError) do
                   instance_eval(test_case.code) unless test_case.code.strip.empty?
                 end
 
                 test_case.exception_expectations.each do |expectation|
-                  result = instance_eval(expectation.content)
+                  result = eval(expectation.content, binding) # rubocop:disable Security/Eval
                   assert result, "Exception expectation failed: #{expectation.content}"
                 end
               else
