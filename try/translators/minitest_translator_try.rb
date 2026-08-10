@@ -14,17 +14,13 @@ translator.class.name
 #=> "Tryouts::Translators::MinitestTranslator"
 
 ## TEST: Method name parameterization handles spaces and special chars
-translator = Tryouts::Translators::MinitestTranslator.new
 test_description = "Simple Math Test with Spaces!"
-parameterized = translator.send(:parameterize, test_description)
-parameterized
+Tryouts::Translators::MinitestTranslator.parameterize(test_description)
 #=> "simple_math_test_with_spaces"
 
 ## TEST: Method name parameterization handles edge cases
-translator = Tryouts::Translators::MinitestTranslator.new
 edge_case = "  __test--with__special___chars  "
-parameterized = translator.send(:parameterize, edge_case)
-parameterized
+Tryouts::Translators::MinitestTranslator.parameterize(edge_case)
 #=> "test_with_special_chars"
 
 ## TEST: Generate code creates valid Minitest structure for basic test
@@ -290,3 +286,26 @@ empty_desc_code = translator.generate_code(empty_desc_testrun)
 # Should still generate a test method even with empty description
 empty_desc_code.include?("def test_000_")
 #=> true
+
+## TEST: Translate builds a live Minitest class with test methods
+translator = Tryouts::Translators::MinitestTranslator.new
+live_case = Tryouts::TestCase.new(
+  description: "adds two numbers",
+  code: "2 + 2",
+  expectations: [Tryouts::Expectation.new(content: "4", type: :regular)],
+  line_range: 1..2,
+  path: 'live_translate.rb',
+  source_lines: ["2 + 2", "#=> 4"],
+  first_expectation_line: 2
+)
+live_testrun = Tryouts::Testrun.new(
+  setup: nil,
+  test_cases: [live_case],
+  teardown: nil,
+  source_file: 'live_translate.rb',
+  metadata: {},
+  warnings: []
+)
+live_class = translator.translate(live_testrun)
+live_class.instance_methods(false).grep(/^test_/).map(&:to_s)
+#=> ["test_000_adds_two_numbers"]
