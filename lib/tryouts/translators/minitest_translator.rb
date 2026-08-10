@@ -43,6 +43,15 @@ class Tryouts
     # Recommendation: Write tryouts tests that work in fresh context mode
     # if you plan to use Minitest translation.
     class MinitestTranslator
+      # Simple string parameterization for method names.
+      #
+      # Defined on the class because `translate` calls it from inside a
+      # `Class.new(Minitest::Test) do ... end` block, where `self` is the
+      # anonymous test class rather than the translator instance.
+      def self.parameterize(string)
+        string.downcase.gsub(/[^a-z0-9]+/, '_').gsub(/^_|_$/, '')
+      end
+
       def initialize
         require 'minitest/test'
       rescue LoadError
@@ -66,14 +75,14 @@ class Tryouts
             # Orphan blocks become plain statements in the class body, in source order
             if test_case.is_a?(Tryouts::OrphanBlock)
               unless test_case.empty?
-                class_eval(test_case.code, testrun.source_file, test_case.line_range.first + 1)
+                class_eval(test_case.code, testrun.source_file, test_case.eval_start_line)
               end
               next
             end
 
             next if test_case.empty? || !test_case.expectations?
 
-            method_name = "test_#{index.to_s.rjust(3, '0')}_#{parameterize(test_case.description)}"
+            method_name = "test_#{index.to_s.rjust(3, '0')}_#{MinitestTranslator.parameterize(test_case.description)}"
             define_method(method_name) do
               if test_case.exception_expectations?
                 # Handle exception expectations
@@ -140,7 +149,7 @@ class Tryouts
 
           next if test_case.empty? || !test_case.expectations?
 
-          method_name = "test_#{index.to_s.rjust(3, '0')}_#{parameterize(test_case.description)}"
+          method_name = "test_#{index.to_s.rjust(3, '0')}_#{MinitestTranslator.parameterize(test_case.description)}"
           lines << "  def #{method_name}"
 
           if test_case.exception_expectations?
@@ -179,13 +188,6 @@ class Tryouts
 
         lines << 'end'
         lines.join("\n")
-      end
-
-      private
-
-      # Simple string parameterization for method names
-      def parameterize(string)
-        string.downcase.gsub(/[^a-z0-9]+/, '_').gsub(/^_|_$/, '')
       end
     end
   end

@@ -14,17 +14,37 @@
 #=> "ran"
 
 @orphan_ivar = "set by orphan"
+
+# The comment and blank lines in this block are deliberate: extracted code
+# keeps them as padding so the statements below stay on their real lines.
+
 orphan_local = 42
 
 ## TEST: orphan side effects are visible in later tests
 [@orphan_ivar, orphan_local]
 #=> ["set by orphan", 42]
 
-## TEST: an orphan block's line_range points at its first source line
-# `line_range.first` is 0-based, so executors and translators add 1 to get the
-# 1-based line they hand to eval - that offset is what makes a raise inside an
-# orphan block report the real source location instead of line 1.
-@orphan = Tryouts::EnhancedParser.new(__FILE__).parse.test_cases.find { |tc| tc.is_a?(Tryouts::OrphanBlock) }
-File.readlines(__FILE__)[@orphan.line_range.first].strip
-#=> @orphan.code.lines.first.strip
-#=> '@orphan_ivar = "set by orphan"'
+## TEST: a block is anchored at its first executable line, not at its start
+# line_range opens at the description or leading comment, so it is the wrong
+# line to hand to eval. first_code_line points at the first statement instead.
+@parsed = Tryouts::EnhancedParser.new(__FILE__).parse
+@case   = @parsed.test_cases.find { |tc| tc.is_a?(Tryouts::TestCase) }
+File.readlines(__FILE__)[@case.eval_start_line - 1].strip
+#=> '@before_orphan = "ran"'
+
+## TEST: every executable line in a multi-line block reports its true source line
+# Joining only the code lines would collapse the gaps above and report each
+# later statement several lines early, so a backtrace would point at the wrong
+# code. Anything listed here is a statement whose reported line is a lie.
+@source = File.readlines(__FILE__).map(&:chomp)
+@orphan = @parsed.test_cases.find { |tc| tc.is_a?(Tryouts::OrphanBlock) }
+@orphan.code.lines.each_with_index.filter_map do |line, offset|
+  next if line.strip.empty?
+
+  line.chomp unless @source[@orphan.eval_start_line + offset - 1] == line.chomp
+end
+#=> []
+
+## TEST: the padding spans the block, so the last statement lands on its own line
+@source[@orphan.eval_start_line + @orphan.code.lines.count - 2]
+#=> 'orphan_local = 42'

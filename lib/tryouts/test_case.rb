@@ -4,8 +4,25 @@
 
 # Modern data structures using Ruby 3.2+ Data classes
 class Tryouts
+  # A block is evaluated starting at its first executable line, not at its
+  # line_range.first: a block opens at its description or a leading comment,
+  # while the extracted code begins at the first statement. Getting this wrong
+  # misattributes every backtrace line in the block. Hand-built blocks (e.g.
+  # translator fixtures) may omit first_code_line and fall back to the start.
+  module EvalAnchor
+    def eval_start_line
+      (first_code_line || line_range.first) + 1
+    end
+  end
+
   # Core data structures
-  TestCase = Data.define(:description, :code, :expectations, :line_range, :path, :source_lines, :first_expectation_line) do
+  TestCase = Data.define(:description, :code, :expectations, :line_range, :path, :source_lines, :first_expectation_line, :first_code_line) do
+    include EvalAnchor
+
+    def initialize(first_code_line: nil, **rest)
+      super
+    end
+
     def empty?
       code.empty?
     end
@@ -57,7 +74,13 @@ class Tryouts
     def stderr? = pipe == 2
   end
 
-  Setup = Data.define(:code, :line_range, :path) do
+  Setup = Data.define(:code, :line_range, :path, :first_code_line) do
+    include EvalAnchor
+
+    def initialize(first_code_line: nil, **rest)
+      super
+    end
+
     def empty?
       code.empty?
     end
@@ -66,13 +89,25 @@ class Tryouts
   # Code with no description and no expectations that sits between test cases.
   # Executed in source order for its side effects, but never evaluated against
   # expectations and never counted in test tallies.
-  OrphanBlock = Data.define(:code, :line_range, :path) do
+  OrphanBlock = Data.define(:code, :line_range, :path, :first_code_line) do
+    include EvalAnchor
+
+    def initialize(first_code_line: nil, **rest)
+      super
+    end
+
     def empty?
       code.empty?
     end
   end
 
-  Teardown = Data.define(:code, :line_range, :path) do
+  Teardown = Data.define(:code, :line_range, :path, :first_code_line) do
+    include EvalAnchor
+
+    def initialize(first_code_line: nil, **rest)
+      super
+    end
+
     def empty?
       code.empty?
     end

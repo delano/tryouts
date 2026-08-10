@@ -305,8 +305,7 @@ class Tryouts
         begin
           code  = test_case.code
           path  = test_case.path
-          range = test_case.line_range
-          eval_code(container, code, path, range.first + 1)
+          eval_code(container, code, path, test_case.eval_start_line)
         rescue SystemStackError, NoMemoryError, SecurityError, ScriptError => ex
           # Handle system-level exceptions that don't inherit from StandardError
           # ScriptError includes: LoadError, SyntaxError, NotImplementedError
@@ -321,9 +320,9 @@ class Tryouts
         build_test_result(test_case, caught_exception, expectations_result)
       else
         # Regular execution for non-exception tests with timing and output capture
-        code  = test_case.code
-        path  = test_case.path
-        range = test_case.line_range
+        code       = test_case.code
+        path       = test_case.path
+        start_line = test_case.eval_start_line
 
         # Check if we need output capture for any expectations
         needs_output_capture = test_case.expectations.any?(&:output?)
@@ -333,7 +332,7 @@ class Tryouts
             if needs_output_capture
               # Execute with output capture (serialized process-global redirect)
               result_value, execution_time_ns, stdout_content, stderr_content =
-                execute_with_output_capture(container, code, path, range)
+                execute_with_output_capture(container, code, path, start_line)
 
               expectations_result = evaluate_expectations(
                 test_case, result_value, container, execution_time_ns, stdout_content, stderr_content
@@ -342,7 +341,7 @@ class Tryouts
             else
               # Regular execution with timing capture only
               execution_start_ns = Process.clock_gettime(Process::CLOCK_MONOTONIC, :nanosecond)
-              result_value       = eval_code(container, code, path, range.first + 1)
+              result_value       = eval_code(container, code, path, test_case.eval_start_line)
               execution_end_ns   = Process.clock_gettime(Process::CLOCK_MONOTONIC, :nanosecond)
               execution_time_ns  = execution_end_ns - execution_start_ns
 
@@ -373,7 +372,7 @@ class Tryouts
     # whole process, so OUTPUT_CAPTURE_MONITOR serializes this section to keep
     # concurrent --parallel runs from corrupting each other's output or leaving a
     # dangling StringIO behind. See OUTPUT_CAPTURE_MONITOR for details.
-    def execute_with_output_capture(container, code, path, range)
+    def execute_with_output_capture(container, code, path, start_line)
       # Create StringIO objects for capturing output
       captured_stdout = StringIO.new
       captured_stderr = StringIO.new
@@ -388,7 +387,7 @@ class Tryouts
 
           # Execute with timing capture
           execution_start_ns = Process.clock_gettime(Process::CLOCK_MONOTONIC, :nanosecond)
-          result_value       = eval_code(container, code, path, range.first + 1)
+          result_value       = eval_code(container, code, path, start_line)
           execution_end_ns   = Process.clock_gettime(Process::CLOCK_MONOTONIC, :nanosecond)
           execution_time_ns  = execution_end_ns - execution_start_ns
 
@@ -503,7 +502,7 @@ class Tryouts
       @output_manager&.info("Running orphan code block (#{orphan.path}:#{orphan.line_range.first + 1})", 2)
 
       captured_output = capture_output do
-        eval_code(target, orphan.code, orphan.path, orphan.line_range.first + 1)
+        eval_code(target, orphan.code, orphan.path, orphan.eval_start_line)
       end
 
       @output_manager&.setup_output(captured_output) if captured_output && !captured_output.empty?
@@ -539,7 +538,7 @@ class Tryouts
 
         # Capture setup output instead of letting it print directly
         captured_output = capture_output do
-          eval_code(@container, setup.code, setup.path, setup.line_range.first + 1)
+          eval_code(@container, setup.code, setup.path, setup.eval_start_line)
         end
 
         @output_manager&.setup_output(captured_output) if captured_output && !captured_output.empty?
@@ -591,7 +590,7 @@ class Tryouts
 
         # Capture setup output instead of letting it print directly
         captured_output = capture_output do
-          @setup_container.instance_eval(setup.code, setup.path, setup.line_range.first + 1)
+          @setup_container.instance_eval(setup.code, setup.path, setup.eval_start_line)
         end
 
         @output_manager&.setup_output(captured_output) if captured_output && !captured_output.empty?
@@ -640,7 +639,7 @@ class Tryouts
 
         # Capture teardown output instead of letting it print directly
         captured_output = capture_output do
-          eval_code(@container, teardown.code, teardown.path, teardown.line_range.first + 1)
+          eval_code(@container, teardown.code, teardown.path, teardown.eval_start_line)
         end
 
         @output_manager&.teardown_output(captured_output) if captured_output && !captured_output.empty?

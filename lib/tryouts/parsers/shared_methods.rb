@@ -244,6 +244,7 @@ class Tryouts
           code: extract_pure_code_from_blocks(setup_blocks),
           line_range: calculate_block_range(setup_blocks),
           path: @source_path,
+          first_code_line: first_code_line(collect_code_tokens(setup_blocks)),
         )
       end
 
@@ -254,6 +255,7 @@ class Tryouts
           code: extract_pure_code_from_blocks(teardown_blocks),
           line_range: calculate_block_range(teardown_blocks),
           path: @source_path,
+          first_code_line: first_code_line(collect_code_tokens(teardown_blocks)),
         )
       end
 
@@ -269,22 +271,13 @@ class Tryouts
           code: code,
           line_range: calculate_block_range([block]),
           path: @source_path,
+          first_code_line: first_code_line(collect_code_tokens([block])),
         )
       end
 
       # Modern Ruby 3.4+ pattern matching for robust code extraction
       def extract_pure_code_from_blocks(blocks)
-        blocks
-          .flat_map { |block| block[:code] }
-          .filter_map do |token|
-            case token
-            in { type: :code, content: String => content }
-              content
-            else
-              nil
-            end
-          end
-          .join("\n")
+        extract_code_content(collect_code_tokens(blocks))
       end
 
       def calculate_block_range(blocks)
@@ -297,17 +290,47 @@ class Tryouts
         line_ranges.first.first..line_ranges.last.last
       end
 
+      # Code keeps the spacing it had in the source: every comment or blank line
+      # between two statements becomes an empty line here. Paired with
+      # `first_code_line` as the eval start line, that makes each statement in a
+      # multi-line block report its true source location in a backtrace. Joining
+      # the code lines alone would collapse the gaps and drift by however many
+      # lines were dropped.
       def extract_code_content(code_tokens)
+        positioned = positioned_code_tokens(code_tokens)
+        return '' if positioned.empty?
+
+        base  = positioned.first.first
+        lines = []
+
+        positioned.each { |line, content| lines[line - base] = content }
+        lines.map { |content| content || '' }.join("\n")
+      end
+
+      # 0-based source line of the block's first executable line, which is not
+      # the same as its start_line: a block opens at its description or leading
+      # comment, and only the code lines are ever evaluated.
+      def first_code_line(code_tokens)
+        positioned_code_tokens(code_tokens).first&.first
+      end
+
+      def collect_code_tokens(blocks)
+        blocks.flat_map { |block| block[:code] }
+      end
+
+      # [line, content] pairs for executable lines only, in source order. The
+      # tokenizer emits at most one :code token per physical line.
+      def positioned_code_tokens(code_tokens)
         code_tokens
           .filter_map do |token|
             case token
-            in { type: :code, content: String => content }
-              content
+            in { type: :code, content: String => content, line: Integer => line }
+              [line, content]
             else
               nil
             end
           end
-          .join("\n")
+          .sort_by(&:first)
       end
 
       def parse_ruby_line(line)
@@ -401,6 +424,7 @@ class Tryouts
           TestCase.new(
             description: desc,
             code: extract_code_content(code_tokens),
+            first_code_line: first_code_line(code_tokens),
             expectations: exp_tokens.map do |token|
               type = case token[:type]
                      when :exception_expectation then :exception
