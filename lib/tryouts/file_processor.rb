@@ -2,7 +2,6 @@
 #
 # frozen_string_literal: true
 
-require_relative 'parsers/legacy_parser'
 require_relative 'parsers/enhanced_parser'
 require_relative 'test_executor'
 require_relative 'cli/modes/inspect'
@@ -11,7 +10,7 @@ require_relative 'cli/modes/generate'
 class Tryouts
   class FileProcessor
     # Supported parser types for validation and documentation
-    PARSER_TYPES = [:enhanced, :prism].freeze
+    PARSER_TYPES = [:enhanced].freeze
     def initialize(file:, options:, output_manager:, translator:, global_tally:)
       @file           = file
       @options        = options
@@ -54,8 +53,6 @@ class Tryouts
       case parser_type
       when :enhanced
         EnhancedParser.new(file, options)
-      when :prism
-        LegacyParser.new(file, options)
       end
     end
 

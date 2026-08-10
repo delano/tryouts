@@ -33,7 +33,7 @@ class Tryouts
   # @!attribute [r] parser_type
   #   @return [Symbol] Returns :enhanced to identify parser type
   #
-  # ## Key Benefits over LegacyParser
+  # ## Key Benefits
   #
   # ### 1. HEREDOC Safety
   # - Uses Prism's `parse_comments()` to extract only actual Ruby comments
@@ -58,7 +58,6 @@ class Tryouts
   # Uses Ruby 3.4+ pattern matching (`case/in`) for token classification,
   # providing clean, modern syntax for expectation type detection.
   #
-  # @see LegacyParser For simpler regex-based parsing (legacy compatibility)
   # @see BaseParser For shared parsing functionality
   # @since 3.2.0
   class EnhancedParser < Tryouts::Parsers::BaseParser
@@ -73,6 +72,12 @@ class Tryouts
     # @raise [Tryouts::TryoutSyntaxError] If source contains syntax errors or strict mode violations
     def parse
       return handle_syntax_errors if @prism_result.failure?
+
+      # Line ranges of multi-line statements, computed once from the whole-file
+      # parse. A column-0 comment strictly inside one of these spans (e.g. a
+      # #=>-shaped line inside an unclosed array literal) cannot be a real
+      # block boundary or expectation, no matter what it looks like lexically.
+      @multiline_statement_ranges = multiline_statement_ranges
 
       # Use inhouse comment extraction instead of line-by-line regex parsing
       # This automatically excludes HEREDOC content!
@@ -106,21 +111,40 @@ class Tryouts
       comments        = Prism.parse_comments(@source)
       comment_by_line = comments.group_by { |comment| comment.location.start_line }
 
+      # A =begin/=end block comment is one Prism comment node spanning multiple
+      # lines, but comment_by_line only keys its start line. Its interior lines
+      # must be skipped entirely: re-emitting them as :code duplicates them, and
+      # running the marker regex cascade against the raw multi-line slice lets an
+      # interior #=>-shaped line match via ^/$ line anchors.
+      multiline_comment_spans = comments.filter_map do |comment|
+        loc = comment.location
+        ((loc.start_line + 1)..loc.end_line) if loc.end_line > loc.start_line
+      end
+
       # Process each line, handling multiple comments per line
       @lines.each_with_index do |line, index|
         line_number = index + 1
+
+        next if multiline_comment_spans.any? { |span| span.cover?(line_number) }
 
         if (comments_for_line = comment_by_line[line_number]) && !comments_for_line.empty?
           emitted_code = false
           comments_for_line.sort_by! { |c| c.location.start_column }
           comments_for_line.each do |comment|
             comment_content = comment.slice.strip
-            if comment.location.start_column > 0
+            if comment.location.end_line > comment.location.start_line
+              # Whole =begin/=end block: one plain comment token for the span
+              tokens << { type: :comment, content: comment_content, line: index }
+            elsif comment.location.start_column > 0
               unless emitted_code
                 tokens << { type: :code, content: line, line: index, ast: parse_ruby_line(line) }
                 emitted_code = true
               end
               # Inline comment (after code) - treat as regular comment, not expectation
+              tokens << { type: :comment, content: comment_content.sub(/^#\s*/, ''), line: line_number - 1 }
+            elsif strictly_inside_multiline_statement?(index)
+              # Column-0 comment inside a multi-line statement (unclosed
+              # array/hash/call/...) - force plain :comment regardless of shape
               tokens << { type: :comment, content: comment_content.sub(/^#\s*/, ''), line: line_number - 1 }
             else
               tokens << classify_comment_inhousely(comment_content, line_number)
@@ -140,6 +164,34 @@ class Tryouts
       end
 
       tokens
+    end
+
+    # Collect 0-based, inclusive line ranges for every AST node that spans more
+    # than one physical line, walking the existing whole-file @prism_result.
+    # Built once per parse; no second Prism.parse call.
+    def multiline_statement_ranges
+      ranges = []
+      root   = @prism_result.value
+      return ranges if root.nil?
+
+      visit = lambda do |node|
+        next if node.nil?
+
+        loc = node.location
+        ranges << ((loc.start_line - 1)..(loc.end_line - 1)) if loc.start_line != loc.end_line
+        node.compact_child_nodes.each { |child| visit.call(child) }
+      end
+
+      root.statements.body.each { |stmt| visit.call(stmt) }
+      ranges
+    end
+
+    # True if the 0-based line index falls STRICTLY inside a multi-line
+    # statement span. A comment on the same line as the opening or closing
+    # delimiter is still eligible to be a real boundary; one on a line fully
+    # swallowed by the statement is not.
+    def strictly_inside_multiline_statement?(line_idx)
+      @multiline_statement_ranges.any? { |range| line_idx > range.first && line_idx < range.last }
     end
 
     # Classify comment content into specific token types using pattern matching

@@ -62,6 +62,14 @@ class Tryouts
 
           # Generate test cases
           testrun.test_cases.each_with_index do |test_case, _index|
+            # Orphan blocks become plain statements in the describe body, in source order
+            if test_case.is_a?(Tryouts::OrphanBlock)
+              unless test_case.empty?
+                instance_eval(test_case.code, testrun.source_file, test_case.eval_start_line)
+              end
+              next
+            end
+
             next if test_case.empty? || !test_case.expectations?
 
             it test_case.description do
@@ -114,6 +122,15 @@ class Tryouts
         end
 
         testrun.test_cases.each_with_index do |test_case, _index|
+          # Orphan blocks become plain statements in the describe body, in source order
+          if test_case.is_a?(Tryouts::OrphanBlock)
+            unless test_case.empty?
+              test_case.code.lines.each { |line| lines << "  #{line.chomp}" }
+              lines << ''
+            end
+            next
+          end
+
           next if test_case.empty? || !test_case.expectations?
 
           lines << "  it '#{test_case.description}' do"

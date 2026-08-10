@@ -15,14 +15,24 @@ class Tryouts
 
       def handle
         @output_manager.raw("Inspecting: #{@file}")
-        @output_manager.separator(:heavy)
+        @output_manager.raw('=' * 60)
         @output_manager.raw("Found #{@testrun.total_tests} test cases")
         @output_manager.raw("Setup code: #{@testrun.setup.empty? ? 'None' : 'Present'}")
         @output_manager.raw("Teardown code: #{@testrun.teardown.empty? ? 'None' : 'Present'}")
         @output_manager.raw('')
 
-        @testrun.test_cases.each_with_index do |tc, i|
-          @output_manager.raw("Test #{i + 1}: #{tc.description}")
+        test_number = 0
+        @testrun.test_cases.each do |tc|
+          if tc.is_a?(Tryouts::OrphanBlock)
+            @output_manager.raw("Orphan code block (no description, no expectations)")
+            @output_manager.raw("  Code lines: #{tc.code.lines.count}")
+            @output_manager.raw("  Range: #{tc.line_range}")
+            @output_manager.raw('')
+            next
+          end
+
+          test_number += 1
+          @output_manager.raw("Test #{test_number}: #{tc.description}")
           @output_manager.raw("  Code lines: #{tc.code.lines.count}")
           @output_manager.raw("  Expectations: #{tc.expectations.size}")
           @output_manager.raw("  Range: #{tc.line_range}")

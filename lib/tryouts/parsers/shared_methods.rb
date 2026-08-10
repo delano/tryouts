@@ -210,12 +210,21 @@ class Tryouts
       # Process classified test blocks into domain objects
       def process_test_blocks(classified_blocks)
         setup_blocks    = classified_blocks.filter { |block| block[:type] == :setup }
-        test_blocks     = classified_blocks.filter { |block| block[:type] == :test }
         teardown_blocks = classified_blocks.filter { |block| block[:type] == :teardown }
+
+        # Test cases and orphan blocks stay interleaved in source order: the
+        # executor runs them sequentially and an orphan executed out of position
+        # would corrupt the shared-context local-variable timeline.
+        test_cases = classified_blocks.filter_map do |block|
+          case block[:type]
+          when :test then build_test_case(block)
+          when :orphan then build_orphan_block(block)
+          end
+        end
 
         testrun = Testrun.new(
           setup: build_setup(setup_blocks),
-          test_cases: test_blocks.map { |block| build_test_case(block) },
+          test_cases: test_cases,
           teardown: build_teardown(teardown_blocks),
           source_file: @source_path,
           metadata: { parsed_at: @parsed_at, parser: parser_type },
@@ -235,6 +244,7 @@ class Tryouts
           code: extract_pure_code_from_blocks(setup_blocks),
           line_range: calculate_block_range(setup_blocks),
           path: @source_path,
+          first_code_line: first_code_line(collect_code_tokens(setup_blocks)),
         )
       end
 
@@ -245,22 +255,29 @@ class Tryouts
           code: extract_pure_code_from_blocks(teardown_blocks),
           line_range: calculate_block_range(teardown_blocks),
           path: @source_path,
+          first_code_line: first_code_line(collect_code_tokens(teardown_blocks)),
+        )
+      end
+
+      # Orphan blocks (code with no description and no expectations, sandwiched
+      # between real test cases) are collected for execution instead of being
+      # silently dropped. Comment-only blocks carry no executable code and
+      # produce nothing.
+      def build_orphan_block(block)
+        code = extract_pure_code_from_blocks([block])
+        return nil if code.strip.empty?
+
+        OrphanBlock.new(
+          code: code,
+          line_range: calculate_block_range([block]),
+          path: @source_path,
+          first_code_line: first_code_line(collect_code_tokens([block])),
         )
       end
 
       # Modern Ruby 3.4+ pattern matching for robust code extraction
       def extract_pure_code_from_blocks(blocks)
-        blocks
-          .flat_map { |block| block[:code] }
-          .filter_map do |token|
-            case token
-            in { type: :code, content: String => content }
-              content
-            else
-              nil
-            end
-          end
-          .join("\n")
+        extract_code_content(collect_code_tokens(blocks))
       end
 
       def calculate_block_range(blocks)
@@ -273,17 +290,47 @@ class Tryouts
         line_ranges.first.first..line_ranges.last.last
       end
 
+      # Code keeps the spacing it had in the source: every comment or blank line
+      # between two statements becomes an empty line here. Paired with
+      # `first_code_line` as the eval start line, that makes each statement in a
+      # multi-line block report its true source location in a backtrace. Joining
+      # the code lines alone would collapse the gaps and drift by however many
+      # lines were dropped.
       def extract_code_content(code_tokens)
+        positioned = positioned_code_tokens(code_tokens)
+        return '' if positioned.empty?
+
+        base  = positioned.first.first
+        lines = []
+
+        positioned.each { |line, content| lines[line - base] = content }
+        lines.map { |content| content || '' }.join("\n")
+      end
+
+      # 0-based source line of the block's first executable line, which is not
+      # the same as its start_line: a block opens at its description or leading
+      # comment, and only the code lines are ever evaluated.
+      def first_code_line(code_tokens)
+        positioned_code_tokens(code_tokens).first&.first
+      end
+
+      def collect_code_tokens(blocks)
+        blocks.flat_map { |block| block[:code] }
+      end
+
+      # [line, content] pairs for executable lines only, in source order. The
+      # tokenizer emits at most one :code token per physical line.
+      def positioned_code_tokens(code_tokens)
         code_tokens
           .filter_map do |token|
             case token
-            in { type: :code, content: String => content }
-              content
+            in { type: :code, content: String => content, line: Integer => line }
+              [line, content]
             else
               nil
             end
           end
-          .join("\n")
+          .sort_by(&:first)
       end
 
       def parse_ruby_line(line)
@@ -344,7 +391,7 @@ class Tryouts
                        in { expectations: Array => exps } if !exps.empty?
                          :test
                        else
-                         :preamble
+                         :orphan
                        end
 
           block.merge(type: block_type, end_line: calculate_end_line(block))
@@ -377,6 +424,7 @@ class Tryouts
           TestCase.new(
             description: desc,
             code: extract_code_content(code_tokens),
+            first_code_line: first_code_line(code_tokens),
             expectations: exp_tokens.map do |token|
               type = case token[:type]
                      when :exception_expectation then :exception

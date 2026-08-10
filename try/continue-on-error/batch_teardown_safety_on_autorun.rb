@@ -17,4 +17,4 @@ MESSAGE
 #=> 2
 
 test_file = 'foo/bar/setup_baz_try.rb'
-Tryouts::LegacyParser.new(test_file)
+Tryouts::EnhancedParser.new(test_file)

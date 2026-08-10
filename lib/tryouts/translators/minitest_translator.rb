@@ -43,6 +43,15 @@ class Tryouts
     # Recommendation: Write tryouts tests that work in fresh context mode
     # if you plan to use Minitest translation.
     class MinitestTranslator
+      # Simple string parameterization for method names.
+      #
+      # Defined on the class because `translate` calls it from inside a
+      # `Class.new(Minitest::Test) do ... end` block, where `self` is the
+      # anonymous test class rather than the translator instance.
+      def self.parameterize(string)
+        string.downcase.gsub(/[^a-z0-9]+/, '_').gsub(/^_|_$/, '')
+      end
+
       def initialize
         require 'minitest/test'
       rescue LoadError
@@ -63,18 +72,29 @@ class Tryouts
 
           # Generate test methods
           testrun.test_cases.each_with_index do |test_case, index|
+            # Orphan blocks become plain statements in the class body, in source order
+            if test_case.is_a?(Tryouts::OrphanBlock)
+              unless test_case.empty?
+                class_eval(test_case.code, testrun.source_file, test_case.eval_start_line)
+              end
+              next
+            end
+
             next if test_case.empty? || !test_case.expectations?
 
-            method_name = "test_#{index.to_s.rjust(3, '0')}_#{parameterize(test_case.description)}"
+            method_name = "test_#{index.to_s.rjust(3, '0')}_#{MinitestTranslator.parameterize(test_case.description)}"
             define_method(method_name) do
               if test_case.exception_expectations?
-                # Handle exception expectations
-                assert_raises(StandardError) do
+                # Handle exception expectations. The raised exception is bound to
+                # a local named `error`, which is what #=!> expectations refer to,
+                # so the expectation is eval'd against this binding rather than
+                # instance_eval'd.
+                error = assert_raises(StandardError) do
                   instance_eval(test_case.code) unless test_case.code.strip.empty?
                 end
 
                 test_case.exception_expectations.each do |expectation|
-                  result = instance_eval(expectation.content)
+                  result = eval(expectation.content, binding) # rubocop:disable Security/Eval
                   assert result, "Exception expectation failed: #{expectation.content}"
                 end
               else
@@ -121,9 +141,18 @@ class Tryouts
         end
 
         testrun.test_cases.each_with_index do |test_case, index|
+          # Orphan blocks become plain statements in the class body, in source order
+          if test_case.is_a?(Tryouts::OrphanBlock)
+            unless test_case.empty?
+              test_case.code.lines.each { |line| lines << "  #{line.chomp}" }
+              lines << ''
+            end
+            next
+          end
+
           next if test_case.empty? || !test_case.expectations?
 
-          method_name = "test_#{index.to_s.rjust(3, '0')}_#{parameterize(test_case.description)}"
+          method_name = "test_#{index.to_s.rjust(3, '0')}_#{MinitestTranslator.parameterize(test_case.description)}"
           lines << "  def #{method_name}"
 
           if test_case.exception_expectations?
@@ -162,13 +191,6 @@ class Tryouts
 
         lines << 'end'
         lines.join("\n")
-      end
-
-      private
-
-      # Simple string parameterization for method names
-      def parameterize(string)
-        string.downcase.gsub(/[^a-z0-9]+/, '_').gsub(/^_|_$/, '')
       end
     end
   end
