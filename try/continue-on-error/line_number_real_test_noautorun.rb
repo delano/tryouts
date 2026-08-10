@@ -7,7 +7,6 @@
 # This creates actual failing tests and checks error output for consistent line numbers
 
 require_relative '../../lib/tryouts/parsers/enhanced_parser'
-require_relative '../../lib/tryouts/parsers/enhanced_parser'
 # Don't require verbose formatter to avoid dependency issues
 require_relative '../../lib/tryouts/failure_collector'
 require 'tempfile'

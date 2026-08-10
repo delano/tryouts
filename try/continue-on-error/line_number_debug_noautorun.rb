@@ -7,7 +7,6 @@
 # This file helps identify the source of the off-by-one line number bug
 
 require_relative '../../lib/tryouts/parsers/enhanced_parser'
-require_relative '../../lib/tryouts/parsers/enhanced_parser'
 
 puts "=== Line Number Debug Analysis ==="
 puts

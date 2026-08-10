@@ -64,7 +64,9 @@ class Tryouts
           testrun.test_cases.each_with_index do |test_case, _index|
             # Orphan blocks become plain statements in the describe body, in source order
             if test_case.is_a?(Tryouts::OrphanBlock)
-              instance_eval(test_case.code, testrun.source_file) unless test_case.empty?
+              unless test_case.empty?
+                instance_eval(test_case.code, testrun.source_file, test_case.line_range.first + 1)
+              end
               next
             end
 
