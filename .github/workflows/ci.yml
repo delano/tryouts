@@ -158,12 +158,10 @@ jobs:
       fail-fast: true
       matrix:
         ruby: ["3.4", "3.5"]
-        parser: [enhanced, legacy]
+        parser: [enhanced]
         include:
           - parser: enhanced
             parser_flag: "--enhanced-parser"
-          - parser: legacy
-            parser_flag: "--legacy-parser"
 
     steps:
       - uses: actions/checkout@v4
