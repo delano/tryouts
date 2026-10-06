@@ -12,6 +12,8 @@
 .*.json
 docs/*
 !docs/agent_guide.md
+!docs/audits/
+!docs/audits/*.md
 !LICENSE.txt
 !README.md
 .ruby-version
