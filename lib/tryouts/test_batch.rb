@@ -54,7 +54,8 @@ class Tryouts
       @start_time      = nil
       @test_case_count = 0
       @aborted         = false
-      @reported        = {} # sections whose output and failures were already shown once
+      @ran             = {} # sections that have run; their announcement and output are shown once
+      @failed_sections = {} # sections whose failure was reported; a repeat is not reported again
 
       # One Binding for the whole file in shared mode
       @binding = @shared ? ScriptBinding.create : nil
@@ -160,7 +161,7 @@ class Tryouts
 
       before_test_hook&.call(test_case)
 
-      binding = @shared ? @binding : fresh_binding(interludes)
+      binding = @shared ? @binding : fresh_binding(interludes, test_case)
       return nil if @aborted
 
       result          = nil
@@ -177,14 +178,14 @@ class Tryouts
     end
 
     # A new object and Binding with the setup and the preceding interludes
-    # already evaluated in it.
-    def fresh_binding(interludes)
+    # already evaluated in it, for test_case.
+    def fresh_binding(interludes, test_case)
       binding = ScriptBinding.create
-      run_section(:setup, @testrun.setup, binding)
+      run_section(:setup, @testrun.setup, binding, test_case)
       interludes.each do |interlude|
         break if @aborted
 
-        run_section(:orphan, interlude, binding)
+        run_section(:orphan, interlude, binding, test_case)
       end
       binding
     end
@@ -273,23 +274,34 @@ class Tryouts
       }
     end
 
-    # Setup, teardown and interludes. In fresh mode setup and teardown run once
-    # per test; their output and failures are reported the first time only.
-    def run_section(kind, section, binding)
+    # Setup, teardown and interludes. In fresh mode they run again for every
+    # test (for_test is the test being prepared); their announcement and
+    # output are shown on the first run only. A failure is reported whichever
+    # run it happens on.
+    def run_section(kind, section, binding, for_test = nil)
       return if section.nil? || section.empty?
 
-      first_time         = !@reported.key?(section)
-      @reported[section] = true
+      rerun          = @ran.key?(section)
+      @ran[section]  = true
 
-      announce_section(kind, section) if first_time
+      announce_section(kind, section) unless rerun
       captured_output = capture_output do
-        first_time ? eval_section(section, binding) : ScriptBinding.quiet_redefinitions { eval_section(section, binding) }
+        rerun ? ScriptBinding.quiet_redefinitions { eval_section(section, binding) } : eval_section(section, binding)
       end
-      section_output(kind, captured_output) if first_time && captured_output
+      section_output(kind, captured_output) if !rerun && captured_output
     rescue *EXPECTABLE_ERRORS => ex
-      section_failed(kind, section, ex, ex.message, first_time)
+      section_failed(kind, section, ex, with_rerun_context(ex.message, rerun, for_test))
     rescue SystemExit, SignalException => ex
-      section_failed(kind, section, ex, "#{section_label(kind)} terminated by #{ex.class}: #{ex.message}", first_time)
+      message = "#{section_label(kind)} terminated by #{ex.class}: #{ex.message}"
+      section_failed(kind, section, ex, with_rerun_context(message, rerun, for_test))
+    end
+
+    # A section that passed on its first run and fails on a later one says
+    # which test it was preparing.
+    def with_rerun_context(message, rerun, for_test)
+      return message unless rerun && for_test
+
+      "#{message} (when run again for test '#{for_test.description}')"
     end
 
     def announce_section(kind, section)
@@ -309,10 +321,13 @@ class Tryouts
     end
 
     # Setup and interlude failures abort the batch: every later test's state
-    # is suspect. Teardown failures are reported and the batch completes.
-    def section_failed(kind, section, exception, message, first_time)
+    # is suspect. Teardown failures are reported and the batch completes; a
+    # fresh-context teardown that fails after every test is reported once.
+    def section_failed(kind, section, exception, message)
       @aborted ||= kind unless kind == :teardown
-      return unless first_time
+      return if @failed_sections.key?(section)
+
+      @failed_sections[section] = true
 
       @global_tally&.dig(:aggregator)&.add_infrastructure_failure(kind, @testrun.source_file, message, exception)
 

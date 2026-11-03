@@ -70,3 +70,60 @@ RUBY
 [run[:passed], run[:statuses], run[:infrastructure]]
 #=> [true, [:passed], [:teardown]]
 #==> run[:console].include?('Teardown failed: cannot load such file -- tryouts_missing_cleanup_helper')
+
+## A fresh-context setup that fails only on its second run is reported
+$connections_opened = 0
+run = run_sections_fixture(<<~'RUBY', shared: false)
+  $connections_opened += 1
+  raise "too many connections (#{$connections_opened})" if $connections_opened > 1
+
+  ## first test
+  1
+  #=> 1
+
+  ## second test
+  2
+  #=> 2
+RUBY
+[run[:passed], run[:statuses], run[:infrastructure]]
+#=> [false, [:passed], [:setup]]
+#==> run[:console].include?("Global setup error: too many connections (2) (when run again for test 'second test')")
+
+## A fresh-context interlude that fails only on its second run is reported
+$connections_opened = 0
+run = run_sections_fixture(<<~'RUBY', shared: false)
+  ## first test
+  1
+  #=> 1
+
+  $connections_opened += 1
+  raise "too many connections (#{$connections_opened})" if $connections_opened > 1
+
+  ## second test
+  2
+  #=> 2
+
+  ## third test
+  3
+  #=> 3
+RUBY
+[run[:passed], run[:statuses], run[:infrastructure]]
+#=> [false, [:passed, :passed], [:orphan]]
+#==> run[:console].include?("too many connections (2) (when run again for test 'third test')")
+
+## A fresh-context teardown that fails after every test is reported once
+run = run_sections_fixture(<<~'RUBY', shared: false)
+  ## first test
+  1
+  #=> 1
+
+  ## second test
+  2
+  #=> 2
+
+  raise 'cleanup failed'
+RUBY
+[run[:passed], run[:statuses], run[:infrastructure], run[:console].scan('Teardown failed').size]
+#=> [true, [:passed, :passed], [:teardown], 1]
+
+$connections_opened = nil
