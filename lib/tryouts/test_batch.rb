@@ -286,9 +286,8 @@ class Tryouts
         first_time ? eval_section(section, binding) : ScriptBinding.quiet_redefinitions { eval_section(section, binding) }
       end
       section_output(kind, captured_output) if first_time && captured_output
-    rescue StandardError => ex
+    rescue *EXPECTABLE_ERRORS => ex
       section_failed(kind, section, ex, ex.message, first_time)
-      raise "Global setup failed (#{ex.class}): #{ex.message}" if kind == :setup && Tryouts.batch_stopping_error?(ex)
     rescue SystemExit, SignalException => ex
       section_failed(kind, section, ex, "#{section_label(kind)} terminated by #{ex.class}: #{ex.message}", first_time)
     end
