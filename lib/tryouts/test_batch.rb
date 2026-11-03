@@ -56,6 +56,7 @@ class Tryouts
       @aborted         = false
       @ran             = {} # sections that have run; their announcement and output are shown once
       @failed_sections = {} # sections whose failure was reported; a repeat is not reported again
+      @teardown_output = nil # fresh context: the teardown's first output, shown after the last test
 
       # One Binding for the whole file in shared mode
       @binding = @shared ? ScriptBinding.create : nil
@@ -83,12 +84,15 @@ class Tryouts
       end
 
       run_test_cases(before_test_hook, &)
-      return abort_batch if @aborted
+      if @aborted
+        announce_fresh_teardown unless @shared
+        return abort_batch
+      end
 
       # e.g. the quiet formatter prints a newline after all test dots
       @output_manager&.file_end(path, context: context_name.to_sym)
 
-      run_section(:teardown, @testrun.teardown, @binding) if @shared
+      @shared ? run_section(:teardown, @testrun.teardown, @binding) : announce_fresh_teardown
       finalize_results
 
       @status = :completed
@@ -155,23 +159,28 @@ class Tryouts
 
     # Display filtering (line_spec) applies to test_start/test_end and result
     # output only. Every test is executed.
+    #
+    # In fresh context the setup and interludes run before the test starts,
+    # so the setup is announced ahead of the first test (as in shared
+    # context) and a setup failure never leaves a test half-reported. The
+    # teardown runs after the test's result.
     def run_single_test(test_case, idx, interludes, before_test_hook)
+      binding = @shared ? @binding : fresh_binding(interludes, test_case)
+      return nil if @aborted
+
       display = should_display_test_result?(test_case)
       @output_manager&.test_start(test_case, idx, @test_case_count) if display
 
       before_test_hook&.call(test_case)
 
-      binding = @shared ? @binding : fresh_binding(interludes, test_case)
-      return nil if @aborted
-
       result          = nil
       captured_output = capture_output { result = execute_test_case(test_case, binding) }
       result          = result.with(captured_output: captured_output) if captured_output
 
-      run_section(:teardown, @testrun.teardown, binding) unless @shared
-
       process_test_result(result, display)
       @output_manager&.test_end(test_case, idx, @test_case_count) if display
+
+      run_section(:teardown, @testrun.teardown, binding) unless @shared
       update_circuit_breaker(result)
       yield(test_case) if block_given?
       result
@@ -278,17 +287,28 @@ class Tryouts
     # test (for_test is the test being prepared); their announcement and
     # output are shown on the first run only. A failure is reported whichever
     # run it happens on.
+    #
+    # A fresh-context teardown runs after every test but is announced once,
+    # after the last one, the way a shared-context teardown is; its output
+    # waits for that announcement.
     def run_section(kind, section, binding, for_test = nil)
       return if section.nil? || section.empty?
 
-      rerun          = @ran.key?(section)
-      @ran[section]  = true
+      rerun         = @ran.key?(section)
+      @ran[section] = true
+      deferred      = kind == :teardown && !@shared
 
-      announce_section(kind, section) unless rerun
+      announce_section(kind, section) unless rerun || deferred
       captured_output = capture_output do
         rerun ? ScriptBinding.quiet_redefinitions { eval_section(section, binding) } : eval_section(section, binding)
       end
-      section_output(kind, captured_output) if !rerun && captured_output
+      return if rerun
+
+      if deferred
+        @teardown_output = captured_output
+      else
+        section_output(kind, captured_output)
+      end
     rescue *EXPECTABLE_ERRORS => ex
       section_failed(kind, section, ex, with_rerun_context(ex.message, rerun, for_test))
     rescue SystemExit, SignalException => ex
@@ -312,7 +332,16 @@ class Tryouts
       end
     end
 
+    def announce_fresh_teardown
+      return unless @ran.key?(@testrun.teardown)
+
+      announce_section(:teardown, @testrun.teardown)
+      section_output(:teardown, @teardown_output)
+    end
+
     def section_output(kind, output)
+      return if output.nil?
+
       if kind == :teardown
         @output_manager&.teardown_output(output)
       else
