@@ -62,9 +62,5 @@ headed = parse_tryouts(<<~'RUBY')
   2 * 3
   #=> 6
 RUBY
-headed.test_cases.map(&:description)
-#=> ['adds two numbers', 'multiplies']
-
-## The test's lines start at the ## block that names it
-headed.test_cases.map { |tc| tc.line_range.first }
-#=> [2, 8]
+headed.test_cases.map { |tc| [tc.description, tc.line_range.first] }
+#=> [['adds two numbers', 2], ['multiplies', 8]]
