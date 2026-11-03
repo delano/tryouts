@@ -191,6 +191,21 @@ class Tryouts
       expected_results&.first
     end
 
+    # Index of the first expectation that failed, or nil.
+    def failure_index
+      metadata&.dig(:failure_index)
+    end
+
+    # Expected and actual values of the expectation that failed; the first
+    # expectation's when no failing index was recorded.
+    def failed_expected
+      expected_results&.[](failure_index || 0)
+    end
+
+    def failed_actual
+      actual_results&.[](failure_index || 0)
+    end
+
     # Create a basic result packet for successful tests
     def self.from_success(test_case, result_value, actual_results, expected_results, captured_output: nil, elapsed_time: nil, metadata: {})
       new(

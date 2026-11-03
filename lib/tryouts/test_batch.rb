@@ -262,6 +262,7 @@ class Tryouts
 
       {
         passed: failing.nil?,
+        failure_index: failing,
         failure_line: failing && test_case.expectations[failing].line,
         actual_results: evaluation_results.map { |r| r[:actual] },
         expected_results: evaluation_results.map { |r| r[:expected] },
@@ -351,7 +352,7 @@ class Tryouts
         context.result,
         expectations_result[:actual_results],
         expectations_result[:expected_results],
-        metadata: { failure_line: expectations_result[:failure_line] }.compact,
+        metadata: expectations_result.slice(:failure_index, :failure_line).compact,
       )
     end
 
