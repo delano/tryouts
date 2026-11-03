@@ -67,14 +67,24 @@ class Tryouts
         #=> 5
 
         Rules:
-          - ## starts a description; consecutive ## lines join into one
+          - ## starts a description; ## lines on adjacent lines join into one,
+            and a blank line or plain # line ends the block
           - A single # line is an ordinary comment, never a description
           - An expectation checks the statement directly above it, or the
             statement it trails on the same line (1 + 1 #=> 2)
           - "# =>" with a space means the same as "#=>"
           - One statement can have several expectations; all must pass
           - Every test needs a ## description (--no-strict allows unnamed tests)
+          - An expectation directly under a ## line, with no code between them,
+            is not evaluated and does not apply to the test above (warning)
           - A failure in setup, or in code between tests, stops the file
+          - The file runs at the top level like a script: classes, constants and
+            top-level methods are global across files, top-level include mixes
+            into Object, top-level using raises (use it in a class/module body)
+          - Leading magic comments (# frozen_string_literal: true) apply to
+            every section and expectation
+          - Each test has a 30-second deadline; a Timeout::Error raised by the
+            test code is reported as itself
 
       Execution Context:
         Shared Context (default): the whole file runs in one binding
@@ -88,7 +98,8 @@ class Tryouts
           - Before each test, setup runs again in the new binding, followed by
             any code between earlier tests; then the test and its expectations;
             then teardown, in the same binding
-          - Nothing one test changes is visible to another test
+          - No local or instance variable crosses between tests; classes,
+            constants and globals are not reset
           - Setup and teardown output and failures are reported once
           - Use for: Unit testing, independent test cases
 
@@ -116,7 +127,8 @@ class Tryouts
                                  expr must be false; otherwise result != expr
         #=1>  "text" | /regex/   stdout includes the text or matches the regex
         #=2>  "text" | /regex/   stderr includes the text or matches the regex
-        A mistyped operator (e.g. #=x>) always fails.
+        A mistyped operator (e.g. #=x>, #=>>) always fails, and so does ##=>
+        (write #=> to assert, or # #=> to comment an expectation out).
 
         Every expectation is Ruby evaluated in the test's binding. It can use
         the test's local and instance variables, and:

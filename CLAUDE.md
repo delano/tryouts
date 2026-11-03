@@ -37,14 +37,15 @@ NOTE: Do not say things like, "You're absolutely right!".
 
 **Tryouts framework rules:**
 1. **Structure**: Statements before the first test case are setup (optional); statements after the last expectation are teardown (optional). Each test case has a `##` description, code, and one or more expectations.
-2. **Test cases**: A `##` line, Ruby code, then expectations (`#=>` etc.) on the lines below the last statement, or trailing it on the same line (`1 + 1 #=> 2`). `# =>` with a space is the same as `#=>`. Consecutive `##` lines join into one description. In strict mode (the default) an expectation without a `##` description is an error.
+2. **Test cases**: A `##` line, Ruby code, then expectations (`#=>` etc.) on the lines below the last statement, or trailing it on the same line (`1 + 1 #=> 2`). `# =>` with a space is the same as `#=>`. `##` lines on adjacent lines join into one description; a blank line or plain `#` line ends the block. An expectation directly under a `##` with no code between them is not evaluated and does not apply to the test above (warning). In strict mode (the default) an expectation without a `##` description is an error.
 3. **Variables**: Local and instance variables both persist, across setup, tests, interludes and teardown. Expectations see the test's locals.
 4. **Result**: The value of the last statement in the test case. Inside an expectation it is `result` (or `_`); `error` is the exception the test raised, or nil; `elapsed_ms` is the run time.
 5. **Expectations**: Multiple expectation types available (`#=>`, `#==>`, `#=:>`, `#=!>`, etc.); each test case can have several, and all must pass.
-6. **Interludes**: Code between one test's expectations and the next `##` runs in order, before the next test. If it raises, the file stops.
-7. **Comments**: A single `#` is always a plain comment. DO NOT label file sections. `# TEST:` is not a description; write `##`.
-8. **Exceptions**: `#=!>` passes only when the test code itself raises. A lambda or proc that would raise is just a value.
-9. **Philosophy**: Plain realistic code, avoid mocks/test DSL
+6. **Script scope**: The file runs at the top level like a script: `class Foo` is `::Foo`, top-level `def` defines an Object method, top-level `include` mixes into Object. These are global across files in one run, so give helpers distinct names. Top-level `using` raises; use it inside a class or module body. Leading magic comments (`# frozen_string_literal: true`) apply to every section and expectation.
+7. **Interludes**: Code between one test's expectations and the next `##` runs in order, before the next test. If it raises, the file stops.
+8. **Comments**: A single `#` is always a plain comment. DO NOT label file sections. `# TEST:` is not a description; write `##`.
+9. **Exceptions**: `#=!>` passes only when the test code itself raises. A lambda or proc that would raise is just a value. A `Timeout::Error` from the test code is reported as itself; the framework's own 30-second per-test deadline is an error.
+10. **Philosophy**: Plain realistic code, avoid mocks/test DSL
 
 **Running tests:**
 - **Basic**: `bundle exec try` (auto-discovers `*_try.rb` and `*.try.rb` files)
@@ -224,11 +225,11 @@ puts "#{prices.size} fruits in stock"
 | `#=*>` | `result` is not nil |
 | `#=1> x` / `#=2> x` | stdout / stderr includes the String x, or matches the Regexp x |
 
-A mistyped operator such as `#=X>` is a failing expectation. The parser warns about expectation-shaped comments inside a method or block body (they are not evaluated), expectations with no statement above them, `#==> true`-style literals, and text after `#=*>`.
+A mistyped operator such as `#=X>` or `#=>>` is a failing expectation, and so is `##=>` (write `#=>`, or `# #=>` to comment one out). The parser warns about expectation-shaped comments inside a method or block body (they are not evaluated), expectations with no statement above them, `#==> true`-style literals, and text after `#=*>`.
 
 ### Shared and fresh context
 
-Shared context (the default) runs the file once as a single script. Fresh context (`--no-shared-context`) gives each test a new object and binding: the setup runs again, then every interlude above the test, then the test and its expectations, then the teardown. Nothing one test does is visible to another. A setup or interlude failure stops the file; setup and teardown output and failures are reported once.
+Shared context (the default) runs the file once as a single script. Fresh context (`--no-shared-context`) gives each test a new object and binding: the setup runs again, then every interlude above the test, then the test and its expectations, then the teardown. No local or instance variable one test sets is visible to another; classes, constants and globals are not reset. A setup or interlude failure stops the file, including one that fails only when re-run for a later test; setup and teardown output and failures are reported once.
 
 ### Framework Translation
 
@@ -256,7 +257,7 @@ Files are processed in lexical order.
 
 ### Exit Codes
 - `0`: All tests pass
-- `1+`: Number of failing tests
+- `1+`: Number of failing and erroring tests, plus one per setup, interlude or teardown failure in each file
 
 ### Key Dependencies
 - **Ruby** (>= 3.2.0)

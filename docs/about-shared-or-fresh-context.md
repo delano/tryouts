@@ -44,7 +44,8 @@ What follows from this:
 - Test order matters. A test sees whatever the statements above it left behind, including what earlier tests changed.
 - A test that raises an unexpected exception is reported as an error and the file carries on. The statements it ran before the raise have still run, so later tests see their effects.
 - If the setup or an interlude raises, the rest of the file is skipped: every test below it would be running against state that never got built. A teardown failure is reported and the file still counts its results.
-- The binding's `self` is a plain `Object` created for the file. A top-level `def` defines a method on that object, and `class Report` defines a constant under it, so two files can each define their own `Report` without clashing. No local variable from the runner itself is visible to the file.
+- The binding's `self` is a plain `Object` created for the file, with no local variables from the runner. Code runs at the top level, as in a script: `class Report` defines `::Report`, a top-level `def` defines a (public) method on `Object`, and a top-level `include` mixes into `Object`. These definitions are global, so two files in one run that define `Report` share one class. Top-level `using` raises, because each section is evaluated on its own and the refinement could not reach later code; use `using` inside a class or module body.
+- Magic comments at the top of the file, such as `# frozen_string_literal: true`, apply to the setup, every test and interlude, the teardown and every expectation.
 
 Use shared context for files that read as a walkthrough, where each example builds on the one before. That is the documentation style tryouts is designed for.
 
@@ -99,8 +100,8 @@ What follows from this:
 
 - A test cannot read a local or instance variable that an earlier test defined. In the shared-context example above, the second test's `JSON.parse(json)` raises `NameError` in fresh context, because `json` was defined by the first test.
 - The setup, the interludes above a test and the teardown run once per test. Keep them cheap; a file with 50 tests and a slow setup is 50 times slower in fresh context.
-- Setup, interlude and teardown output is shown once, the first time it runs, not once per test. A failure in any of them is also reported once.
-- If the setup or an interlude raises, the rest of the file is skipped, as in shared context.
+- Setup, interlude and teardown output is shown once, the first time it runs, not once per test. The setup is announced before the first test and the teardown after the last, as in shared context. A failure in any of them is reported once, on whichever run it happens.
+- If the setup or an interlude raises, the rest of the file is skipped, as in shared context. That includes a setup or interlude that passed for earlier tests and fails when run again for a later one (for example, one that creates a directory); the report names the test it was preparing.
 - The teardown runs after every test, including one that raised.
 
 ### What fresh context does not reset

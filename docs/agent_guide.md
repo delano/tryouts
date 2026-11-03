@@ -51,7 +51,7 @@ JSON.generate(@defaults)
 ## Test Case Structure
 
 Each test case has 3 parts:
-1. **Description**: Lines starting with `##`. Consecutive `##` lines join into one description. The text is kept as written.
+1. **Description**: Lines starting with `##`. `##` lines on adjacent lines join into one description; a blank line or a plain `#` line ends the block. The text is kept as written.
 2. **Code**: One or more Ruby statements
 3. **Expectations**: One or more expectation comments in the gap after the last statement (the subject), or trailing it on the same line
 
@@ -104,7 +104,7 @@ Every expectation is a Ruby expression evaluated in the test's own binding. It c
 - `error`: the exception the test raised, or `nil`
 - `elapsed_ms`: how long the test code took
 
-A mistyped operator such as `#=x>` always fails. The parser warns about expectations that cannot fail (`#==> true`), text after `#=*>`, an expectation with no statement above it, and `#=>`-shaped comments inside a method or block body (those are plain comments, not expectations).
+A mistyped operator such as `#=x>` or `#=>>` always fails, and so does `##=>` (write `#=>` to assert, `# #=>` to comment it out). An expectation directly under a `##` line, with no code between them, is not evaluated and does not apply to the test above. Each test has a 30-second deadline; a `Timeout::Error` raised by the test code is reported as itself. The parser warns about expectations that cannot fail (`#==> true`), text after `#=*>`, an expectation with no statement above it, and `#=>`-shaped comments inside a method or block body (those are plain comments, not expectations).
 
 ## Exception Testing
 
@@ -133,7 +133,7 @@ end
 
 1. **One subject per test case**: Expectations check the last statement of the test
 2. **Variables persist**: Local and instance variables carry over from each statement to the next, across setup, tests and teardown (in the default shared context)
-3. **Helper methods allowed**: Define in setup
+3. **Helper methods allowed**: Define in setup. The file runs at the top level like a script, so classes, constants and top-level methods are global across every file in a run: give helpers distinct names. Top-level `include` works; top-level `using` raises (use it inside a class or module body). Leading magic comments such as `# frozen_string_literal: true` apply to the whole file
 4. **Comments ignored**: Only expectation comments (`#=>`, `#==>`, ...) after a top-level statement are expectations; `##` starts a description; anything else is a comment
 5. **Blank lines OK**: Between code and expectations
 
@@ -200,6 +200,6 @@ See `docs/about-shared-or-fresh-context.md` for the full description.
 - Before each test, the setup runs again in it, then any code between earlier tests; after the test, the teardown
 - Nothing is copied between bindings, so a mutable object from setup (`@items = []`) is a new object in every test
 - Test isolation - changes in test 1 don't affect test 2, and a test cannot read locals an earlier test defined
-- Globals, `ENV`, files on disk and changes to existing classes are not reset
+- Classes, constants and methods the file defines, globals, `ENV`, files on disk and changes to existing classes are not reset
 
 `--rspec` and `--minitest` translate the file and use that framework's own setup and teardown hooks.

@@ -79,7 +79,12 @@ visited.size
 
 Some details that follow from the model:
 
-- Consecutive `##` lines join into one description, with a space. `## TEST: x` is described as "TEST: x".
+- `##` lines on adjacent lines join into one description, with a space. A blank line or a plain `#` line ends the block, so a `##` heading above it is just a comment. `## TEST: x` is described as "TEST: x".
+- An expectation directly under a `##` line, with no code between them, is not evaluated and does not apply to the test above; the parser warns about it.
+- `##=>` is not a description or a comment: it fails and asks for `#=>` (to assert) or `# #=>` (to comment the expectation out).
+- The file runs at the top level, as a script does: `class Widget` is `::Widget`, a top-level `def` defines a method on `Object`, and a top-level `include` mixes into `Object`. These are shared by every file in the run, so give helpers distinct names. Top-level `using` raises; put it inside a class or module body.
+- Magic comments at the top of the file, such as `# frozen_string_literal: true`, apply to every section and expectation.
+- Each test has a 30-second deadline (an error when exceeded). A `Timeout::Error` raised by the test code is reported as itself and can be expected with `#=!> Timeout::Error`.
 - A single `#` is always a plain comment. `# TEST:` does not name a test.
 - `# =>` with a space is the same as `#=>`.
 - In strict mode (the default), an expectation without a `##` description above it is an error. `--no-strict` allows it.
@@ -164,16 +169,16 @@ warn 'disk is 91% full'
 
 The parser warns about:
 
-- a mistyped operator such as `#=X>` (the expectation always fails)
+- a mistyped operator such as `#=X>` or `#=>>`, or `##=>` (the expectation always fails)
 - an expectation inside a statement body (not evaluated)
-- an expectation with no statement above it
+- an expectation with no statement above it, including one directly under a `##` line
 - `#==> true` and similar literals, which test nothing about the result
 - text after `#=*>`, which is ignored
 - an expectation without a `##` description (an error in strict mode)
 
 ## Shared and Fresh Context
 
-Shared context (the default) runs the file once as a single script, as described above. Fresh context (`--no-shared-context`) gives each test its own object and binding. Before each test the setup runs again, then every interlude above the test; then the test and its expectations run, then the teardown. Nothing one test does is visible to any other. A setup or interlude failure stops the file, and setup and teardown output and failures are reported once.
+Shared context (the default) runs the file once as a single script, as described above. Fresh context (`--no-shared-context`) gives each test its own object and binding. Before each test the setup runs again, then every interlude above the test; then the test and its expectations run, then the teardown. No local or instance variable one test sets is visible to any other; classes, constants and globals are not reset. A setup or interlude failure stops the file, and setup and teardown output and failures are reported once.
 
 This file passes in fresh context and fails in shared context:
 
