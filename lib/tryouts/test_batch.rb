@@ -38,6 +38,13 @@ class Tryouts
     # deliberately absent.
     EXPECTABLE_ERRORS = [StandardError, ScriptError, SystemStackError, NoMemoryError, SecurityError].freeze
 
+    # Raised when a test outlives the framework's own deadline. A class of its
+    # own, so a Timeout::Error raised by the code under test (Net::ReadTimeout,
+    # a Timeout.timeout of its own) is an ordinary error. Not a StandardError:
+    # test code's `rescue => e` and a #=!> StandardError must not catch it.
+    class DeadlineExceeded < Exception; end # rubocop:disable Lint/InheritException
+    private_constant :DeadlineExceeded
+
     attr_reader :testrun, :failed_count, :status, :results, :output_manager
 
     def initialize(testrun, **options)
@@ -84,10 +91,8 @@ class Tryouts
       end
 
       run_test_cases(before_test_hook, &)
-      if @aborted
-        announce_fresh_teardown unless @shared
-        return abort_batch
-      end
+      announce_fresh_teardown if @aborted && !@shared
+      return abort_batch if @aborted
 
       # e.g. the quiet formatter prints a newline after all test dots
       @output_manager&.file_end(path, context: context_name.to_sym)
@@ -488,8 +493,8 @@ class Tryouts
     end
 
     def execute_with_timeout(test_case, &)
-      Timeout.timeout(@test_timeout, &)
-    rescue Timeout::Error
+      Timeout.timeout(@test_timeout, DeadlineExceeded, &)
+    rescue DeadlineExceeded
       Tryouts.debug "Test timeout after #{@test_timeout}s: #{test_case.description}"
       raise StandardError, "Test execution timeout (#{@test_timeout}s)"
     end
