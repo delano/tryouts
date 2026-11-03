@@ -13,6 +13,7 @@ greeting = <<~HELLO; farewell = <<~BYE #=> "goodbye\n"
 HELLO
   goodbye
 BYE
+#==> greeting == "hello\n"
 
 ## Both heredocs are assigned when they share an opener line
 first, second = <<~ONE, <<~TWO
