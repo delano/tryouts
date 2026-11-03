@@ -8,15 +8,8 @@ require_relative '../test_helper'
 require_relative '../../lib/tryouts/translators/rspec_translator'
 require_relative '../../lib/tryouts/test_case'
 
-## TEST: Translator initializes successfully when rspec is available
-translator = Tryouts::Translators::RSpecTranslator.new
-translator.class.name
-#=> "Tryouts::Translators::RSpecTranslator"
-
-## TEST: Generate code creates valid RSpec describe structure
 translator = Tryouts::Translators::RSpecTranslator.new
 
-# Create mock test data
 setup_code = Tryouts::Setup.new(
   code: "puts 'before all setup'",
   line_range: 1..1,
@@ -43,29 +36,6 @@ testrun = Tryouts::Testrun.new(
 )
 
 generated_code = translator.generate_code(testrun)
-# Test that generated code contains expected RSpec structure
-generated_code.include?("RSpec.describe 'math_test' do")
-#=> true
-
-## TEST: Generated code contains before(:all) block when setup present
-# Using same translator and testrun from previous test
-generated_code.include?("before(:all)")
-#=> true
-
-## TEST: Generated code contains setup content
-generated_code.include?("puts 'before all setup'")
-#=> true
-
-## TEST: Generated code contains it block with description
-generated_code.include?("it 'simple multiplication'")
-#=> true
-
-## TEST: Generated code contains expect().to eq() for regular expectations
-generated_code.include?("expect(result).to eq(6)")
-#=> true
-
-## TEST: Exception expectation generates expect{}.to raise_error structure
-translator = Tryouts::Translators::RSpecTranslator.new
 
 exception_test_case = Tryouts::TestCase.new(
   description: "argument error test",
@@ -87,6 +57,42 @@ exception_testrun = Tryouts::Testrun.new(
 )
 
 exception_code = translator.generate_code(exception_testrun)
+
+@test_case_1 = Tryouts::TestCase.new(
+  description: "string concatenation",
+  code: "'hello' + ' world'",
+  expectations: [Tryouts::Expectation.new(content: "'hello world'", type: :regular)],
+  line_range: 1..2,
+  path: 'test.rb',
+  source_lines: ["'hello' + ' world'", "#=> 'hello world'"],
+  first_expectation_line: 2
+)
+
+## TEST: Translator initializes successfully when rspec is available
+translator.class.name
+#=> "Tryouts::Translators::RSpecTranslator"
+
+## TEST: Generate code creates valid RSpec describe structure
+generated_code.include?("RSpec.describe 'math_test' do")
+#=> true
+
+## TEST: Generated code contains before(:all) block when setup present
+generated_code.include?("before(:all)")
+#=> true
+
+## TEST: Generated code contains setup content
+generated_code.include?("puts 'before all setup'")
+#=> true
+
+## TEST: Generated code contains it block with description
+generated_code.include?("it 'simple multiplication'")
+#=> true
+
+## TEST: Generated code contains expect().to eq() for regular expectations
+generated_code.include?("expect(result).to eq(6)")
+#=> true
+
+## TEST: Exception expectation generates expect{}.to raise_error structure
 exception_code.include?("expect {")
 #=> true
 
@@ -103,8 +109,6 @@ exception_code.include?("expect(error.is_a?(ArgumentError)).to be_truthy")
 #=> true
 
 ## TEST: Teardown method generation when present
-translator = Tryouts::Translators::RSpecTranslator.new
-
 teardown_code = Tryouts::Teardown.new(
   code: "puts 'after all cleanup'",
   line_range: 10..10,
@@ -113,7 +117,7 @@ teardown_code = Tryouts::Teardown.new(
 
 teardown_testrun = Tryouts::Testrun.new(
   setup: nil,
-  test_cases: [test_case], # reuse from earlier
+  test_cases: [test_case],
   teardown: teardown_code,
   source_file: 'cleanup_test.rb',
   metadata: {},
@@ -126,18 +130,6 @@ teardown_generated = translator.generate_code(teardown_testrun)
 
 
 ## TEST: Multiple test cases generate multiple it blocks
-translator = Tryouts::Translators::RSpecTranslator.new
-
-@test_case_1 = Tryouts::TestCase.new(
-  description: "string concatenation",
-  code: "'hello' + ' world'",
-  expectations: [Tryouts::Expectation.new(content: "'hello world'", type: :regular)],
-  line_range: 1..2,
-  path: 'test.rb',
-  source_lines: ["'hello' + ' world'", "#=> 'hello world'"],
-  first_expectation_line: 2
-)
-
 test_case_2 = Tryouts::TestCase.new(
   description: "string length",
   code: "'test'.length",
@@ -157,19 +149,13 @@ multi_testrun = Tryouts::Testrun.new(
   warnings: []
 )
 
-@multi_code = translator.generate_code(multi_testrun)
-it_blocks_count = @multi_code.scan(/it '/).length
-it_blocks_count
+multi_code = translator.generate_code(multi_testrun)
+multi_code.scan(/it '/).length
 #=> 2
-
-## TEST: Multiple it blocks have correct descriptions
-@multi_code
-#=~> /it 'string concatenation'/
-#=~> /it 'string length'/
+#==> multi_code.include?("it 'string concatenation'")
+#==> multi_code.include?("it 'string length'")
 
 ## TEST: File basename is used in describe block
-translator = Tryouts::Translators::RSpecTranslator.new
-
 filename_testrun = Tryouts::Testrun.new(
   setup: nil,
   test_cases: [@test_case_1],
@@ -198,8 +184,6 @@ complex_code.include?("RSpec.describe 'complex-test_file.spec' do")
 #=> true
 
 ## TEST: Empty or nil descriptions are handled gracefully
-translator = Tryouts::Translators::RSpecTranslator.new
-
 empty_desc_case = Tryouts::TestCase.new(
   description: "",
   code: "nil.class",
@@ -225,8 +209,6 @@ empty_desc_code.include?("it ''")
 #=> true
 
 ## TEST: Generated code ends with proper structure
-translator = Tryouts::Translators::RSpecTranslator.new
-
 simple_testrun = Tryouts::Testrun.new(
   setup: nil,
   test_cases: [@test_case_1],
@@ -242,8 +224,6 @@ simple_code.strip.end_with?("end")
 #=> true
 
 ## TEST: Multiple expectations in single test case
-translator = Tryouts::Translators::RSpecTranslator.new
-
 multi_expectation_case = Tryouts::TestCase.new(
   description: "multiple checks",
   code: "[1, 2, 3]",
@@ -272,8 +252,6 @@ expect_count
 #=> 1
 
 ## TEST: Both setup and teardown present
-translator = Tryouts::Translators::RSpecTranslator.new
-
 full_setup_code = Tryouts::Setup.new(
   code: "@shared_var = 'initialized'",
   line_range: 1..1,
