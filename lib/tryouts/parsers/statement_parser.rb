@@ -101,7 +101,7 @@ class Tryouts
       @statements = build_statements
       attach_comments
 
-      testrun = assemble
+      testrun = assemble.with(magic_comments: Testrun.magic_comments_from(@prism_result))
       validate_strict_mode
       testrun
     end

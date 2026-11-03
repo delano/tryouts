@@ -126,7 +126,30 @@ class Tryouts
 
   # test_cases is a single ordered array of TestCase | OrphanBlock — the
   # interleaving order is load-bearing for shared-context local-variable state.
-  Testrun = Data.define(:setup, :test_cases, :teardown, :source_file, :metadata, :warnings) do
+  #
+  # magic_comments are the file's leading magic comments, such as
+  # "# frozen_string_literal: true". Every section and expectation is a
+  # separate eval, so each one is prefixed with them.
+  Testrun = Data.define(:setup, :test_cases, :teardown, :source_file, :metadata, :warnings, :magic_comments) do
+    def initialize(magic_comments: [], **rest)
+      super
+    end
+
+    # The magic comments Ruby honours for the whole file: those above the
+    # first statement. Encoding comments are left out; the source is already
+    # decoded.
+    #
+    # @param prism_result [Prism::ParseResult]
+    # @return [Array<String>]
+    def self.magic_comments_from(prism_result)
+      first_line = prism_result.value.statements.body.first&.location&.start_line || Float::INFINITY
+      prism_result.magic_comments.filter_map do |comment|
+        next if comment.key_loc.start_line >= first_line || comment.key.match?(/\A(en)?coding\z/i)
+
+        "# #{comment.key}: #{comment.value}"
+      end
+    end
+
     def total_tests
       test_cases.count { |tc| tc.is_a?(TestCase) }
     end

@@ -230,6 +230,7 @@ class Tryouts
       ExpectationEvaluators::EvaluationContext.new(
         binding: binding,
         path: test_case.path,
+        magic_comments: @testrun.magic_comments,
         result: error || value,
         error: error,
         elapsed_ns: elapsed,
@@ -247,8 +248,11 @@ class Tryouts
       error.is_a?(StandardError) && test_case.expectations.any? { |exp| exp.result_type? || exp.regex_match? }
     end
 
+    # The file's magic comments go on the lines above the code, so the code
+    # keeps its own line numbers.
     def eval_section(section, binding)
-      binding.eval(section.code, section.path, section.eval_start_line)
+      magic = @testrun.magic_comments
+      binding.eval([*magic, section.code].join("\n"), section.path, section.eval_start_line - magic.size)
     end
 
     def evaluate_expectations(test_case, context)
