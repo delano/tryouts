@@ -52,14 +52,8 @@ begin
   # Create failure collector to test the fix
   failure_collector = Tryouts::FailureCollector.new
 
-  # Create mock result packet for a failed test
-  result_packet = Struct.new(:test_case, :status, :actual_results, :expected_results, :failure_message) do
-    def failed?; status == :failed; end
-    def error?; status == :error; end
-    def passed?; status == :passed; end
-    def first_actual; actual_results&.first; end
-    def first_expected; expected_results&.first; end
-  end.new(test_case, :failed, [30], [999], "Test failed")
+  # A failed result for the test's first expectation
+  result_packet = Tryouts::TestCaseResultPacket.from_failure(test_case, 30, [30], [999])
 
   # Add failure to collector
   failure_collector.add_failure(temp_file.path, result_packet)
