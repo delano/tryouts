@@ -49,7 +49,7 @@ testrun.test_cases.last.description
 #=> 'A description can span more than one line'
 
 ## A blank line or a plain comment ends a block of ## lines
-headed = parse_tryouts(<<~'RUBY')
+headed = parse_single_hash(<<~'RUBY')
   ## Arithmetic
 
   ## adds two numbers
