@@ -194,12 +194,15 @@ class Tryouts
     end
 
     # 0-based source line that best explains this result: the first failing
-    # expectation, or for an error the deepest frame inside the test file,
-    # falling back to the first expectation.
+    # expectation, or for an error the deepest frame inside the test itself
+    # (an error raised in a helper the setup defined points at the test's
+    # call, not the helper), then the deepest frame in the test file, then
+    # the first expectation.
     def failure_line
       return metadata[:failure_line] if metadata&.dig(:failure_line)
 
-      frame = error&.backtrace_locations&.find { |loc| loc.path == test_case.path }
+      frames = error&.backtrace_locations&.select { |loc| loc.path == test_case.path } || []
+      frame  = frames.find { |loc| test_case.line_range&.cover?(loc.lineno - 1) } || frames.first
       return frame.lineno - 1 if frame
 
       test_case.first_expectation_line || test_case.line_range&.first || 0
