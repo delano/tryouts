@@ -398,8 +398,14 @@ class Tryouts
       @output_manager&.error("Stopping batch execution due to #{reason}")
       @status        = :failed
       @failed_count += 1 if @aborted == :orphan
+      @output_manager&.file_end(path, context: context_name.to_sym, not_run: not_run_count)
       finalize_results
       false
+    end
+
+    # Test cases that never ran because the batch stopped early.
+    def not_run_count
+      test_cases.size - @results.size
     end
 
     def build_test_result(test_case, context, expectations_result)
