@@ -161,9 +161,6 @@ class Tryouts
             options[:agent_no_failures] = true
           end
 
-          opts.separator "\nParser Options:"
-          opts.on('--enhanced-parser', 'Use enhanced parser with inhouse comment extraction (default)') { options[:parser] = :enhanced }
-
           opts.separator "\nInspection Options:"
           opts.on('-i', '--inspect', 'Inspect file structure without running tests') { options[:inspect] = true }
 

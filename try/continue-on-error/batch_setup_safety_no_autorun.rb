@@ -7,7 +7,7 @@
 require_relative '../../lib/tryouts'
 
 test_file = 'foo/bar/setup_baz_try.rb'
-Tryouts::EnhancedParser.new(test_file)
+Tryouts::StatementParser.new(test_file)
 
 ## TEST: We never get to this testcase b/c setup fails
 raise SystemExit

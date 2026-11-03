@@ -39,22 +39,13 @@ class Tryouts
       end
 
       def evaluate(actual_result = nil)
-        expectation_result = ExpectationResult.from_result(actual_result)
-        pattern            = eval_expectation_content(@expectation.content, expectation_result)
+        pattern = evaluate_expression
 
-        # Auto-detect exceptions and use message for regex matching
-        # This allows #=~> /pattern/ to work naturally with exception messages
-        # Note: error variable is already available in context (set in evaluate_expectations)
-        string_result = if actual_result.is_a?(Exception)
-                          actual_result.message  # Match against error message
-                        else
-                          actual_result.to_s     # Normal case: convert to string
-                        end
-
-        match_result = string_result =~ pattern
+        # A test that raised is matched on its message (`#=~> /not found/`)
+        string_result = actual_result.is_a?(::Exception) ? actual_result.message : actual_result.to_s
 
         build_result(
-          passed: !match_result.nil?,
+          passed: string_result.match?(pattern),
           actual: string_result,
           expected: pattern.inspect,
         )

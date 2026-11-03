@@ -2,15 +2,13 @@
 #
 # frozen_string_literal: true
 
-require_relative 'parsers/enhanced_parser'
+require_relative 'parsers/statement_parser'
 require_relative 'test_executor'
 require_relative 'cli/modes/inspect'
 require_relative 'cli/modes/generate'
 
 class Tryouts
   class FileProcessor
-    # Supported parser types for validation and documentation
-    PARSER_TYPES = [:enhanced].freeze
     def initialize(file:, options:, output_manager:, translator:, global_tally:)
       @file           = file
       @options        = options
@@ -20,7 +18,7 @@ class Tryouts
     end
 
     def process
-      testrun = create_parser(@file, @options).parse
+      testrun = StatementParser.new(@file, @options).parse
 
       # Report total test count (before filtering for display)
       # Line spec filtering affects output only, not execution
@@ -42,19 +40,6 @@ class Tryouts
     end
 
     private
-
-    def create_parser(file, options)
-      parser_type = options[:parser] || :enhanced  # enhanced parser is now the default
-
-      unless PARSER_TYPES.include?(parser_type)
-        raise ArgumentError, "Unknown parser: #{parser_type}. Allowed types: #{PARSER_TYPES.join(', ')}"
-      end
-
-      case parser_type
-      when :enhanced
-        EnhancedParser.new(file, options)
-      end
-    end
 
     def handle_inspect_mode(testrun)
       mode = Tryouts::CLI::InspectMode.new(@file, testrun, @options, @output_manager, @translator)

@@ -52,24 +52,36 @@ class Tryouts
         expectation_type == :intentional_failure
       end
 
+      # Negates whatever the expression says, so the expectation holds when:
+      # - the expression is a Regexp and the result does not match it
+      # - the expression is true/false (a predicate about a non-boolean result)
+      #   and it is false
+      # - otherwise, the result is not == to the expression
       def evaluate(actual_result = nil)
-        # Create a temporary regular expectation for delegation
-        regular_expectation = Expectation.new(content: @expectation.content, type: :regular)
+        expected_value      = evaluate_expression
+        passed, description = negate(actual_result, expected_value)
 
-        # Delegate to regular evaluator
-        regular_evaluator = Regular.new(regular_expectation, @test_case, @context)
-        regular_result    = regular_evaluator.evaluate(actual_result)
-
-        # Invert the result while preserving metadata
         build_result(
-          passed: !regular_result[:passed],
-          actual: regular_result[:actual],
-          expected: "NOT #{regular_result[:expected]} (intentional failure)",
+          passed: passed,
+          actual: actual_result,
+          expected: "NOT #{description}",
           expectation: @expectation.content,
         )
       rescue StandardError => ex
-        # If evaluation itself fails (not the expectation), that's a real error
         handle_evaluation_error(ex, actual_result)
+      end
+
+      private
+
+      def negate(actual_result, expected_value)
+        boolean = [true, false]
+        if expected_value.is_a?(Regexp)
+          [actual_result.to_s !~ expected_value, "matching #{expected_value.inspect}"]
+        elsif boolean.include?(expected_value) && !boolean.include?(actual_result)
+          [expected_value == false, "#{@expectation.content} (is #{expected_value})"]
+        else
+          [actual_result != expected_value, expected_value.inspect]
+        end
       end
     end
   end

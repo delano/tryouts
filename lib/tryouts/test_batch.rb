@@ -4,78 +4,67 @@
 
 require 'monitor'
 require 'stringio'
+require_relative 'script_binding'
 require_relative 'expectation_evaluators/registry'
+require_relative 'cli/line_spec_parser'
 
 class Tryouts
-  # Factory for creating fresh context containers for each test
-  class FreshContextFactory
-    def initialize
-      @containers_created = 0
-    end
-
-    def create_container
-      @containers_created += 1
-      Object.new
-    end
-
-    def containers_created_count
-      @containers_created
-    end
-  end
-
-  # Modern TestBatch using Ruby 3.4+ patterns and formatter system
+  # Executes one parsed file.
+  #
+  # Shared context (the default) runs the file as the script it looks like:
+  # setup, each test, each interlude and teardown are evaluated in source
+  # order against one Binding, so local and instance variables persist from
+  # each statement to the next.
+  #
+  # Fresh context gives every test its own object and Binding, the way
+  # setup/teardown hooks work in RSpec or Minitest. For each test it evaluates
+  # the setup, then every interlude above the test (so the test sees the same
+  # state it would see in the script, minus the other tests), then the test
+  # and its expectations, then the teardown. Nothing a test does is visible to
+  # any other test.
   class TestBatch
     # $stdout/$stderr are process-global, not Fiber- or thread-local. Under
     # --parallel (Concurrent::ThreadPoolExecutor), concurrent redirects would
     # clobber each other and could leave $stdout pointing at a dead StringIO
-    # process-wide. Every redirect path (capture_output for setup/teardown and
-    # each test, plus execute_with_output_capture) synchronizes on this lock so
-    # the redirect/execute/restore window is serialized across threads.
+    # process-wide. Every redirect (capture_output and capture_streams)
+    # synchronizes on this lock so the redirect/execute/restore window is
+    # serialized across threads.
     #
-    # A Monitor (reentrant) is required because execute_with_output_capture runs
-    # nested inside capture_output; a plain Mutex would self-deadlock.
+    # A Monitor (reentrant) is required because capture_streams runs nested
+    # inside capture_output; a plain Mutex would self-deadlock.
     OUTPUT_CAPTURE_MONITOR = Monitor.new
 
-    attr_reader :testrun, :failed_count, :container, :status, :results, :formatter, :output_manager
+    # Exceptions a test that declares #=!> can catch. Interrupts and exit are
+    # deliberately absent.
+    EXPECTABLE_ERRORS = [StandardError, ScriptError, SystemStackError, NoMemoryError, SecurityError].freeze
+
+    attr_reader :testrun, :failed_count, :status, :results, :output_manager
 
     def initialize(testrun, **options)
       @testrun         = testrun
-      @container       = Object.new
       @options         = options
-      @formatter       = Tryouts::CLI::FormatterFactory.create_formatter(options)
+      @shared          = options[:shared_context] == true
       @output_manager  = options[:output_manager]
       @global_tally    = options[:global_tally]
+      @line_spec       = options[:line_spec] # filters output only
+      @test_timeout    = options[:test_timeout] || 30
       @failed_count    = 0
       @status          = :pending
       @results         = []
       @start_time      = nil
       @test_case_count = 0
-      @setup_failed    = false
-      @orphan_failed   = false
+      @aborted         = false
+      @reported        = {} # sections whose output and failures were already shown once
 
-      # Shared-context mode evaluates every block against this one reused
-      # Binding so local variables persist across blocks like a plain Ruby
-      # script. Fresh-context mode keeps per-container instance_eval isolation.
-      @binding = options[:shared_context] ? acquire_container_binding(@container) : nil
-      @line_spec       = options[:line_spec]  # For output filtering only
-
-      # Setup container for fresh context mode - preserves @instance_variables from setup
-      @setup_container = nil
+      # One Binding for the whole file in shared mode
+      @binding = @shared ? ScriptBinding.for(Object.new) : nil
 
       # Circuit breaker for batch-level failure protection
       @consecutive_failures     = 0
       @max_consecutive_failures = options[:max_consecutive_failures] || 10
       @circuit_breaker_active   = false
-
-      # Expose context objects for testing - different strategies for each mode
-      @shared_context = if options[:shared_context]
-                          @container  # Shared mode: single container reused across tests
-                        else
-                          FreshContextFactory.new  # Fresh mode: factory that creates new containers
-                        end
     end
 
-    # Main execution pipeline using functional composition
     def run(before_test_hook = nil, &)
       return false if empty?
 
@@ -83,101 +72,23 @@ class Tryouts
       @test_case_count = @testrun.total_tests
 
       @output_manager&.execution_phase(@test_case_count)
-      @output_manager&.info("Context: #{@options[:shared_context] ? 'shared' : 'fresh'}", 1)
-      @output_manager&.file_start(path, context: @options[:shared_context] ? :shared : :fresh)
+      @output_manager&.info("Context: #{context_name}", 1)
+      @output_manager&.file_start(path, context: context_name.to_sym)
 
-      if shared_context?
+      if @shared
         @output_manager&.info('Running global setup...', 2)
-        execute_global_setup
-
-        # Stop execution if setup failed
-        if @setup_failed
-          @output_manager&.error('Stopping batch execution due to setup failure')
-          @status = :failed
-          finalize_results([])
-          return false
-        end
-      else
-        # Fresh context mode: execute setup once to establish shared @instance_variables
-        @output_manager&.info('Running setup for fresh context...', 2)
-        execute_fresh_context_setup
-
-        # Stop execution if setup failed
-        if @setup_failed
-          @output_manager&.error('Stopping batch execution due to setup failure')
-          @status = :failed
-          finalize_results([])
-          return false
-        end
+        run_section(:setup, @testrun.setup, @binding)
+        return abort_batch if @aborted
       end
 
-      idx               = 0
-      execution_results = test_cases.map do |test_case|
-        # Orphan blocks run for side effects only, in source order. A raise
-        # aborts the batch like a setup failure: every subsequent test's
-        # context is suspect.
-        if test_case.is_a?(OrphanBlock)
-          execute_orphan_block(test_case)
-          break if @orphan_failed
+      run_test_cases(before_test_hook, &)
+      return abort_batch if @aborted
 
-          next
-        end
-
-        @output_manager&.trace("Test #{idx + 1}/#{@test_case_count}: #{test_case.description}", 2)
-        idx += 1
-
-        # Check circuit breaker before executing test
-        if @circuit_breaker_active
-          @output_manager&.error("Circuit breaker active - skipping remaining tests after #{@consecutive_failures} consecutive failures")
-          break
-        end
-
-        # Apply line_spec filter for output notifications (test_start/test_end)
-        # but still execute ALL tests regardless of filter
-        if should_display_test_result?(test_case)
-          @output_manager&.test_start(test_case, idx, @test_case_count)
-        end
-
-        result = execute_single_test(test_case, before_test_hook, &) # runs the test code
-
-        if should_display_test_result?(test_case)
-          @output_manager&.test_end(test_case, idx, @test_case_count)
-        end
-
-        # Update circuit breaker state based on result
-        update_circuit_breaker(result)
-
-        result
-      rescue StandardError => ex
-        if should_display_test_result?(test_case)
-          @output_manager&.test_end(test_case, idx, @test_case_count)
-        end
-        # Create error result packet to maintain consistent data flow
-        error_result = build_error_result(test_case, ex)
-        process_test_result(error_result)
-
-        # Update circuit breaker for exception cases
-        update_circuit_breaker(error_result)
-
-        error_result
-      end
-
-      if @orphan_failed
-        @output_manager&.error('Stopping batch execution due to orphan code block failure')
-        @status = :failed
-        @failed_count += 1
-        finalize_results(execution_results || [])
-        return false
-      end
-
-      # Used for a separate purpose then execution_phase.
       # e.g. the quiet formatter prints a newline after all test dots
-      @output_manager&.file_end(path, context: @options[:shared_context] ? :shared : :fresh)
+      @output_manager&.file_end(path, context: context_name.to_sym)
 
-      @output_manager&.execution_phase(test_cases.size)
-
-      execute_global_teardown
-      finalize_results(execution_results)
+      run_section(:teardown, @testrun.teardown, @binding) if @shared
+      finalize_results
 
       @status = :completed
       !failed?
@@ -209,517 +120,269 @@ class Tryouts
 
     private
 
-    # Must be its own method, never inlined at a call site, and must use
-    # instance_eval on a STRING, not a block. A block literal fixes
-    # Module.nesting to wherever it is lexically written ([Tryouts::TestBatch]
-    # here), which would make every container's `class Foo` definitions land in
-    # one shared namespace across files. instance_eval(string) instead sets the
-    # default definee to the receiver's own singleton class, preserving the
-    # per-container class/def isolation that instance_eval(code_string) gives.
-    def acquire_container_binding(container)
-      container.instance_eval('binding', __FILE__, __LINE__)
+    def context_name
+      @shared ? 'shared' : 'fresh'
     end
 
-    # Evaluate a block of test code against the given container. Shared-context
-    # mode reuses the one Binding acquired at initialization; each block is
-    # still its own eval call (individually rescuable and timeoutable), only
-    # the state that persists between calls changes.
-    def eval_code(container, code, path, line)
-      if @binding && container.equal?(@container)
-        @binding.eval(code, path, line)
-      else
-        container.instance_eval(code, path, line)
+    def run_test_cases(before_test_hook, &)
+      interludes = []
+      idx        = 0
+
+      test_cases.each do |test_case|
+        if test_case.is_a?(OrphanBlock)
+          if @shared
+            run_section(:orphan, test_case, @binding)
+            break if @aborted
+          else
+            interludes << test_case
+          end
+          next
+        end
+
+        idx += 1
+        @output_manager&.trace("Test #{idx}/#{@test_case_count}: #{test_case.description}", 2)
+
+        if @circuit_breaker_active
+          @output_manager&.error("Circuit breaker active - skipping remaining tests after #{@consecutive_failures} consecutive failures")
+          break
+        end
+
+        run_single_test(test_case, idx, interludes, before_test_hook, &)
+        break if @aborted
       end
     end
 
-    # Pattern matching for execution strategy selection
-    def execute_single_test(test_case, before_test_hook = nil)
+    # Display filtering (line_spec) applies to test_start/test_end and result
+    # output only. Every test is executed.
+    def run_single_test(test_case, idx, interludes, before_test_hook)
+      display = should_display_test_result?(test_case)
+      @output_manager&.test_start(test_case, idx, @test_case_count) if display
+
       before_test_hook&.call(test_case)
 
-      # Capture output during test execution
+      binding = @shared ? @binding : fresh_binding(interludes)
+      return nil if @aborted
+
       result          = nil
-      captured_output = capture_output do
-        result = case @options[:shared_context]
-                 when true
-                   execute_with_shared_context(test_case)
-                 when false, nil
-                   execute_with_fresh_context(test_case)
-                 else
-                   raise 'Invalid execution context configuration'
-                 end
-      end
+      captured_output = capture_output { result = execute_test_case(test_case, binding) }
+      result          = result.with(captured_output: captured_output) if captured_output
 
-      # Add captured output to the result if any exists
-      if captured_output && !captured_output.empty?
-        # Create new result packet with captured output
-        result = result.class.new(
-          test_case: result.test_case,
-          status: result.status,
-          result_value: result.result_value,
-          actual_results: result.actual_results,
-          expected_results: result.expected_results,
-          error: result.error,
-          captured_output: captured_output,
-          elapsed_time: result.elapsed_time,
-          metadata: result.metadata,
-        )
-      end
+      run_section(:teardown, @testrun.teardown, binding) unless @shared
 
-      process_test_result(result)
+      process_test_result(result, display)
+      @output_manager&.test_end(test_case, idx, @test_case_count) if display
+      update_circuit_breaker(result)
       yield(test_case) if block_given?
       result
     end
 
-    # Shared context execution - setup runs once, all tests share state
-    def execute_with_shared_context(test_case)
-      execute_test_case_with_container(test_case, @container)
+    # A new object and Binding with the setup and the preceding interludes
+    # already evaluated in it.
+    def fresh_binding(interludes)
+      binding = ScriptBinding.for(Object.new)
+      run_section(:setup, @testrun.setup, binding)
+      interludes.each do |interlude|
+        break if @aborted
+
+        run_section(:orphan, interlude, binding)
+      end
+      binding
     end
 
-    # Fresh context execution - tests run in isolated state but inherit setup @instance_variables
-    def execute_with_fresh_context(test_case)
-      fresh_container = if @shared_context.is_a?(FreshContextFactory)
-                          @shared_context.create_container
-                        else
-                          Object.new  # Fallback for backwards compatibility
-                        end
-
-      # Copy @instance_variables from setup container to fresh container
-      if @setup_container
-        @setup_container.instance_variables.each do |var|
-          value = @setup_container.instance_variable_get(var)
-          fresh_container.instance_variable_set(var, value)
-        end
+    # Run the test code once, then evaluate every expectation against what it
+    # produced. The timeout covers both.
+    def execute_test_case(test_case, binding)
+      context = execute_with_timeout(test_case) do
+        ctx = run_test_code(test_case, binding)
+        [ctx, evaluate_expectations(test_case, ctx)]
       end
-
-      execute_test_case_with_container(test_case, fresh_container)
-    end
-
-    # Common test execution logic shared by both context modes
-    def execute_test_case_with_container(test_case, container)
-      # Individual test timeout protection
-      test_timeout = @options[:test_timeout] || 30 # 30 second default
-
-      if test_case.exception_expectations?
-        # Execute test code and catch exception to pass to evaluators
-        caught_exception = nil
-        begin
-          code  = test_case.code
-          path  = test_case.path
-          eval_code(container, code, path, test_case.eval_start_line)
-        rescue SystemStackError, NoMemoryError, SecurityError, ScriptError => ex
-          # Handle system-level exceptions that don't inherit from StandardError
-          # ScriptError includes: LoadError, SyntaxError, NotImplementedError
-          caught_exception = ex
-        rescue StandardError => ex
-          caught_exception = ex
-        end
-
-        expectations_result = execute_with_timeout(test_timeout, test_case) do
-          evaluate_expectations(test_case, caught_exception, container, nil, nil, nil, caught_exception)
-        end
-        build_test_result(test_case, caught_exception, expectations_result)
-      else
-        # Regular execution for non-exception tests with timing and output capture
-        code       = test_case.code
-        path       = test_case.path
-        start_line = test_case.eval_start_line
-
-        # Check if we need output capture for any expectations
-        needs_output_capture = test_case.expectations.any?(&:output?)
-
-        result_value, _, _, _, expectations_result =
-          execute_with_timeout(test_timeout, test_case) do
-            if needs_output_capture
-              # Execute with output capture (serialized process-global redirect)
-              result_value, execution_time_ns, stdout_content, stderr_content =
-                execute_with_output_capture(container, code, path, start_line)
-
-              expectations_result = evaluate_expectations(
-                test_case, result_value, container, execution_time_ns, stdout_content, stderr_content
-              )
-              [result_value, execution_time_ns, stdout_content, stderr_content, expectations_result]
-            else
-              # Regular execution with timing capture only
-              execution_start_ns = Process.clock_gettime(Process::CLOCK_MONOTONIC, :nanosecond)
-              result_value       = eval_code(container, code, path, test_case.eval_start_line)
-              execution_end_ns   = Process.clock_gettime(Process::CLOCK_MONOTONIC, :nanosecond)
-              execution_time_ns  = execution_end_ns - execution_start_ns
-
-              expectations_result = evaluate_expectations(test_case, result_value, container, execution_time_ns)
-              [result_value, execution_time_ns, nil, nil, expectations_result]
-            end
-          end
-
-        build_test_result(test_case, result_value, expectations_result)
-      end
-    rescue StandardError => ex
-      # Check if this exception can be handled by result_type or regex_match expectations
-      if can_handle_exception?(test_case, ex)
-        expectations_result = evaluate_expectations(test_case, ex, container)
-        build_test_result(test_case, ex, expectations_result)
-      else
-        build_error_result(test_case, ex)
-      end
+      build_test_result(test_case, *context)
     rescue SystemExit, SignalException => ex
-      # Handle process control exceptions gracefully
       Tryouts.debug "Test received #{ex.class}: #{ex.message}"
       build_error_result(test_case, StandardError.new("Test terminated by #{ex.class}: #{ex.message}"))
+    rescue *EXPECTABLE_ERRORS => ex
+      build_error_result(test_case, ex)
     end
 
-    # Execute test code while capturing its stdout/stderr.
-    #
-    # $stdout/$stderr are process-global. The redirect below mutates them for the
-    # whole process, so OUTPUT_CAPTURE_MONITOR serializes this section to keep
-    # concurrent --parallel runs from corrupting each other's output or leaving a
-    # dangling StringIO behind. See OUTPUT_CAPTURE_MONITOR for details.
-    def execute_with_output_capture(container, code, path, start_line)
-      # Create StringIO objects for capturing output
-      captured_stdout = StringIO.new
-      captured_stderr = StringIO.new
+    # @return [ExpectationEvaluators::EvaluationContext]
+    def run_test_code(test_case, binding)
+      value  = nil
+      error  = nil
+      stdout = nil
+      stderr = nil
 
-      OUTPUT_CAPTURE_MONITOR.synchronize do
-        original_stdout = $stdout
-        original_stderr = $stderr
-
-        begin
-          $stdout = captured_stdout
-          $stderr = captured_stderr
-
-          # Execute with timing capture
-          execution_start_ns = Process.clock_gettime(Process::CLOCK_MONOTONIC, :nanosecond)
-          result_value       = eval_code(container, code, path, start_line)
-          execution_end_ns   = Process.clock_gettime(Process::CLOCK_MONOTONIC, :nanosecond)
-          execution_time_ns  = execution_end_ns - execution_start_ns
-
-          [result_value, execution_time_ns, captured_stdout.string, captured_stderr.string]
-        ensure
-          # Always restore original streams
-          $stdout = original_stdout
-          $stderr = original_stderr
-        end
-      end
-    end
-
-    # Evaluate expectations using new object-oriented evaluation system
-    def evaluate_expectations(test_case, actual_result, context, execution_time_ns = nil, stdout_content = nil, stderr_content = nil, caught_exception = nil)
-      return { passed: true, actual_results: [], expected_results: [] } if test_case.expectations.empty?
-
-      # Make error variable available to ALL expectations in exception test cases
-      # This allows #=/=> error.message.nil?, #=~> /pattern/ (auto-targets error.message), etc.
-      if caught_exception
-        context.define_singleton_method(:error) { caught_exception }
-      end
-
-      evaluation_results = test_case.expectations.map do |expectation|
-        evaluator = ExpectationEvaluators::Registry.evaluator_for(expectation, test_case, context)
-
-        # Pass appropriate data to different evaluator types
-        if expectation.performance_time? && execution_time_ns
-          evaluator.evaluate(actual_result, execution_time_ns)
-        elsif expectation.output? && (stdout_content || stderr_content)
-          evaluator.evaluate(actual_result, stdout_content, stderr_content)
-        elsif expectation.exception? && caught_exception
-          # Pass caught exception to avoid double execution
-          evaluator.evaluate(actual_result, caught_exception: caught_exception)
+      started = Process.clock_gettime(Process::CLOCK_MONOTONIC, :nanosecond)
+      begin
+        if test_case.expectations.any?(&:output?)
+          value, stdout, stderr = capture_streams { eval_section(test_case, binding) }
         else
-          evaluator.evaluate(actual_result)
+          value = eval_section(test_case, binding)
         end
-      end
+      rescue *EXPECTABLE_ERRORS => ex
+        raise unless expects_error?(test_case, ex)
 
-      aggregate_evaluation_results(evaluation_results)
+        error  = ex
+        stdout = ex.instance_variable_get(:@tryouts_stdout)
+        stderr = ex.instance_variable_get(:@tryouts_stderr)
+      end
+      elapsed = Process.clock_gettime(Process::CLOCK_MONOTONIC, :nanosecond) - started
+
+      ExpectationEvaluators::EvaluationContext.new(
+        binding: binding,
+        path: test_case.path,
+        result: error || value,
+        error: error,
+        elapsed_ns: elapsed,
+        stdout: stdout,
+        stderr: stderr,
+      )
     end
 
-    # Aggregate individual evaluation results into the expected format
-    def aggregate_evaluation_results(evaluation_results)
+    # A test that declares #=!> expects to raise. One that checks a raised
+    # error's type (#=:>) or message (#=~>) may catch an ordinary error too.
+    # Anything else that raises is a test error.
+    def expects_error?(test_case, error)
+      return true if test_case.exception_expectations?
+
+      error.is_a?(StandardError) && test_case.expectations.any? { |exp| exp.result_type? || exp.regex_match? }
+    end
+
+    def eval_section(section, binding)
+      binding.eval(section.code, section.path, section.eval_start_line)
+    end
+
+    def evaluate_expectations(test_case, context)
+      evaluation_results = test_case.expectations.map do |expectation|
+        ExpectationEvaluators::Registry
+          .evaluator_for(expectation, test_case, context)
+          .evaluate(context.result)
+      end
+
+      failing = test_case.expectations.each_index.find { |i| !evaluation_results[i][:passed] }
+
       {
-        passed: evaluation_results.all? { |r| r[:passed] },
+        passed: failing.nil?,
+        failure_line: failing && test_case.expectations[failing].line,
         actual_results: evaluation_results.map { |r| r[:actual] },
         expected_results: evaluation_results.map { |r| r[:expected] },
       }
     end
 
-    # Build structured test results using TestCaseResultPacket
-    def build_test_result(test_case, result_value, expectations_result)
-      if expectations_result[:passed]
-        TestCaseResultPacket.from_success(
-          test_case,
-          result_value,
-          expectations_result[:actual_results],
-          expectations_result[:expected_results],
-        )
-      else
-        TestCaseResultPacket.from_failure(
-          test_case,
-          result_value,
-          expectations_result[:actual_results],
-          expectations_result[:expected_results],
-        )
+    # Setup, teardown and interludes. In fresh mode setup and teardown run once
+    # per test; their output and failures are reported the first time only.
+    def run_section(kind, section, binding)
+      return if section.nil? || section.empty?
+
+      first_time         = !@reported.key?(section)
+      @reported[section] = true
+
+      announce_section(kind, section) if first_time
+      captured_output = capture_output { eval_section(section, binding) }
+      section_output(kind, captured_output) if first_time && captured_output
+    rescue StandardError => ex
+      section_failed(kind, section, ex, ex.message, first_time)
+      raise "Global setup failed (#{ex.class}): #{ex.message}" if kind == :setup && Tryouts.batch_stopping_error?(ex)
+    rescue SystemExit, SignalException => ex
+      section_failed(kind, section, ex, "#{section_label(kind)} terminated by #{ex.class}: #{ex.message}", first_time)
+    end
+
+    def announce_section(kind, section)
+      case kind
+      when :setup then @output_manager&.setup_start(section.line_range)
+      when :teardown then @output_manager&.teardown_start(section.line_range)
+      when :orphan then @output_manager&.info("Running orphan code block (#{location(section)})", 2)
       end
+    end
+
+    def section_output(kind, output)
+      if kind == :teardown
+        @output_manager&.teardown_output(output)
+      else
+        @output_manager&.setup_output(output)
+      end
+    end
+
+    # Setup and interlude failures abort the batch: every later test's state
+    # is suspect. Teardown failures are reported and the batch completes.
+    def section_failed(kind, section, exception, message, first_time)
+      @aborted ||= kind unless kind == :teardown
+      return unless first_time
+
+      @global_tally&.dig(:aggregator)&.add_infrastructure_failure(kind, @testrun.source_file, message, exception)
+
+      Tryouts.debug "#{section_label(kind)} failed with #{Tryouts.classify_error(exception)} error: (#{exception.class}): #{exception.message}"
+      Tryouts.trace exception.backtrace
+
+      case kind
+      when :setup
+        @output_manager&.error("Global setup error: #{message}")
+      when :orphan
+        @output_manager&.error("Orphan code block failed (#{location(section)}): #{message}")
+      when :teardown
+        @output_manager&.error("Teardown failed: #{message}")
+        @output_manager&.error('Continuing despite teardown failure')
+      end
+    end
+
+    def section_label(kind)
+      { setup: 'Setup', teardown: 'Teardown', orphan: 'Orphan code block' }.fetch(kind)
+    end
+
+    def location(section)
+      "#{section.path}:#{section.eval_start_line}"
+    end
+
+    # A setup failure is already counted as an infrastructure failure; an
+    # interlude failure also counts against the file.
+    def abort_batch
+      reason         = @aborted == :setup ? 'setup failure' : 'orphan code block failure'
+      @output_manager&.error("Stopping batch execution due to #{reason}")
+      @status        = :failed
+      @failed_count += 1 if @aborted == :orphan
+      finalize_results
+      false
+    end
+
+    def build_test_result(test_case, context, expectations_result)
+      factory = expectations_result[:passed] ? :from_success : :from_failure
+      TestCaseResultPacket.public_send(
+        factory,
+        test_case,
+        context.result,
+        expectations_result[:actual_results],
+        expectations_result[:expected_results],
+        metadata: { failure_line: expectations_result[:failure_line] }.compact,
+      )
     end
 
     def build_error_result(test_case, exception)
       TestCaseResultPacket.from_error(test_case, exception)
     end
 
-    # Process and display test results using formatter
-    def process_test_result(result)
+    def process_test_result(result, display)
       @results << result
+      @global_tally&.dig(:aggregator)&.add_test_result(@testrun.source_file, result)
+      @failed_count += 1 if result.failed? || result.error?
 
-      # Add all test results to the aggregator for centralized counting
-      if @global_tally && @global_tally[:aggregator]
-        @global_tally[:aggregator].add_test_result(@testrun.source_file, result)
-      end
+      return unless display
 
-      # Update local batch counters for batch-level logic
-      if result.failed? || result.error?
-        @failed_count += 1
-      end
-
-      # Apply line_spec filter for output only - test was still executed
-      if should_display_test_result?(result.test_case)
-        show_test_result(result)
-
-        # Show captured output if any exists
-        if result.has_output?
-          @output_manager&.test_output(result.test_case, result.captured_output, result)
-        end
-      end
-    end
-
-    # Orphan blocks are setup-like glue between test cases: silent on success
-    # (no pass/fail, not counted in tallies), a file-level error on failure.
-    # In fresh-context mode they run against the setup container so their
-    # @instance_variables propagate to subsequent tests' fresh copies.
-    def execute_orphan_block(orphan)
-      return if orphan.code.strip.empty?
-
-      target = if shared_context?
-                 @container
-               else
-                 @setup_container ||= Object.new
-               end
-
-      @output_manager&.info("Running orphan code block (#{orphan.path}:#{orphan.line_range.first + 1})", 2)
-
-      captured_output = capture_output do
-        eval_code(target, orphan.code, orphan.path, orphan.eval_start_line)
-      end
-
-      @output_manager&.setup_output(captured_output) if captured_output && !captured_output.empty?
-    rescue StandardError => ex
-      @orphan_failed = true
-      if @global_tally && @global_tally[:aggregator]
-        @global_tally[:aggregator].add_infrastructure_failure(
-          :orphan, @testrun.source_file, ex.message, ex
-        )
-      end
-
-      Tryouts.debug "Orphan code block failed (#{ex.class}): #{ex.message}"
-      Tryouts.trace ex.backtrace
-
-      @output_manager&.error("Orphan code block failed (#{orphan.path}:#{orphan.line_range.first + 1}): #{ex.message}")
-    rescue SystemExit, SignalException => ex
-      @orphan_failed = true
-      if @global_tally && @global_tally[:aggregator]
-        @global_tally[:aggregator].add_infrastructure_failure(
-          :orphan, @testrun.source_file, "Orphan block terminated by #{ex.class}: #{ex.message}", ex
-        )
-      end
-
-      @output_manager&.error("Orphan code block terminated by #{ex.class}: #{ex.message}")
-    end
-
-    # Global setup execution for shared context mode
-    def execute_global_setup
-      setup = @testrun.setup
-
-      if setup && !setup.code.empty? && @options[:shared_context]
-        @output_manager&.setup_start(setup.line_range)
-
-        # Capture setup output instead of letting it print directly
-        captured_output = capture_output do
-          eval_code(@container, setup.code, setup.path, setup.eval_start_line)
-        end
-
-        @output_manager&.setup_output(captured_output) if captured_output && !captured_output.empty?
-      end
-    rescue StandardError => ex
-      @setup_failed                 = true
-      if @global_tally && @global_tally[:aggregator]
-        @global_tally[:aggregator].add_infrastructure_failure(
-          :setup, @testrun.source_file, ex.message, ex
-        )
-      end
-
-      # Classify error and handle appropriately
-      error_type = Tryouts.classify_error(ex)
-
-      Tryouts.debug "Setup failed with #{error_type} error: (#{ex.class}): #{ex.message}"
-      Tryouts.trace ex.backtrace
-
-      # For non-catastrophic errors, we still stop batch execution
-      unless Tryouts.batch_stopping_error?(ex)
-        @output_manager&.error("Global setup error: #{ex.message}")
-        return
-      end
-
-      # For catastrophic errors, still raise to stop execution
-      raise "Global setup failed (#{ex.class}): #{ex.message}"
-    rescue SystemExit, SignalException => ex
-      # Handle process control exceptions (exit, abort, signals) gracefully
-      @setup_failed = true
-      if @global_tally && @global_tally[:aggregator]
-        @global_tally[:aggregator].add_infrastructure_failure(
-          :setup, @testrun.source_file, "Setup terminated by #{ex.class}: #{ex.message}", ex
-        )
-      end
-
-      Tryouts.debug "Setup received #{ex.class}: #{ex.message}"
-      @output_manager&.error("Setup terminated by #{ex.class}: #{ex.message}")
-    end
-
-    # Setup execution for fresh context mode - creates @setup_container with @instance_variables
-    def execute_fresh_context_setup
-      setup = @testrun.setup
-
-      if setup && !setup.code.empty? && !@options[:shared_context]
-        @output_manager&.setup_start(setup.line_range)
-
-        # Create setup container to hold @instance_variables
-        @setup_container = Object.new
-
-        # Capture setup output instead of letting it print directly
-        captured_output = capture_output do
-          @setup_container.instance_eval(setup.code, setup.path, setup.eval_start_line)
-        end
-
-        @output_manager&.setup_output(captured_output) if captured_output && !captured_output.empty?
-      end
-    rescue StandardError => ex
-      @setup_failed                 = true
-      if @global_tally && @global_tally[:aggregator]
-        @global_tally[:aggregator].add_infrastructure_failure(
-          :setup, @testrun.source_file, ex.message, ex
-        )
-      end
-
-      # Classify error and handle appropriately
-      error_type = Tryouts.classify_error(ex)
-
-      Tryouts.debug "Setup failed with #{error_type} error: (#{ex.class}): #{ex.message}"
-      Tryouts.trace ex.backtrace
-
-      # For non-catastrophic errors, we still stop batch execution
-      unless Tryouts.batch_stopping_error?(ex)
-        @output_manager&.error("Fresh context setup failed: #{ex.message}")
-        return
-      end
-
-      # For catastrophic errors, still raise to stop execution
-      raise "Fresh context setup failed (#{ex.class}): #{ex.message}"
-    rescue SystemExit, SignalException => ex
-      # Handle process control exceptions (exit, abort, signals) gracefully
-      @setup_failed = true
-      if @global_tally && @global_tally[:aggregator]
-        @global_tally[:aggregator].add_infrastructure_failure(
-          :setup, @testrun.source_file, "Setup terminated by #{ex.class}: #{ex.message}", ex
-        )
-      end
-
-      Tryouts.debug "Setup received #{ex.class}: #{ex.message}"
-      @output_manager&.error("Setup terminated by #{ex.class}: #{ex.message}")
-    end
-
-    # Global teardown execution
-    def execute_global_teardown
-      teardown = @testrun.teardown
-
-      if teardown && !teardown.code.empty?
-        @output_manager&.teardown_start(teardown.line_range)
-
-        # Capture teardown output instead of letting it print directly
-        captured_output = capture_output do
-          eval_code(@container, teardown.code, teardown.path, teardown.eval_start_line)
-        end
-
-        @output_manager&.teardown_output(captured_output) if captured_output && !captured_output.empty?
-      end
-    rescue StandardError => ex
-      if @global_tally && @global_tally[:aggregator]
-        @global_tally[:aggregator].add_infrastructure_failure(
-          :teardown, @testrun.source_file, ex.message, ex
-        )
-      end
-
-      # Classify error and handle appropriately
-      error_type = Tryouts.classify_error(ex)
-
-      Tryouts.debug "Teardown failed with #{error_type} error: (#{ex.class}): #{ex.message}"
-      Tryouts.trace ex.backtrace
-
-      @output_manager&.error("Teardown failed: #{ex.message}")
-
-      # Teardown failures are generally non-fatal - log and continue
-      if Tryouts.batch_stopping_error?(ex)
-        # Only catastrophic errors should potentially affect batch completion
-        @output_manager&.error('Teardown failure may affect subsequent operations')
-      else
-        @output_manager&.error('Continuing despite teardown failure')
-      end
-    rescue SystemExit, SignalException => ex
-      # Handle process control exceptions (exit, abort, signals) gracefully
-      if @global_tally && @global_tally[:aggregator]
-        @global_tally[:aggregator].add_infrastructure_failure(
-          :teardown, @testrun.source_file, "Teardown terminated by #{ex.class}: #{ex.message}", ex
-        )
-      end
-
-      Tryouts.debug "Teardown received #{ex.class}: #{ex.message}"
-      @output_manager&.error("Teardown terminated by #{ex.class}: #{ex.message}")
-      @output_manager&.error('Continuing despite teardown termination')
-    end
-
-    # Result finalization and summary display
-    def finalize_results(_execution_results)
-      @status      = :completed
-      elapsed_time = Time.now - @start_time
-      show_summary(elapsed_time)
-    end
-
-    def show_test_result(result)
       @output_manager&.test_result(result)
+      @output_manager&.test_output(result.test_case, result.captured_output, result) if result.has_output?
     end
 
-    def show_summary(elapsed_time)
-      # Summary is now handled by TestRunner with failure details
-      # This method kept for compatibility but no longer calls batch_summary
+    def finalize_results
+      @status = :completed
     end
 
-    # Helper methods using pattern matching
-
-    def shared_context?
-      @options[:shared_context] == true
-    end
-
-    # Check if test case has expectations that can handle exceptions gracefully
-    def can_handle_exception?(test_case, _exception)
-      test_case.expectations.any? { |exp| exp.result_type? || exp.regex_match? }
-    end
-
-    # Check if test result should be displayed based on line_spec filter
-    # All tests are EXECUTED regardless of line_spec, but only matching tests are DISPLAYED
     def should_display_test_result?(test_case)
       return true unless @line_spec
 
-      require_relative 'cli/line_spec_parser'
       Tryouts::CLI::LineSpecParser.matches?(test_case, @line_spec)
     end
 
-    # Redirects the process-global $stdout/$stderr to StringIO for the duration of
-    # the block. This is the outer capture used by setup, teardown, and every test
-    # (execute_with_output_capture nests inside it for output-expectation tests).
-    # Synchronizes on OUTPUT_CAPTURE_MONITOR so the redirect/restore window is
-    # serialized across --parallel threads that share these process-global streams.
+    # Redirects the process-global $stdout/$stderr to StringIO for the duration
+    # of the block and returns what was written, or nil. Used around setup,
+    # teardown, interludes and every test, for display.
     def capture_output
       OUTPUT_CAPTURE_MONITOR.synchronize do
         old_stdout = $stdout
@@ -739,25 +402,39 @@ class Tryouts
       end
     end
 
-    def handle_batch_error(exception)
-      @status       = :error
-      @failed_count = 1
+    # Captures stdout and stderr separately for #=1> and #=2>. Nested inside
+    # capture_output. If the block raises, the captured streams ride along on
+    # the exception so a #=!> test can still assert on what it printed.
+    def capture_streams
+      out = StringIO.new
+      err = StringIO.new
 
-      error_message = "Batch execution failed: #{exception.message}"
-      backtrace     = exception.respond_to?(:backtrace) ? exception.backtrace : nil
-
-      @output_manager&.error(error_message, backtrace)
+      OUTPUT_CAPTURE_MONITOR.synchronize do
+        old_stdout = $stdout
+        old_stderr = $stderr
+        begin
+          $stdout = out
+          $stderr = err
+          value   = yield
+          [value, out.string, err.string]
+        rescue *EXPECTABLE_ERRORS => ex
+          ex.instance_variable_set(:@tryouts_stdout, out.string)
+          ex.instance_variable_set(:@tryouts_stderr, err.string)
+          raise
+        ensure
+          $stdout = old_stdout
+          $stderr = old_stderr
+        end
+      end
     end
 
-    # Timeout protection for individual test execution
-    def execute_with_timeout(timeout_seconds, test_case, &)
-      Timeout.timeout(timeout_seconds, &)
+    def execute_with_timeout(test_case, &)
+      Timeout.timeout(@test_timeout, &)
     rescue Timeout::Error
-      Tryouts.debug "Test timeout after #{timeout_seconds}s: #{test_case.description}"
-      raise StandardError.new("Test execution timeout (#{timeout_seconds}s)")
+      Tryouts.debug "Test timeout after #{@test_timeout}s: #{test_case.description}"
+      raise StandardError, "Test execution timeout (#{@test_timeout}s)"
     end
 
-    # Circuit breaker pattern for batch-level failure protection
     def update_circuit_breaker(result)
       if result.failed? || result.error?
         @consecutive_failures += 1
@@ -766,7 +443,6 @@ class Tryouts
           Tryouts.debug "Circuit breaker activated after #{@consecutive_failures} consecutive failures"
         end
       else
-        # Reset on success
         @consecutive_failures   = 0
         @circuit_breaker_active = false
       end

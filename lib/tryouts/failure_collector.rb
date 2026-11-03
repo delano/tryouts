@@ -11,8 +11,7 @@ class Tryouts
     # Data structure for a single failure entry
     FailureEntry = Data.define(:file_path, :test_case, :result_packet) do
       def line_number
-        # Use first expectation line for consistency with main error display
-        test_case.first_expectation_line || test_case.line_range&.first || 0
+        result_packet.failure_line
       end
 
       def description

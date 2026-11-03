@@ -7,7 +7,7 @@
 @setup_text = <<~COMMENT
 puts 'This puts is inside of a heredoc in the setup.'
 
-# TEST 1: test matches result with expectation
+## TEST 1: test matches result with expectation
 a = 1 + 1
 #=> 2
 COMMENT
@@ -22,11 +22,11 @@ a + b
 
 # This is a valid comment between testcases
 
-# TEST 3: test expectation type matters
+## TEST 3: test expectation type matters
 'foo'.class
 #=> String
 
-# TEST 4: instance variables can be used in expectations
+## TEST 4: instance variables can be used in expectations
 @testcase_heredoc = <<~TESTCASE
 @a = 1
 #=> 3
@@ -35,7 +35,7 @@ TESTCASE
 
 # ------
 
-# TEST 4: test expectations can be commented out
+## TEST 4: test expectations can be commented out
 'foo'
 ##=> 'this is a skipped test'
 

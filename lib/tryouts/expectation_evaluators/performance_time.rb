@@ -50,8 +50,11 @@ class Tryouts
         expectation_type == :performance_time
       end
 
-      def evaluate(actual_result = nil, execution_time_ns = nil)
-        if execution_time_ns.nil?
+      # The expression is a limit in milliseconds. `result` is still the test's
+      # value; the measurement is `elapsed_ms`.
+      def evaluate(actual_result = nil)
+        actual_time_ms = @context.elapsed_ms
+        if actual_time_ms.nil?
           return build_result(
             passed: false,
             actual: 'No timing data available',
@@ -60,18 +63,16 @@ class Tryouts
           )
         end
 
-        # Create result packet with timing data available to expectation
-        expectation_result = ExpectationResult.from_timing(actual_result, execution_time_ns)
-        expected_limit_ms  = eval_expectation_content(@expectation.content, expectation_result)
+        expected_limit_ms = evaluate_expression
+        unless expected_limit_ms.is_a?(Numeric)
+          raise TypeError, "#=%> expects a number of milliseconds, got #{expected_limit_ms.class}"
+        end
 
-        actual_time_ms = expectation_result.execution_time_ms
-
-        # Performance tolerance: actual <= expected + 10% (not strict window)
-        max_allowed_ms   = expected_limit_ms * 1.1
-        within_tolerance = actual_time_ms <= max_allowed_ms
+        # 10% tolerance absorbs scheduler jitter
+        max_allowed_ms = expected_limit_ms * 1.1
 
         build_result(
-          passed: within_tolerance,
+          passed: actual_time_ms <= max_allowed_ms,
           actual: "#{actual_time_ms}ms",
           expected: expected_limit_ms,
         )

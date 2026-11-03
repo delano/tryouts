@@ -215,7 +215,7 @@ class Tryouts
         test_case = result_packet.test_case
 
         failure_data = {
-          line: (test_case.first_expectation_line || test_case.line_range&.first || 0) + 1,
+          line: result_packet.failure_line + 1,
           test: test_case.description.to_s.empty? ? 'unnamed test' : test_case.description.to_s
         }
 

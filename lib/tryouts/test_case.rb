@@ -44,7 +44,14 @@ class Tryouts
     end
   end
 
-  Expectation = Data.define(:content, :type) do
+  # line is the 0-based source line of the expectation comment. Expectations
+  # are evaluated there, so a raise inside one reports its own line.
+  # Hand-built expectations (e.g. translator fixtures) may omit it.
+  Expectation = Data.define(:content, :type, :line) do
+    def initialize(line: nil, **rest)
+      super
+    end
+
     def regular? = type == :regular
     def exception? = type == :exception
     def boolean? = type == :boolean
@@ -58,7 +65,11 @@ class Tryouts
   end
 
   # Special expectation type for output capturing with pipe information
-  OutputExpectation = Data.define(:content, :type, :pipe) do
+  OutputExpectation = Data.define(:content, :type, :pipe, :line) do
+    def initialize(line: nil, **rest)
+      super
+    end
+
     def regular? = type == :regular
     def exception? = type == :exception
     def boolean? = type == :boolean
@@ -86,9 +97,9 @@ class Tryouts
     end
   end
 
-  # Code with no description and no expectations that sits between test cases.
-  # Executed in source order for its side effects, but never evaluated against
-  # expectations and never counted in test tallies.
+  # Statements between one test's subject and the next test's `##`
+  # description. Executed in source order for their side effects, never
+  # evaluated against expectations and never counted in test tallies.
   OrphanBlock = Data.define(:code, :line_range, :path, :first_code_line) do
     include EvalAnchor
 
@@ -157,6 +168,18 @@ class Tryouts
 
     def has_error?
       !error.nil?
+    end
+
+    # 0-based source line that best explains this result: the first failing
+    # expectation, or for an error the deepest frame inside the test file,
+    # falling back to the first expectation.
+    def failure_line
+      return metadata[:failure_line] if metadata&.dig(:failure_line)
+
+      frame = error&.backtrace_locations&.find { |loc| loc.path == test_case.path }
+      return frame.lineno - 1 if frame
+
+      test_case.first_expectation_line || test_case.line_range&.first || 0
     end
 
     # Helper for formatter access to first actual/expected values

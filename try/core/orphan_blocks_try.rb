@@ -27,7 +27,7 @@ orphan_local = 42
 ## TEST: a block is anchored at its first executable line, not at its start
 # line_range opens at the description or leading comment, so it is the wrong
 # line to hand to eval. first_code_line points at the first statement instead.
-@parsed = Tryouts::EnhancedParser.new(__FILE__).parse
+@parsed = Tryouts::StatementParser.new(__FILE__).parse
 @case   = @parsed.test_cases.find { |tc| tc.is_a?(Tryouts::TestCase) }
 File.readlines(__FILE__)[@case.eval_start_line - 1].strip
 #=> '@before_orphan = "ran"'

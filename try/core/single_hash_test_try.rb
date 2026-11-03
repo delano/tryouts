@@ -2,20 +2,47 @@
 #
 # frozen_string_literal: true
 
-# This is a setup comment
-setup_value = "setup"
+# A single `#` is always a plain comment, whatever it says. Only `##` names a
+# test, and consecutive `##` lines join into one description.
 
-# This should be a test description
-result = 1 + 1
-#=> 2
+require 'tempfile'
+require_relative '../../lib/tryouts'
 
-# Another test with single hash
-"hello".upcase
-#=> "HELLO"
+def parse_tryouts(source)
+  file = Tempfile.new(['single_hash', '_try.rb'])
+  file.write(source)
+  file.flush
+  Tryouts::StatementParser.new(file.path).parse
+ensure
+  file&.close!
+end
 
-## This is still a double hash description
-[1, 2, 3].length
-#=> 3
+testrun = parse_tryouts(<<~'RUBY')
+  # This is a setup comment
+  setup_value = "setup"
 
-# Cleanup comment at the end
-puts "cleanup done"
+  # This comment shows what happens when a comment reads like a description
+  result = 1 + 1
+  #=> 2
+
+  ## A description can span
+  ## more than one line
+  [1, 2, 3].length
+  #=> 3
+RUBY
+
+## TEST: A single-hash comment never becomes a description
+testrun.test_cases.first.description
+#=> ''
+
+## TEST: Without a description since the setup, the statements above the expectation are its test
+testrun.test_cases.first.code.lines.grep_v(/\A\s*#/).map(&:strip).reject(&:empty?)
+#=> ['setup_value = "setup"', 'result = 1 + 1']
+
+## TEST: The unnamed test is reported with the statement it is attached to
+testrun.warnings.map(&:type)
+#=> [:unnamed_test]
+
+## TEST: Consecutive ## lines join into one description
+testrun.test_cases.last.description
+#=> 'A description can span more than one line'

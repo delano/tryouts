@@ -9,9 +9,11 @@ $stderr.puts "Different error message"
 #=2> "Different error"  # But stderr should contain this
 
 ## TEST: Combining output and intentional failure expectations
-puts "Success message"
+message = "Success message"
+puts message
+message
 #=1> "Success"
-#=<> result.include?("Failure")  # Should pass because result doesn't contain "Failure"
+#=<> /Failure/  # Passes: the result does not match /Failure/
 
 ## TEST: Multiple expectation types together
 x = [1, 2, 3]

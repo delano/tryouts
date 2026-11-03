@@ -36,4 +36,4 @@ true
 
 ## TEST: Performance with timing expression
 sleep(0.005)  # 5ms
-#=%> result * 2
+#=%> 5 * 2  # the limit can be any expression that returns milliseconds
