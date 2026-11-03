@@ -182,7 +182,7 @@ class Tryouts
 
       # Setup/teardown operations
       def setup_start(line_range:)
-        message = "Executing global setup (lines #{line_range.first}..#{line_range.last})"
+        message = "Executing global setup (lines #{display_lines(line_range)})"
         puts indent_text(Console.color(:cyan, message), 1)
         puts
       end
@@ -196,7 +196,7 @@ class Tryouts
       end
 
       def teardown_start(line_range:)
-        message = "Executing teardown (lines #{line_range.first}..#{line_range.last})"
+        message = "Executing teardown (lines #{display_lines(line_range)})"
         puts indent_text(Console.color(:cyan, message), 1)
       end
 
@@ -271,6 +271,11 @@ class Tryouts
       end
 
       private
+
+      # Section line ranges are 0-based; files and --inspect count from 1.
+      def display_lines(line_range)
+        "#{line_range.first + 1}..#{line_range.last + 1}"
+      end
 
       def has_exception_expectations?(test_case)
         test_case.expectations.any? { |exp| exp.type == :exception }
