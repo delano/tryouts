@@ -84,13 +84,24 @@ class Tryouts
       )
     end
 
-    def self.expectation_without_subject(line_number:, context:)
+    # An expectation with no statement above it in its own test: before the
+    # first statement, or below a `##` description with no code in between.
+    # It is not evaluated.
+    def self.expectation_without_subject(line_number:, context:, description_line: nil)
+      if description_line
+        message    = "Expectation at line #{line_number} has no statement between it and the description at line #{description_line}"
+        suggestion = "A '##' line starts a new test, so this expectation does not apply to the test above it. Add the code it should test below line #{description_line}, or move the expectation above the description"
+      else
+        message    = "Expectation at line #{line_number} has no statement above it"
+        suggestion = 'An expectation asserts on the value of the statement above it. Add the code it should test'
+      end
+
       new(
         type: :expectation_without_subject,
-        message: "Expectation at line #{line_number} has no statement above it",
+        message: message,
         line_number: line_number,
         context: context,
-        suggestion: 'An expectation asserts on the value of the statement above it. Add the code it should test',
+        suggestion: suggestion,
       )
     end
   end

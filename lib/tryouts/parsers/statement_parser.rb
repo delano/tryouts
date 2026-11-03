@@ -29,6 +29,11 @@ class Tryouts
   # subject and the next test's description are an interlude (OrphanBlock)
   # that runs in source order.
   #
+  # An expectation with no statement above it in its own test (before the
+  # first statement, or below a `##` line with no code in between) is an
+  # expectation_without_subject warning. It is not evaluated and never
+  # attaches to the test above the description.
+  #
   # @example
   #   testrun = Tryouts::StatementParser.new('try/basic_try.rb').parse
   #   testrun.test_cases.first.expectations.first.line  # 0-based source line
@@ -282,12 +287,12 @@ class Tryouts
     # Turn the annotated statement list into Setup, test cases (with interludes
     # in between) and Teardown.
     def assemble
+      detach_unanchored_expectations
+
       subjects    = @statements.each_index.select { |i| @statements[i].subject? }
       test_cases  = []
       setup_range = nil
       cursor      = 0
-
-      warn_about_unanchored_expectations
 
       subjects.each do |subject_index|
         gap_index, description = description_for(cursor, subject_index)
@@ -395,14 +400,30 @@ class Tryouts
       @source.byteslice(first.start_offset, last.end_offset - first.start_offset)
     end
 
-    # Expectations that come before any statement have nothing to assert on.
-    def warn_about_unanchored_expectations
-      @leading_gap.each do |c|
-        next unless c[:kind] == :expectation
+    # An expectation needs a statement above it in its own test. One that
+    # comes before any statement has none, and neither has one written below
+    # a `##` line with no statement in between: the description starts the
+    # next test, so the statement above it belongs to another test. Either
+    # way the expectation is reported and not evaluated (it never attaches
+    # to a test it was not written for), and the description still names
+    # the test that follows.
+    def detach_unanchored_expectations
+      detach_expectations(@leading_gap, from: 0)
+      @statements.each do |statement|
+        first_description = statement.gap.index { |c| c[:kind] == :description }
+        detach_expectations(statement.gap, from: first_description, description: statement.gap[first_description]) if first_description
+      end
+    end
 
+    def detach_expectations(gap, from:, description: nil)
+      gap.each_with_index do |c, i|
+        next if i < from || c[:kind] != :expectation
+
+        gap[i] = { kind: :comment, line: c[:line] }
         @warnings << ParserWarning.expectation_without_subject(
           line_number: c[:line] + 1,
           context: @lines[c[:line]].to_s.strip,
+          description_line: description && (description[:line] + 1),
         )
       end
     end

@@ -152,3 +152,29 @@ warning_types(<<~'RUBY')
   #=> 3
 RUBY
 #=> []
+
+## An expectation below a new description does not attach to the test above
+testrun = parse_tryouts(<<~'RUBY')
+  ## counts items
+  [1, 2, 3].size
+  #=> 3
+
+  ## empty list has no items
+  #=> 0
+RUBY
+expectations = testrun.test_cases.map { |tc| tc.expectations.map(&:content) }
+[expectations, testrun.warnings.map { |w| [w.type, w.line_number] }]
+#=> [[["3"]], [[:expectation_without_subject, 6]]]
+#==> testrun.warnings.first.message.include?('the description at line 5')
+
+## That description still names the test that follows it
+testrun = parse_tryouts(<<~'RUBY')
+  ## first
+  total = 1
+  ## second
+  #=> 1
+  total += 1
+  #=> 2
+RUBY
+testrun.test_cases.map { |tc| [tc.description, tc.code] }
+#=> [["second", "total += 1"]]
