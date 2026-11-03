@@ -2,12 +2,16 @@
 #
 # frozen_string_literal: true
 
-# Test inline comment exclusion
+# An expectation can trail the statement it asserts on, written `#=>` or
+# `# =>`. A trailing comment without the arrow is a plain comment.
 
-## TEST: Inline comments should not be treated as expectations
-result = 1 + 1  # => This should NOT be treated as an expectation
-result
-#=> 2
+## TEST: An inline '# =>' is an expectation on the statement it trails
+sum = 1 + 1  # => 2
+
+## TEST: A trailing comment without the arrow is not an expectation
+total = (1 + 1) * 10  # ten times the sum
+total
+#=> 20
 
 ## TEST: Natural language comments with equals should work
 # This comment has = sign in natural language and should be fine

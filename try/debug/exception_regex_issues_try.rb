@@ -34,4 +34,4 @@ begin
 rescue => e
   e.message.include?("test message")
 end
-#==> true
+#==> result
