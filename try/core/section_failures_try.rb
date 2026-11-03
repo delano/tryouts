@@ -126,4 +126,29 @@ RUBY
 [run[:passed], run[:statuses], run[:infrastructure], run[:console].scan('Teardown failed').size]
 #=> [true, [:passed, :passed], [:teardown], 1]
 
+
+## What a failing setup printed is shown with its error
+run = run_sections_fixture(<<~'RUBY')
+  puts 'connecting to localhost:5432'
+  raise 'connection refused'
+
+  ## never runs
+  1
+  #=> 1
+RUBY
+run[:console]
+#=~> /connecting to localhost:5432\n.*Global setup error: connection refused/m
+
+## What a failing teardown printed is shown with its error
+run = run_sections_fixture(<<~'RUBY')
+  ## first test
+  1
+  #=> 1
+
+  warn 'removing tmp/uploads'
+  raise 'permission denied'
+RUBY
+run[:console]
+#=~> /removing tmp\/uploads\n.*Teardown failed: permission denied/m
+
 $connections_opened = nil

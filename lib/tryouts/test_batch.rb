@@ -329,6 +329,10 @@ class Tryouts
 
       @failed_sections[section] = true
 
+      # What the section printed before it raised is usually the diagnostic.
+      output = exception.instance_variable_get(:@tryouts_output)
+      section_output(kind, output) if output
+
       @global_tally&.dig(:aggregator)&.add_infrastructure_failure(kind, @testrun.source_file, message, exception)
 
       Tryouts.debug "#{section_label(kind)} failed with #{Tryouts.classify_error(exception)} error: (#{exception.class}): #{exception.message}"
@@ -403,7 +407,8 @@ class Tryouts
 
     # Redirects the process-global $stdout/$stderr to StringIO for the duration
     # of the block and returns what was written, or nil. Used around setup,
-    # teardown, interludes and every test, for display.
+    # teardown, interludes and every test, for display. If the block raises,
+    # what it wrote rides along on the exception (see #section_failed).
     def capture_output
       OUTPUT_CAPTURE_MONITOR.synchronize do
         old_stdout = $stdout
@@ -416,6 +421,10 @@ class Tryouts
 
           captured = $stdout.string + $stderr.string
           captured.empty? ? nil : captured
+        rescue *EXPECTABLE_ERRORS, SystemExit, SignalException => ex
+          captured = $stdout.string + $stderr.string
+          ex.instance_variable_set(:@tryouts_output, captured) unless captured.empty? || ex.frozen?
+          raise
         ensure
           $stdout = old_stdout
           $stderr = old_stderr
