@@ -105,11 +105,12 @@ What follows from this:
 
 ### What fresh context does not reset
 
-Fresh context isolates the binding: its `self`, its local and instance variables, and the methods and constants the file defines on it. It does not undo changes the code makes to the rest of the process:
+Fresh context isolates the binding: its `self` and its local and instance variables. It does not undo changes the code makes to the rest of the process:
 
+- classes, modules, constants and methods the file defines: the file runs at the top level, as a script does, so `class Widget` is `::Widget` and a re-run setup assigns its constants again;
 - global variables (`$count`), `ENV`, and files on disk;
 - `require`: a library is loaded once per process, so a second `require` in the next test's setup is a no-op;
-- changes to existing classes, such as `class ::String` or `String.include(SomeModule)`;
+- changes to existing classes, such as `class String` or `String.include(SomeModule)`;
 - class-level state in library code, such as a cache or a configuration object held in a constant.
 
 A test that changes one of these changes it for every test after it, in either mode. If a test needs to change global state, put it back in the teardown.

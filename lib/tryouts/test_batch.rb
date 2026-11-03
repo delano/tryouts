@@ -57,7 +57,7 @@ class Tryouts
       @reported        = {} # sections whose output and failures were already shown once
 
       # One Binding for the whole file in shared mode
-      @binding = @shared ? ScriptBinding.for(Object.new) : nil
+      @binding = @shared ? ScriptBinding.create : nil
 
       # Circuit breaker for batch-level failure protection
       @consecutive_failures     = 0
@@ -179,7 +179,7 @@ class Tryouts
     # A new object and Binding with the setup and the preceding interludes
     # already evaluated in it.
     def fresh_binding(interludes)
-      binding = ScriptBinding.for(Object.new)
+      binding = ScriptBinding.create
       run_section(:setup, @testrun.setup, binding)
       interludes.each do |interlude|
         break if @aborted
@@ -278,7 +278,9 @@ class Tryouts
       @reported[section] = true
 
       announce_section(kind, section) if first_time
-      captured_output = capture_output { eval_section(section, binding) }
+      captured_output = capture_output do
+        first_time ? eval_section(section, binding) : ScriptBinding.quiet_redefinitions { eval_section(section, binding) }
+      end
       section_output(kind, captured_output) if first_time && captured_output
     rescue StandardError => ex
       section_failed(kind, section, ex, ex.message, first_time)

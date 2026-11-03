@@ -10,7 +10,7 @@
 require 'tempfile'
 require_relative '../../lib/tryouts'
 
-def run_tryouts(source, shared:)
+def statuses_in_context(source, shared:)
   file = Tempfile.new(['context', '_try.rb'])
   file.write(source)
   file.flush
@@ -48,23 +48,23 @@ RUBY
 
 ## TEST: Fresh context isolates every test, including mutable setup state
 $teardowns = 0
-run_tryouts(fixture, shared: false)
+statuses_in_context(fixture, shared: false)
 #=> [:passed, :passed, :passed]
 
 ## TEST: Fresh context runs the teardown after every test
 $teardowns = 0
-run_tryouts(fixture, shared: false)
+statuses_in_context(fixture, shared: false)
 $teardowns
 #=> 3
 
 ## TEST: Shared context runs the same file as one script
 $teardowns = 0
-run_tryouts(fixture, shared: true)
+statuses_in_context(fixture, shared: true)
 #=> [:passed, :failed, :failed]
 
 ## TEST: Shared context runs the teardown once, at the end
 $teardowns = 0
-run_tryouts(fixture, shared: true)
+statuses_in_context(fixture, shared: true)
 $teardowns
 #=> 1
 

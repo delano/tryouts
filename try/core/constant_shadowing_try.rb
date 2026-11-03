@@ -5,7 +5,9 @@
 #
 # Tests for constant shadowing edge cases in type expectations
 # Verifies that class type expectations work correctly even when
-# class constants are shadowed by local variables or methods
+# class constants are shadowed by local variables or methods.
+# The shadowing methods are defined on self: a top-level `def String` would
+# replace Kernel#String for every object in the process, as in any script.
 
 # Setup classes used in tests
 class CustomTestClass
@@ -39,7 +41,7 @@ value
 #=~> /test/
 
 ## TEST: Type check works when String method is defined
-def String
+def self.String
   "method_override"
 end
 
@@ -49,7 +51,7 @@ test_string
 #=:> String
 
 ## TEST: Type check works with other shadowed constants
-def Array
+def self.Array
   "array_method"
 end
 
@@ -59,7 +61,7 @@ test_array
 #==> _.size == 3
 
 ## TEST: Hash type with potential shadowing
-def Hash
+def self.Hash
   {}
 end
 
@@ -75,11 +77,11 @@ custom_obj
 #==> _.to_s.include?("custom")
 
 ## TEST: Numeric type expectations with shadowing
-def Integer
+def self.Integer
   "not_an_integer"
 end
 
-def Float
+def self.Float
   "not_a_float"
 end
 
@@ -95,11 +97,11 @@ num2
 #==> _ > 3.0
 
 ## TEST: Boolean type expectations with method shadowing
-def TrueClass
+def self.TrueClass
   "fake_true"
 end
 
-def FalseClass
+def self.FalseClass
   "fake_false"
 end
 
@@ -113,11 +115,11 @@ bool_val2
 #=:> FalseClass
 
 ## TEST: Symbol and Regexp with shadowing
-def Symbol
+def self.Symbol
   "not_a_symbol"
 end
 
-def Regexp
+def self.Regexp
   "not_a_regexp"
 end
 
@@ -132,7 +134,7 @@ regex
 #=:> Regexp
 
 ## TEST: Module inheritance still works with shadowing
-def Module
+def self.Module
   "fake_module"
 end
 
@@ -142,7 +144,7 @@ obj_with_mod
 #=:> TestClassWithMod
 
 ## TEST: Object inheritance works despite method definitions
-def Object
+def self.Object
   "not_the_object_class"
 end
 

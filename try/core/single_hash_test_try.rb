@@ -9,7 +9,7 @@
 require 'tempfile'
 require_relative '../../lib/tryouts'
 
-def parse_tryouts(source)
+def parse_single_hash(source)
   file = Tempfile.new(['single_hash', '_try.rb'])
   file.write(source)
   file.flush
@@ -18,7 +18,7 @@ ensure
   file&.close!
 end
 
-testrun = parse_tryouts(<<~'RUBY')
+testrun = parse_single_hash(<<~'RUBY')
   # This is a setup comment
   setup_value = "setup"
 

@@ -8,7 +8,7 @@
 require 'tempfile'
 require_relative '../../lib/tryouts'
 
-def run_tryouts(source)
+def operator_statuses(source)
   file = Tempfile.new(['operators', '_try.rb'])
   file.write(source)
   file.flush
@@ -34,7 +34,7 @@ end
 #=<> 3
 
 ## TEST: #=<> fails when the negated thing holds
-run_tryouts(<<~'RUBY')
+operator_statuses(<<~'RUBY')
   ## matches
   "123"
   #=<> /\d+/
@@ -58,7 +58,7 @@ raise FlakyError
 #=!> Retryable
 
 ## TEST: #=!> runs the test code exactly once when nothing is raised
-statuses = run_tryouts(<<~'RUBY')
+statuses = operator_statuses(<<~'RUBY')
   $operator_calls = 0
 
   ## does not raise
@@ -74,7 +74,7 @@ RUBY
 #==> result == [1, 2, 3]
 
 ## TEST: #=%> limits must be numbers
-run_tryouts(<<~'RUBY')
+operator_statuses(<<~'RUBY')
   ## array limit
   [1, 2, 3]
   #=%> result * 2
