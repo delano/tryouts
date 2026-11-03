@@ -327,8 +327,10 @@ class Tryouts
     # The nearest `##` description between the previous subject and this one.
     # Gap g sits after statement g, so the test begins at statement g + 1. A
     # gap that also holds the previous subject's expectations only offers the
-    # descriptions written after them. Consecutive `##` lines join into one
-    # description.
+    # descriptions written after them. Only `##` lines on adjacent lines join
+    # into one description, and the last such block before the code is the
+    # test's description. An earlier block, cut off by a blank line or a plain
+    # comment (a section heading, a commented-out test), is a comment.
     #
     # @return [Array(Integer, Hash), nil] gap index (-1 for the file's leading
     #   gap) and description info
@@ -339,8 +341,9 @@ class Tryouts
         lines       = gap[(last_expect + 1)..].select { |c| c[:kind] == :description }
         next if lines.empty?
 
-        text = lines.map { |c| c[:text] }.reject(&:empty?).join(' ')
-        return [gap_index, { text: text, line: lines.first[:line] }]
+        block = lines.slice_when { |a, b| b[:line] != a[:line] + 1 }.to_a.last
+        text  = block.map { |c| c[:text] }.reject(&:empty?).join(' ')
+        return [gap_index, { text: text, line: block.first[:line] }]
       end
       nil
     end

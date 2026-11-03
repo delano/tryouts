@@ -3,7 +3,8 @@
 # frozen_string_literal: true
 
 # A single `#` is always a plain comment, whatever it says. Only `##` names a
-# test, and consecutive `##` lines join into one description.
+# test, and only consecutive `##` lines (no blank line or plain comment
+# between them) join into one description.
 
 require 'tempfile'
 require_relative '../../lib/tryouts'
@@ -46,3 +47,24 @@ testrun.warnings.map(&:type)
 ## TEST: Consecutive ## lines join into one description
 testrun.test_cases.last.description
 #=> 'A description can span more than one line'
+
+## A blank line or a plain comment ends a block of ## lines
+headed = parse_tryouts(<<~'RUBY')
+  ## Arithmetic
+
+  ## adds two numbers
+  1 + 1
+  #=> 2
+
+  ## subtract (disabled for now)
+  # 3 - 1
+  ## multiplies
+  2 * 3
+  #=> 6
+RUBY
+headed.test_cases.map(&:description)
+#=> ['adds two numbers', 'multiplies']
+
+## The test's lines start at the ## block that names it
+headed.test_cases.map { |tc| tc.line_range.first }
+#=> [2, 8]
