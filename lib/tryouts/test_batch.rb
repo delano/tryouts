@@ -63,7 +63,7 @@ class Tryouts
       @aborted         = false
       @ran             = {} # sections that have run; their announcement and output are shown once
       @failed_sections = {} # sections whose failure was reported; a repeat is not reported again
-      @teardown_output = nil # fresh context: the teardown's first output, shown after the last test
+      @teardown_report = [] # fresh context: what the teardown shows, held until after the last test
 
       # One Binding for the whole file in shared mode
       @binding = @shared ? ScriptBinding.create : nil
@@ -182,9 +182,9 @@ class Tryouts
 
       before_test_hook&.call(test_case)
 
-      result          = nil
-      captured_output = capture_output { result = execute_test_case(test_case, binding) }
-      result          = result.with(captured_output: captured_output) if captured_output
+      output = +''
+      result = capture_output(output) { execute_test_case(test_case, binding) }
+      result = result.with(captured_output: output) unless output.empty?
 
       process_test_result(result, display)
       @output_manager&.test_end(test_case, idx, @test_case_count) if display
@@ -236,22 +236,16 @@ class Tryouts
     def run_test_code(test_case, binding)
       value  = nil
       error  = nil
-      stdout = nil
-      stderr = nil
+      stdout = test_case.expectations.any?(&:output?) ? StringIO.new : nil
+      stderr = stdout && StringIO.new
 
       started = Process.clock_gettime(Process::CLOCK_MONOTONIC, :nanosecond)
       begin
-        if test_case.expectations.any?(&:output?)
-          value, stdout, stderr = capture_streams { eval_section(test_case, binding) }
-        else
-          value = eval_section(test_case, binding)
-        end
+        value = stdout ? capture_streams(stdout, stderr) { eval_section(test_case, binding) } : eval_section(test_case, binding)
       rescue *EXPECTABLE_ERRORS => ex
         raise unless expects_error?(test_case, ex)
 
-        error  = ex
-        stdout = ex.instance_variable_get(:@tryouts_stdout)
-        stderr = ex.instance_variable_get(:@tryouts_stderr)
+        error = ex
       end
       elapsed = Process.clock_gettime(Process::CLOCK_MONOTONIC, :nanosecond) - started
 
@@ -262,8 +256,8 @@ class Tryouts
         result: error || value,
         error: error,
         elapsed_ns: elapsed,
-        stdout: stdout,
-        stderr: stderr,
+        stdout: stdout&.string,
+        stderr: stderr&.string,
       )
     end
 
@@ -308,28 +302,36 @@ class Tryouts
     #
     # A fresh-context teardown runs after every test but is announced once,
     # after the last one, the way a shared-context teardown is; its output
-    # waits for that announcement.
+    # and any failure are shown under that announcement (see #report).
+    #
+    # What the section printed is collected in `output` even when it raises:
+    # that is usually the diagnostic.
     def run_section(kind, section, binding, for_test = nil)
       return if section.nil? || section.empty?
 
       rerun         = @ran.key?(section)
       @ran[section] = true
-      deferred      = kind == :teardown && !@shared
+      output        = +''
 
-      announce_section(kind, section) unless rerun || deferred
-      captured_output = capture_output { eval_section(section, binding) }
-      return if rerun
-
-      if deferred
-        @teardown_output = captured_output
-      else
-        section_output(kind, captured_output)
-      end
+      announce_section(kind, section) unless rerun || deferred?(kind)
+      capture_output(output) { eval_section(section, binding) }
+      section_output(kind, output) unless rerun
     rescue *EXPECTABLE_ERRORS => ex
-      section_failed(kind, section, ex, with_rerun_context(ex.message, rerun, for_test))
+      section_failed(kind, section, ex, with_rerun_context(ex.message, rerun, for_test), output)
     rescue SystemExit, SignalException => ex
       message = "#{section_label(kind)} terminated by #{ex.class}: #{ex.message}"
-      section_failed(kind, section, ex, with_rerun_context(message, rerun, for_test))
+      section_failed(kind, section, ex, with_rerun_context(message, rerun, for_test), output)
+    end
+
+    # Fresh context holds back what the teardown shows until it is announced.
+    def deferred?(kind)
+      kind == :teardown && !@shared
+    end
+
+    def report(kind, &display)
+      return @teardown_report << display if deferred?(kind)
+
+      yield
     end
 
     # A section that passed on its first run and fails on a later one says
@@ -352,45 +354,46 @@ class Tryouts
       return unless @ran.key?(@testrun.teardown)
 
       announce_section(:teardown, @testrun.teardown)
-      section_output(:teardown, @teardown_output)
+      @teardown_report.each(&:call)
     end
 
     def section_output(kind, output)
-      return if output.nil?
+      return if output.empty?
 
-      if kind == :teardown
-        @output_manager&.teardown_output(output)
-      else
-        @output_manager&.setup_output(output)
+      report(kind) do
+        if kind == :teardown
+          @output_manager&.teardown_output(output)
+        else
+          @output_manager&.setup_output(output)
+        end
       end
     end
 
     # Setup and interlude failures abort the batch: every later test's state
     # is suspect. Teardown failures are reported and the batch completes; a
     # fresh-context teardown that fails after every test is reported once.
-    def section_failed(kind, section, exception, message)
+    def section_failed(kind, section, exception, message, output)
       @aborted ||= kind unless kind == :teardown
       return if @failed_sections.key?(section)
 
       @failed_sections[section] = true
-
-      # What the section printed before it raised is usually the diagnostic.
-      output = exception.instance_variable_get(:@tryouts_output)
-      section_output(kind, output) if output
+      section_output(kind, output)
 
       @global_tally&.dig(:aggregator)&.add_infrastructure_failure(kind, @testrun.source_file, message, exception)
 
       Tryouts.debug "#{section_label(kind)} failed with #{Tryouts.classify_error(exception)} error: (#{exception.class}): #{exception.message}"
       Tryouts.trace exception.backtrace
 
-      case kind
-      when :setup
-        @output_manager&.error("Global setup error: #{message}")
-      when :orphan
-        @output_manager&.error("Orphan code block failed (#{location(section)}): #{message}")
-      when :teardown
-        @output_manager&.error("Teardown failed: #{message}")
-        @output_manager&.error('Continuing despite teardown failure')
+      report(kind) do
+        case kind
+        when :setup
+          @output_manager&.error("Global setup error: #{message}")
+        when :orphan
+          @output_manager&.error("Orphan code block failed (#{location(section)}): #{message}")
+        when :teardown
+          @output_manager&.error("Teardown failed: #{message}")
+          @output_manager&.error('Continuing despite teardown failure')
+        end
       end
     end
 
@@ -456,52 +459,30 @@ class Tryouts
       Tryouts::CLI::LineSpecParser.matches?(test_case, @line_spec)
     end
 
-    # Redirects the process-global $stdout/$stderr to StringIO for the duration
-    # of the block and returns what was written, or nil. Used around setup,
-    # teardown, interludes and every test, for display. If the block raises,
-    # what it wrote rides along on the exception (see #section_failed).
-    def capture_output
-      OUTPUT_CAPTURE_MONITOR.synchronize do
-        old_stdout = $stdout
-        old_stderr = $stderr
-        $stdout    = StringIO.new
-        $stderr    = StringIO.new
-
-        begin
-          yield
-
-          captured = $stdout.string + $stderr.string
-          captured.empty? ? nil : captured
-        rescue *EXPECTABLE_ERRORS, SystemExit, SignalException => ex
-          captured = $stdout.string + $stderr.string
-          ex.instance_variable_set(:@tryouts_output, captured) unless captured.empty? || ex.frozen?
-          raise
-        ensure
-          $stdout = old_stdout
-          $stderr = old_stderr
-        end
-      end
-    end
-
-    # Captures stdout and stderr separately for #=1> and #=2>. Nested inside
-    # capture_output. If the block raises, the captured streams ride along on
-    # the exception so a #=!> test can still assert on what it printed.
-    def capture_streams
+    # Redirects the process-global $stdout/$stderr for the duration of the
+    # block and appends what was written (stdout, then stderr) to `output`,
+    # whether or not the block raises. Returns the block's value. Used around
+    # setup, teardown, interludes and every test, for display.
+    def capture_output(output, &)
       out = StringIO.new
       err = StringIO.new
+      capture_streams(out, err, &)
+    ensure
+      output << out.string << err.string
+    end
 
+    # Redirects $stdout to `out` and $stderr to `err` for the duration of the
+    # block: for #=1> and #=2> (nested inside capture_output), and for
+    # capture_output itself. The caller owns the buffers, so what was written
+    # is there even when the block raises.
+    def capture_streams(out, err)
       OUTPUT_CAPTURE_MONITOR.synchronize do
         old_stdout = $stdout
         old_stderr = $stderr
         begin
           $stdout = out
           $stderr = err
-          value   = yield
-          [value, out.string, err.string]
-        rescue *EXPECTABLE_ERRORS => ex
-          ex.instance_variable_set(:@tryouts_stdout, out.string)
-          ex.instance_variable_set(:@tryouts_stderr, err.string)
-          raise
+          yield
         ensure
           $stdout = old_stdout
           $stderr = old_stderr

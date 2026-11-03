@@ -151,4 +151,35 @@ RUBY
 run[:console]
 #=~> /removing tmp\/uploads\n.*Teardown failed: permission denied/m
 
+## What a setup printed is shown even when it raises a frozen exception
+run = run_sections_fixture(<<~'RUBY')
+  puts 'loading fixtures'
+  raise RuntimeError.new('fixtures missing').freeze
+
+  ## never runs
+  1
+  #=> 1
+RUBY
+run[:console]
+#=~> /loading fixtures\n.*Global setup error: fixtures missing/m
+
+## A fresh-context teardown's header, output and failure appear together after the last test
+run = run_sections_fixture(<<~'RUBY', shared: false)
+  @items = [1]
+
+  ## adds an item
+  @items << 2
+  @items.size
+  #=> 2
+
+  ## starts again from one item
+  @items.size
+  #=> 1
+
+  puts "teardown sees #{@items.size}"
+  raise 'teardown boom' if @items.size == 2
+RUBY
+run[:console].lines.map { |line| line.gsub(/\e\[[\d;]*m/, '').strip }.grep(/\A(Test \d|Executing teardown|teardown sees|ERROR: Teardown failed)/).map { |line| line[/\A\S+ \S+/] }
+#=> ['Test 1/2:', 'Test 2/2:', 'Executing teardown', 'teardown sees', 'ERROR: Teardown']
+
 $connections_opened = nil

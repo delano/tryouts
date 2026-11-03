@@ -34,6 +34,12 @@ name = "Ruby"
 puts "Hello, #{name}!"
 #=1> "Hello, Ruby!"
 
+## TEST: Output is checked when the test raises a frozen error
+puts "Retrying upload"
+raise RuntimeError.new("upload gave up").freeze
+#=!> RuntimeError
+#=1> "Retrying upload"
+
 ## TEST: Empty output expectations (should fail intentionally for testing)
 # Note: These are intentionally commented to avoid test failures
 # puts "some output"
