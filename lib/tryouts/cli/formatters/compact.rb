@@ -146,7 +146,7 @@ class Tryouts
 
           # Show minimal context for failures
           if result_packet.actual_results.any?
-            failure_info = "got: #{result_packet.first_actual.inspect}"
+            failure_info = "got: #{result_packet.failed_actual.inspect}"
             puts indent_text("    #{failure_info}", 1)
           end
 

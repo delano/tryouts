@@ -225,16 +225,14 @@ class Tryouts
           failure_data[:error] = error ? "#{error.class.name}: #{error.message}" : 'unknown error'
         when :failed
           if result_packet.expected_results.any? && result_packet.actual_results.any?
-            expected = @budget.smart_truncate(result_packet.first_expected, max_tokens: 25)
-            actual = @budget.smart_truncate(result_packet.first_actual, max_tokens: 25)
-            failure_data[:expected] = expected
-            failure_data[:got] = actual
+            failed_expected         = result_packet.failed_expected
+            failed_actual           = result_packet.failed_actual
+            failure_data[:expected] = @budget.smart_truncate(failed_expected, max_tokens: 25)
+            failure_data[:got]      = @budget.smart_truncate(failed_actual, max_tokens: 25)
 
             # Add diff for strings if budget allows
-            if result_packet.first_expected.is_a?(String) &&
-               result_packet.first_actual.is_a?(String) &&
-               @budget.has_budget?
-              failure_data[:diff] = generate_simple_diff(result_packet.first_expected, result_packet.first_actual)
+            if failed_expected.is_a?(String) && failed_actual.is_a?(String) && @budget.has_budget?
+              failure_data[:diff] = generate_simple_diff(failed_expected, failed_actual)
             end
           else
             failure_data[:reason] = 'test failed'
