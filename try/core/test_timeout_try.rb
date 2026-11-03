@@ -24,14 +24,23 @@ ensure
   file&.close!
 end
 
-## A library timeout raised by the code under test keeps its class
-raise Net::OpenTimeout, 'connect to example.test timed out'
-#=!> Net::OpenTimeout
-#=~> /example.test/
+## A library timeout raised by the code under test keeps its class and message
+results = run_with_deadline(<<~'RUBY', 30)
+  ## connects
+  raise Net::OpenTimeout, 'connect to example.test timed out'
+  #=> :connected
+RUBY
+[results.first.status, results.first.error.class, results.first.error.message]
+#=> [:error, Net::OpenTimeout, 'connect to example.test timed out']
 
-## A Timeout.timeout of the code's own is an ordinary Timeout::Error
-Timeout.timeout(0.01) { sleep 1 }
-#=!> Timeout::Error
+## A Timeout.timeout of the code's own keeps its message
+results = run_with_deadline(<<~'RUBY', 30)
+  ## waits for the queue
+  Timeout.timeout(0.01, Timeout::Error, 'queue stayed empty') { sleep 1 }
+  #=> :dequeued
+RUBY
+results.first.error.message
+#=> 'queue stayed empty'
 
 ## An unexpected Timeout::Error is reported as itself, at its own line
 results = run_with_deadline(<<~'RUBY', 30)
