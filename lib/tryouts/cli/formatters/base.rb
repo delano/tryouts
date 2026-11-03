@@ -43,7 +43,7 @@ class Tryouts
         # Default: no output
       end
 
-      def file_result(file_path, total_tests:, failed_count:, error_count:, elapsed_time: nil)
+      def file_result(file_path, total_tests:, failed_count:, error_count:, elapsed_time: nil, section_failures: [])
         # Default: no output
       end
 
@@ -167,6 +167,15 @@ class Tryouts
           '.' * width
         else
           '-' * width
+        end
+      end
+
+      # "setup failed", "interlude failed", "teardown failed" for the
+      # infrastructure failure types a file recorded.
+      def section_failure_details(section_failures)
+        section_failures.map do |kind|
+          name = { orphan: 'interlude', file_processing: 'file' }.fetch(kind, kind.to_s)
+          "#{name} failed"
         end
       end
 

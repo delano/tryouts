@@ -53,31 +53,26 @@ class Tryouts
         test_results << last_result if last_result
       end
 
-      file_failed_count                 = test_results.count { |r| r.failed? }
-      file_error_count                  = test_results.count { |r| r.error? }
-      executed_test_count               = test_results.size
+      file_failed_count   = test_results.count(&:failed?)
+      file_error_count    = test_results.count(&:error?)
+      executed_test_count = test_results.size
+
+      # Setup, interlude and teardown failures recorded for this file. Each
+      # counts once toward the exit code, alongside the failing tests.
+      aggregator       = @global_tally[:aggregator]
+      section_failures = aggregator.infrastructure_failures_for(@file).map { |failure| failure[:type] }
 
       # NOTE: Individual test results are added to the aggregator in TestBatch
       # Here we just update the file success count atomically
-      if success
-        @global_tally[:aggregator].increment_successful_files
-      end
+      aggregator.increment_successful_files if success && section_failures.empty?
 
       duration = Time.now.to_f - @file_start.to_f
-      @output_manager.file_success(@file, executed_test_count, file_failed_count, file_error_count, duration)
+      @output_manager.file_success(
+        @file, executed_test_count, file_failed_count, file_error_count, duration,
+        section_failures: section_failures
+      )
 
-      # Combine failures and errors to determine the exit code.
-      # Include infrastructure failures (setup/teardown errors) in exit code calculation
-      if success
-        0
-      else
-        # Check for infrastructure failures when no test cases executed
-        infrastructure_failure_count = @global_tally[:aggregator].infrastructure_failure_count
-        total_failure_count          = file_failed_count + file_error_count
-
-        # If no tests ran but there are infrastructure failures, count those as failures
-        total_failure_count.zero? && infrastructure_failure_count > 0 ? infrastructure_failure_count : total_failure_count
-      end
+      file_failed_count + file_error_count + section_failures.size
     end
 
     def execute_rspec_mode

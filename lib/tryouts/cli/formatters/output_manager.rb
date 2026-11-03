@@ -71,13 +71,14 @@ class Tryouts
         )
       end
 
-      def file_success(file_path, total_tests, failed_count, error_count, elapsed_time)
+      def file_success(file_path, total_tests, failed_count, error_count, elapsed_time, section_failures: [])
         @formatter.file_result(
           file_path,
           total_tests: total_tests,
           failed_count: failed_count,
           error_count: error_count,
-          elapsed_time: elapsed_time
+          elapsed_time: elapsed_time,
+          section_failures: section_failures
         )
       end
 

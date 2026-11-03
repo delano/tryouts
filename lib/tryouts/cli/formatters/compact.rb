@@ -93,9 +93,9 @@ class Tryouts
         end
       end
 
-      def file_result(_file_path, total_tests:, failed_count:, error_count:, elapsed_time: nil)
-        issues_count = failed_count + error_count
-        passed_count = total_tests - issues_count
+      def file_result(_file_path, total_tests:, failed_count:, error_count:, elapsed_time: nil, section_failures: [])
+        issues_count = failed_count + error_count + section_failures.size
+        passed_count = total_tests - failed_count - error_count
         details = []
 
         if issues_count > 0
@@ -113,6 +113,8 @@ class Tryouts
         if failed_count > 0
           details << "#{failed_count} failed"
         end
+
+        details.concat(section_failure_details(section_failures))
 
         time_str = format_timing(elapsed_time)
         puts "  #{status} #{details.join(', ')}#{time_str}"

@@ -55,7 +55,7 @@ class Tryouts
         @output_rendered = false
         @options = options  # Store all options for execution context display
         @all_warnings = []  # Store warnings globally for execution details
-        @syntax_errors = []  # Store syntax errors for execution details
+        @errors = []  # Errors reported during the run (setup, interlude, teardown, file)
 
         # No colors in agent mode for cleaner parsing
         @use_colors = false
@@ -119,7 +119,8 @@ class Tryouts
         end
       end
 
-      def file_result(file_path, total_tests:, failed_count:, error_count:, elapsed_time: nil)
+      # Section failures reach agent output through error_message, under Errors:
+      def file_result(file_path, total_tests:, failed_count:, error_count:, elapsed_time: nil, **)
         # Update elapsed time (other stats come from TestResultAggregator via grand_total)
         @total_stats[:elapsed_time] += elapsed_time if elapsed_time
 
@@ -193,8 +194,8 @@ class Tryouts
       end
 
       def error_message(message, backtrace: nil)
-        # Store syntax errors for display in execution details
-        @syntax_errors << {
+        # Store errors for display in execution details
+        @errors << {
           message: message,
           backtrace: backtrace
         }
@@ -620,11 +621,11 @@ class Tryouts
           context_lines << "  files_under_test: #{@total_stats[:files]}"
         end
 
-        # Add syntax errors if any (these prevent test execution)
-        if @syntax_errors.any?
+        # Add errors reported during the run (syntax, setup, interlude, teardown)
+        if @errors.any?
           context_lines << ""
-          context_lines << "Syntax Errors:"
-          @syntax_errors.each do |error|
+          context_lines << "Errors:"
+          @errors.each do |error|
             # Clean up the error message to remove redundant prefixes
             clean_message = error[:message].gsub(/^ERROR:\s*/i, '').strip
             context_lines << "  #{clean_message}"

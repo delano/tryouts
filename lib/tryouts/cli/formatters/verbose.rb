@@ -94,15 +94,16 @@ class Tryouts
         end
       end
 
-      def file_result(_file_path, total_tests:, failed_count:, error_count:, elapsed_time: nil)
-        issues_count = failed_count + error_count
-        passed_count = total_tests - issues_count
+      def file_result(_file_path, total_tests:, failed_count:, error_count:, elapsed_time: nil, section_failures: [])
+        issues_count = failed_count + error_count + section_failures.size
+        passed_count = total_tests - failed_count - error_count
         details = ["#{passed_count} passed"]
 
         puts
         if issues_count > 0
           details << "#{failed_count} failed" if failed_count > 0
           details << "#{error_count} errors" if error_count > 0
+          details.concat(section_failure_details(section_failures))
           details_str = details.join(', ')
           color = :red
 
@@ -423,7 +424,7 @@ class Tryouts
       end
 
       # Show file result summaries in fails-only mode (matching compact behavior)
-      def file_result(_file_path, total_tests:, failed_count:, error_count:, elapsed_time: nil)
+      def file_result(_file_path, total_tests:, failed_count:, error_count:, elapsed_time: nil, section_failures: [])
         # Always show summary - this matches compact formatter behavior
         super
       end

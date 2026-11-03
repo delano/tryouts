@@ -66,6 +66,11 @@ class Tryouts
       @infrastructure_failures.size
     end
 
+    # Infrastructure failures recorded for one file
+    def infrastructure_failures_for(file_path)
+      @infrastructure_failures.select { |failure| failure[:file_path] == file_path }
+    end
+
     # Get counts that should be displayed in numbered failure lists
     # These match what actually appears in the failure summary
     def get_display_counts
