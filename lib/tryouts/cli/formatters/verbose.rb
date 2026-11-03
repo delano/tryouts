@@ -72,11 +72,7 @@ class Tryouts
             pretty_path = Console.pretty_path(file_path)
 
             # Include line number with file path for easy copying/clicking
-            if failure.line_number > 0
-              location = "#{pretty_path}:#{failure.line_number + 1}"
-            else
-              location = pretty_path
-            end
+            location = "#{pretty_path}:#{failure.line_number + 1}"
 
             puts
             puts Console.color(:yellow, location)

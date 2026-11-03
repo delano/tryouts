@@ -225,7 +225,7 @@ class Tryouts
           error = result_packet.error
           failure_data[:error] = error ? "#{error.class.name}: #{error.message}" : 'unknown error'
         when :failed
-          if result_packet.expected_results.any? && result_packet.actual_results.any?
+          if !result_packet.expected_results.empty? && !result_packet.actual_results.empty?
             failed_expected         = result_packet.failed_expected
             failed_actual           = result_packet.failed_actual
             failure_data[:expected] = @budget.smart_truncate(failed_expected, max_tokens: 25)

@@ -164,10 +164,10 @@ testrun = parse_tryouts(<<~'RUBY')
 RUBY
 expectations = testrun.test_cases.map { |tc| tc.expectations.map(&:content) }
 [expectations, testrun.warnings.map { |w| [w.type, w.line_number] }]
-#=> [[["3"]], [[:expectation_without_subject, 6]]]
+#=> [[["3"], ["#=> 0"]], [[:expectation_without_subject, 6]]]
 #==> testrun.warnings.first.message.include?('the description at line 5')
 
-## That description still names the test that follows it
+## That description names the detached test and the test that follows it
 testrun = parse_tryouts(<<~'RUBY')
   ## first
   total = 1
@@ -177,4 +177,77 @@ testrun = parse_tryouts(<<~'RUBY')
   #=> 2
 RUBY
 testrun.test_cases.map { |tc| [tc.description, tc.code] }
-#=> [["second", "total += 1"]]
+#=> [["second", ""], ["second", "total += 1"]]
+
+## A mistyped operator with a space inside it, or written backwards, still fails
+testrun = parse_tryouts(<<~'RUBY')
+  ## negation
+  [1, 2, 3].size
+  #<=> 3
+
+  ## arrow
+  [1, 2].size
+  #>= 5
+
+  ## spaced equals
+  'abc'
+  #= = > 'xyz'
+
+  ## spaced pipe
+  puts 'hello'
+  #=1 2> 'zzz'
+
+  ## spaced arrow
+  1
+  #=1 > 1
+RUBY
+testrun.test_cases.map { |tc| tc.expectations.map(&:type) }
+#=> [[:malformed], [:malformed], [:malformed], [:malformed], [:malformed]]
+#==> testrun.warnings.map { |w| w.message[/'(.*)'/, 1] } == ['<=>', '>=', '= = >', '=1 2>', '=1 >']
+
+## Prose that starts with an operator stays a plain comment
+warning_types(<<~'RUBY')
+  # = Title > Subtitle
+  # <=> is the spaceship operator
+  # >= 2 items is plenty
+  # = 3 apples
+  ## prose
+  [1, 2].size
+  #=> 2
+RUBY
+#=> []
+
+## An expectation behind three hashes or with a spaced operator is not a description
+testrun = parse_tryouts(<<~'RUBY')
+  ## triple hash
+  [1, 2, 3].first
+  ###=> 9
+
+  ## spaced operator
+  [1, 2, 3].max
+  ## = > 8
+RUBY
+[testrun.test_cases.map(&:description), testrun.test_cases.map { |tc| tc.expectations.map(&:type) }]
+#=> [["triple hash", "spaced operator"], [[:malformed], [:malformed]]]
+#==> testrun.warnings.map { |w| w.message[/'(.*)'/, 1] } == ['###=>', '## = >']
+
+## A bare '##' line is a plain comment, not an empty description
+testrun = parse_tryouts(<<~'RUBY', strict: true)
+  ## adds numbers
+
+  ##
+  1 + 1
+  #=> 2
+RUBY
+[testrun.test_cases.map(&:description), testrun.warnings]
+#=> [["adds numbers"], []]
+
+## An expectation under a bare '##' line still asserts on the statement above it
+testrun = parse_tryouts(<<~'RUBY')
+  ## first
+  total = 1
+  ##
+  #=> 1
+RUBY
+[testrun.test_cases.map { |tc| [tc.description, tc.code] }, testrun.warnings]
+#=> [[["first", "total = 1"]], []]

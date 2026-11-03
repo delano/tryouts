@@ -107,7 +107,7 @@ Each test file is made up of three sections:
 - **Test Cases**: A description (`##`), Ruby code, and expectations (`#=>`)
 - **Teardown**: Code after the last test case's expectations
 
-A test case is the run of statements from its `##` description down to the statement its expectations sit under (the subject). The value of the subject is `result`. `##` lines on adjacent lines join into one description, and the text is kept as written; a blank line or a plain `#` line ends the block, so a `##` heading above it is just a comment. A single `#` is always an ordinary comment, so prose in setup or between tests never turns into a test.
+A test case is the run of statements from its `##` description down to the statement its expectations sit under (the subject). The value of the subject is `result`. `##` lines on adjacent lines join into one description, and the text is kept as written; a blank line or a plain `#` line ends the block, so a `##` heading above it is just a comment. A bare `##` with no text is a plain comment. A single `#` is always an ordinary comment, so prose in setup or between tests never turns into a test.
 
 An expectation goes in the gap after its subject, or at the end of the subject's last line. `# =>` with a space is the same as `#=>`, which is how IRB transcripts and Ruby docs write it.
 
@@ -126,7 +126,7 @@ Code between one test's expectations and the next `##` description is not part o
 #=> 'alice'
 ```
 
-By default (strict mode) every test needs a `##` description; `--no-strict` allows unnamed ones. A mistyped operator such as `#=x>` or `#=>>` fails rather than being skipped, and so does `##=>`: write `#=>` to assert, or `# #=>` to comment an expectation out. The parser also warns about `#=>`-shaped comments inside a method or block body, expectations that can never fail, such as `#==> true`, and expectations it cannot attach to anything. An expectation directly under a `##` line, with no code between them, belongs to no test: it is not evaluated, it does not apply to the test above, and the parser warns about it.
+By default (strict mode) every test needs a `##` description; `--no-strict` allows unnamed ones. A mistyped operator such as `#=x>` or `#=>>` fails rather than being skipped, and so does `##=>`: write `#=>` to assert, or `# #=>` to comment an expectation out. The parser also warns about `#=>`-shaped comments inside a method or block body, expectations that can never fail, such as `#==> true`, and expectations it cannot attach to anything. An expectation with no statement above it in its own test (before the first statement, or directly under a `##` line) does not apply to the test above: the parser warns about it, and it fails as a test of its own.
 
 Each test has a 30-second deadline; a test that runs past it is reported as an error. A `Timeout::Error` raised by the code under test is reported as itself, so `#=!> Timeout::Error` works.
 

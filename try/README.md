@@ -80,7 +80,7 @@ visited.size
 Some details that follow from the model:
 
 - `##` lines on adjacent lines join into one description, with a space. A blank line or a plain `#` line ends the block, so a `##` heading above it is just a comment. `## TEST: x` is described as "TEST: x".
-- An expectation directly under a `##` line, with no code between them, is not evaluated and does not apply to the test above; the parser warns about it.
+- An expectation directly under a `##` line, with no code between them, does not apply to the test above; the parser warns about it and it fails as a test of its own. A bare `##` is a plain comment.
 - `##=>` is not a description or a comment: it fails and asks for `#=>` (to assert) or `# #=>` (to comment the expectation out).
 - The file runs at the top level, as a script does: `class Widget` is `::Widget`, a top-level `def` defines a method on `Object`, and a top-level `include` mixes into `Object`. These are shared by every file in the run, so give helpers distinct names. Top-level `using` raises; put it inside a class or module body.
 - Magic comments at the top of the file, such as `# frozen_string_literal: true`, apply to every section and expectation.

@@ -22,7 +22,7 @@ class Tryouts
       def failure_reason
         case result_packet.status
         when :failed
-          if result_packet.actual_results.any? && result_packet.expected_results.any?
+          if !result_packet.actual_results.empty? && !result_packet.expected_results.empty?
             "expected #{result_packet.failed_expected.inspect}, got #{result_packet.failed_actual.inspect}"
           else
             'test failed'

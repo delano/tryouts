@@ -104,7 +104,7 @@ Every expectation is a Ruby expression evaluated in the test's own binding. It c
 - `error`: the exception the test raised, or `nil`
 - `elapsed_ms`: how long the test code took
 
-A mistyped operator such as `#=x>` or `#=>>` always fails, and so does `##=>` (write `#=>` to assert, `# #=>` to comment it out). An expectation directly under a `##` line, with no code between them, is not evaluated and does not apply to the test above. Each test has a 30-second deadline; a `Timeout::Error` raised by the test code is reported as itself. The parser warns about expectations that cannot fail (`#==> true`), text after `#=*>`, an expectation with no statement above it, and `#=>`-shaped comments inside a method or block body (those are plain comments, not expectations).
+A mistyped operator such as `#=x>` or `#=>>` always fails, and so does `##=>` (write `#=>` to assert, `# #=>` to comment it out). An expectation directly under a `##` line, with no code between them, or before the first statement, does not apply to the test above; it fails as a test of its own. Each test has a 30-second deadline; a `Timeout::Error` raised by the test code is reported as itself. The parser warns about expectations that cannot fail (`#==> true`), text after `#=*>`, an expectation with no statement above it, and `#=>`-shaped comments inside a method or block body (those are plain comments, not expectations).
 
 ## Exception Testing
 

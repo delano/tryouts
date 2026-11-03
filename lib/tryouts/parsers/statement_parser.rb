@@ -31,8 +31,8 @@ class Tryouts
   #
   # An expectation with no statement above it in its own test (before the
   # first statement, or below a `##` line with no code in between) is an
-  # expectation_without_subject warning. It is not evaluated and never
-  # attaches to the test above the description.
+  # expectation_without_subject warning and a test of its own that always
+  # fails. It never attaches to the test above the description.
   #
   # @example
   #   testrun = Tryouts::StatementParser.new('try/basic_try.rb').parse
@@ -55,14 +55,22 @@ class Tryouts
 
     # `#=>>` is not `#=>` with a body of `> ...`; it is a mistyped operator.
     EXPECTATION_PATTERN = %r{\A#(?<space>\s*)=(?<op>/=|\d+|[=|!<*:~%]|)>(?!>)\s?(?<body>.*)\z}m
-    DESCRIPTION_PATTERN = /\A##+(?!\s*=\S*>)\s*(?<text>.*)\z/m
-    # Anything shaped like an expectation: `#`, optional spaces, `=`, an
-    # operator-like token with no spaces in it, and `>`. One that
-    # EXPECTATION_PATTERN rejects is a mistyped operator (`#=!!>`, `#=/>`,
-    # `#=1x>`, `#= >`, `#===>`).
-    EXPECTATION_SHAPE   = /\A#\s*=[^\s>]*\s*>/
-    # The same shape behind a description marker: `##=>`, `## =>`, `##==>`.
-    DOUBLED_SHAPE       = /\A##+\s*=[^\s>]*\s*>/
+    # What follows the `#` of anything shaped like an expectation: optional
+    # spaces, `=`, an operator-like token, and `>`. The token may hold spaces
+    # between operator characters and digits (`= = >`, `=2 2>`, `=1 >`) but
+    # not between words, so prose such as `# = Section >` is not one. `<=`
+    # or `>=` straight after the `#` is an operator written backwards
+    # (`#<=>`, `#>=`).
+    OPERATOR_SHAPE      = %r{(?:\s*=[^\s>]*[\s=<!|*:~%/\\\d-]*>|[<>]=\S*)}
+    # One that EXPECTATION_PATTERN rejects is a mistyped operator (`#=!!>`,
+    # `#=/>`, `#=1x>`, `#= = >`, `#<=>`). The match runs to the end of the
+    # token (`#=>>`), so it is the whole mistyped operator.
+    EXPECTATION_SHAPE   = /\A##{OPERATOR_SHAPE}\S*/
+    # The same shape behind a description marker (`##=>`, `###=>`,
+    # `## = >`) is an expectation with one `#` too many, never a description.
+    DOUBLED_SHAPE       = /\A##+#{OPERATOR_SHAPE}\S*/
+    # A `##` line with text after it. A bare `##` is a plain comment.
+    DESCRIPTION_PATTERN = /\A##++\s*(?<text>\S.*)\z/m
     VACUOUS_BOOLEAN     = /\A(true|false|nil)\s*(#.*)?\z/
 
     attr_reader :source_path, :warnings
@@ -199,22 +207,23 @@ class Tryouts
         return expectation_token(match, text, line)
       end
 
-      if !trailing && (match = DESCRIPTION_PATTERN.match(text))
-        return { kind: :description, text: match[:text].strip, line: line }
-      end
-
+      # Checked before the description pattern: `##=>` is not a description.
       case malformed_expectation(text, trailing: trailing)
       when :typo, :doubled
         # Almost certainly a mistyped operator. Keep it as an expectation that
         # fails, so the test stays visible instead of silently vanishing.
         add_malformed_warning(text, line)
-        { kind: :expectation, type: :malformed, content: text, pipe: nil, line: line, spaced: false }
+        return { kind: :expectation, type: :malformed, content: text, pipe: nil, line: line, spaced: false }
       when :suspicious
         add_malformed_warning(text, line)
-        { kind: :comment, line: line }
-      else
-        { kind: :comment, line: line }
+        return { kind: :comment, line: line }
       end
+
+      if !trailing && (match = DESCRIPTION_PATTERN.match(text))
+        return { kind: :description, text: match[:text].strip, line: line }
+      end
+
+      { kind: :comment, line: line }
     end
 
     def add_malformed_warning(text, line)
@@ -265,7 +274,7 @@ class Tryouts
     end
 
     # Comments that look like an attempt at an expectation but are not one.
-    # A `#=...>` shape is a typo of a real operator (:typo). The same shape
+    # An OPERATOR_SHAPE is a typo of a real operator (:typo). The same shape
     # behind `##` is an expectation written with one `#` too many (:doubled);
     # it is not a description and not a way to comment an expectation out
     # (`# #=>` is). A comment opening with `>` or `<` might be one
@@ -280,15 +289,16 @@ class Tryouts
       :suspicious if text.match?(/\A#\s*>[^=]/) || text.match?(/\A#\s*<[^=]/)
     end
 
+    # The whole operator token, spaces and closing `>` included (`=1 >`,
+    # `=>>`). A :suspicious comment has no such shape; its first word stands in.
     def malformed_syntax(text)
-      text.sub(/\A#\s*/, '')[/\A\S+/] || 'unknown'
+      (text[EXPECTATION_SHAPE] || text[/\A#\s*\S*/]).sub(/\A#\s*/, '')
     end
 
     # Turn the annotated statement list into Setup, test cases (with interludes
     # in between) and Teardown.
     def assemble
-      detach_unanchored_expectations
-
+      detached    = detach_unanchored_expectations
       subjects    = @statements.each_index.select { |i| @statements[i].subject? }
       test_cases  = []
       setup_range = nil
@@ -316,7 +326,7 @@ class Tryouts
 
       Testrun.new(
         setup: build_section(Setup, setup_range),
-        test_cases: test_cases,
+        test_cases: (test_cases + detached).sort_by { |tc| tc.first_code_line || tc.first_expectation_line },
         teardown: build_section(Teardown, teardown_range),
         source_file: @source_path,
         metadata: { parsed_at: @parsed_at, parser: :statement },
@@ -342,7 +352,7 @@ class Tryouts
         next if lines.empty?
 
         block = lines.slice_when { |a, b| b[:line] != a[:line] + 1 }.to_a.last
-        text  = block.map { |c| c[:text] }.reject(&:empty?).join(' ')
+        text  = block.map { |c| c[:text] }.join(' ')
         return [gap_index, { text: text, line: block.first[:line] }]
       end
       nil
@@ -356,7 +366,7 @@ class Tryouts
       start_line = description ? description[:line] : first.start_line - 1
       end_line   = [tokens.last[:line], subject.end_line - 1].max
 
-      collect_unnamed_test_warning(range, tokens) unless description && !description[:text].empty?
+      collect_unnamed_test_warning(range, tokens) unless description
 
       TestCase.new(
         description: description ? description[:text] : '',
@@ -407,28 +417,62 @@ class Tryouts
     # comes before any statement has none, and neither has one written below
     # a `##` line with no statement in between: the description starts the
     # next test, so the statement above it belongs to another test. Either
-    # way the expectation is reported and not evaluated (it never attaches
-    # to a test it was not written for), and the description still names
-    # the test that follows.
+    # way the expectation never attaches to a test it was not written for.
+    # It is reported, and it becomes a test of its own that always fails,
+    # named by the description above it (unnamed before the first one). The
+    # description still names the test that follows too.
+    #
+    # @return [Array<TestCase>] the failing tests, one per description
     def detach_unanchored_expectations
-      detach_expectations(@leading_gap, from: 0)
-      @statements.each do |statement|
-        first_description = statement.gap.index { |c| c[:kind] == :description }
-        detach_expectations(statement.gap, from: first_description, description: statement.gap[first_description]) if first_description
-      end
+      gaps = [[@leading_gap, 0]] + @statements.map { |s| [s.gap, s.gap.index { |c| c[:kind] == :description }] }
+      gaps.flat_map { |gap, from| from ? detach_expectations(gap, from) : [] }
     end
 
-    def detach_expectations(gap, from:, description: nil)
+    def detach_expectations(gap, from)
+      groups = [] # [description lines, expectation tokens]
       gap.each_with_index do |c, i|
-        next if i < from || c[:kind] != :expectation
+        next if i < from
 
-        gap[i] = { kind: :comment, line: c[:line] }
+        case c[:kind]
+        when :description
+          current = groups.last
+          if current && current[1].empty? && current[0].last[:line] + 1 == c[:line]
+            current[0] << c
+          else
+            groups << [[c], []]
+          end
+        when :expectation
+          groups << [[], []] if groups.empty?
+          groups.last[1] << c
+          gap[i] = { kind: :detached, line: c[:line] }
+        end
+      end
+
+      groups.reject { |_, tokens| tokens.empty? }.map { |lines, tokens| build_detached_test(lines, tokens) }
+    end
+
+    def build_detached_test(description_lines, tokens)
+      start_line = (description_lines.first || tokens.first)[:line]
+      end_line   = tokens.last[:line]
+
+      tokens.each do |t|
         @warnings << ParserWarning.expectation_without_subject(
-          line_number: c[:line] + 1,
-          context: @lines[c[:line]].to_s.strip,
-          description_line: description && (description[:line] + 1),
+          line_number: t[:line] + 1,
+          context: @lines[t[:line]].to_s.strip,
+          description_line: description_lines.first && (description_lines.first[:line] + 1),
         )
       end
+
+      TestCase.new(
+        description: description_lines.map { |c| c[:text] }.join(' '),
+        code: '',
+        expectations: tokens.map { |t| Expectation.new(content: @lines[t[:line]].strip, type: :detached, line: t[:line]) },
+        line_range: start_line..end_line,
+        path: @source_path,
+        source_lines: @lines[start_line..end_line],
+        first_expectation_line: tokens.first[:line],
+        first_code_line: nil,
+      )
     end
 
     def collect_unnamed_test_warning(range, tokens)
