@@ -97,3 +97,58 @@ testrun = parse_tryouts(<<~'RUBY')
 RUBY
 testrun.test_cases.first.expectations.map(&:line)
 #=> [2, 3]
+
+## A mistyped operator that starts like a real one still fails
+testrun = parse_tryouts(<<~'RUBY')
+  ## raises on nil
+  nil.upcase
+  #=!!> NoMethodError
+
+  ## is a string
+  42
+  #=::> String
+
+  ## prints
+  puts 'a'
+  #=1x> "a"
+
+  ## doubled arrow
+  1
+  #=>> 1
+RUBY
+testrun.test_cases.map { |tc| tc.expectations.map(&:type) }
+#=> [[:malformed], [:malformed], [:malformed], [:malformed]]
+#==> testrun.warnings.map(&:line_number) == [3, 7, 11, 15]
+
+## An expectation behind a description marker fails and says to use one '#'
+testrun = parse_tryouts(<<~'RUBY')
+  ## list is empty
+  list = [1, 2, 3]
+  list.empty?
+  ##=> true
+RUBY
+warning = testrun.warnings.first
+[warning.type, warning.line_number, testrun.test_cases.first.expectations.map(&:type)]
+#=> [:malformed_expectation, 4, [:malformed]]
+#==> warning.suggestion.include?("Write '#=>' to assert")
+
+## An expectation commented out with '# #=>' is a plain comment
+testrun = parse_tryouts(<<~'RUBY')
+  ## skipped
+  'foo'
+  #=> 'foo'
+  # #=> 'not checked'
+RUBY
+[testrun.warnings, testrun.test_cases.first.expectations.map(&:content)]
+#=> [[], ["'foo'"]]
+
+## Prose with '=' and '>' in it is not a mistyped operator
+warning_types(<<~'RUBY')
+  # = Section =
+  # =~ matches, => returns, a = b > c
+  ## prose
+  limit = 3 # > 2 is fine here
+  limit
+  #=> 3
+RUBY
+#=> []

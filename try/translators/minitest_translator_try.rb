@@ -44,7 +44,7 @@ testrun = Tryouts::Testrun.new(
 )
 generated_code = translator.generate_code(testrun)
 generated_code.include?("class Testbasictest < Minitest::Test")
-##=> true
+#=> true
 
 ## TEST: Generated code contains test method for single test case
 translator = Tryouts::Translators::MinitestTranslator.new
@@ -67,7 +67,7 @@ testrun = Tryouts::Testrun.new(
 )
 generated_code = translator.generate_code(testrun)
 generated_code.include?("def test_000_simple_addition")
-##=> true
+#=> true
 
 ## TEST: Generated code contains assert_equal for regular expectations
 translator = Tryouts::Translators::MinitestTranslator.new
@@ -91,7 +91,7 @@ testrun = Tryouts::Testrun.new(
 generated_code = translator.generate_code(testrun)
 # The translator inserts expectation objects instead of their content - this is the current behavior
 generated_code.include?("assert_equal #<data Tryouts::Expectation")
-##=> true
+#=> true
 
 ## TEST: Generated code includes required minitest imports
 translator = Tryouts::Translators::MinitestTranslator.new
@@ -146,7 +146,7 @@ generated_code = translator.generate_code(testrun)
 has_setup_method = generated_code.include?("def setup")
 has_setup_content = generated_code.include?("puts 'setup runs'")
 has_setup_method && has_setup_content
-##=> true
+#=> true
 
 ## TEST: Teardown code generation when present
 translator = Tryouts::Translators::MinitestTranslator.new
@@ -176,7 +176,7 @@ generated_code = translator.generate_code(testrun)
 has_teardown_method = generated_code.include?("def teardown")
 has_teardown_content = generated_code.include?("puts 'cleanup'")
 has_teardown_method && has_teardown_content
-##=> true
+#=> true
 
 ## TEST: Exception expectation generates assert_raises structure
 translator = Tryouts::Translators::MinitestTranslator.new

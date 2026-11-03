@@ -44,25 +44,25 @@ testrun = Tryouts::Testrun.new(
 
 generated_code = translator.generate_code(testrun)
 # Test that generated code contains expected RSpec structure
-generated_code.include?("RSpec.describe 'math_test.rb'")
-##=> true
+generated_code.include?("RSpec.describe 'math_test' do")
+#=> true
 
 ## TEST: Generated code contains before(:all) block when setup present
 # Using same translator and testrun from previous test
 generated_code.include?("before(:all)")
-##=> true
+#=> true
 
 ## TEST: Generated code contains setup content
 generated_code.include?("puts 'before all setup'")
-##=> true
+#=> true
 
 ## TEST: Generated code contains it block with description
 generated_code.include?("it 'simple multiplication'")
-##=> true
+#=> true
 
 ## TEST: Generated code contains expect().to eq() for regular expectations
 generated_code.include?("expect(result).to eq(6)")
-##=> true
+#=> true
 
 ## TEST: Exception expectation generates expect{}.to raise_error structure
 translator = Tryouts::Translators::RSpecTranslator.new
@@ -92,15 +92,15 @@ exception_code.include?("expect {")
 
 ## TEST: Exception expectation includes raise_error block
 exception_code.include?("}.to raise_error do |caught_error|")
-##=> true
+#=> true
 
 ## TEST: Exception expectation includes error variable assignment
 exception_code.include?("error = caught_error")
-##=> true
+#=> true
 
 ## TEST: Exception expectation includes truthy assertion
 exception_code.include?("expect(error.is_a?(ArgumentError)).to be_truthy")
-##=> true
+#=> true
 
 ## TEST: Teardown method generation when present
 translator = Tryouts::Translators::RSpecTranslator.new
@@ -180,8 +180,8 @@ filename_testrun = Tryouts::Testrun.new(
 )
 
 filename_code = translator.generate_code(filename_testrun)
-filename_code.include?("RSpec.describe 'custom_filename.rb'")
-##=> true
+filename_code.include?("RSpec.describe 'custom_filename' do")
+#=> true
 
 ## TEST: Complex file paths are handled correctly
 complex_filename_testrun = Tryouts::Testrun.new(
@@ -194,8 +194,8 @@ complex_filename_testrun = Tryouts::Testrun.new(
 )
 
 complex_code = translator.generate_code(complex_filename_testrun)
-complex_code.include?("RSpec.describe 'complex-test_file.spec.rb'")
-##=> true
+complex_code.include?("RSpec.describe 'complex-test_file.spec' do")
+#=> true
 
 ## TEST: Empty or nil descriptions are handled gracefully
 translator = Tryouts::Translators::RSpecTranslator.new
@@ -239,7 +239,7 @@ simple_testrun = Tryouts::Testrun.new(
 simple_code = translator.generate_code(simple_testrun)
 # Should end with 'end' to close describe block
 simple_code.strip.end_with?("end")
-##=> true
+#=> true
 
 ## TEST: Multiple expectations in single test case
 translator = Tryouts::Translators::RSpecTranslator.new
@@ -300,4 +300,4 @@ has_before = full_code.include?("before(:all)")
 has_after = full_code.include?("after(:all)")
 has_both = has_before && has_after
 has_both
-##=> true
+#=> true

@@ -48,8 +48,16 @@ class Tryouts
       '%' => :performance_time,
     }.freeze
 
-    EXPECTATION_PATTERN = %r{\A#(?<space>\s*)=(?<op>/=|\d+|[=|!<*:~%]|)>\s?(?<body>.*)\z}m
+    # `#=>>` is not `#=>` with a body of `> ...`; it is a mistyped operator.
+    EXPECTATION_PATTERN = %r{\A#(?<space>\s*)=(?<op>/=|\d+|[=|!<*:~%]|)>(?!>)\s?(?<body>.*)\z}m
     DESCRIPTION_PATTERN = /\A##+(?!\s*=\S*>)\s*(?<text>.*)\z/m
+    # Anything shaped like an expectation: `#`, optional spaces, `=`, an
+    # operator-like token with no spaces in it, and `>`. One that
+    # EXPECTATION_PATTERN rejects is a mistyped operator (`#=!!>`, `#=/>`,
+    # `#=1x>`, `#= >`, `#===>`).
+    EXPECTATION_SHAPE   = /\A#\s*=[^\s>]*\s*>/
+    # The same shape behind a description marker: `##=>`, `## =>`, `##==>`.
+    DOUBLED_SHAPE       = /\A##+\s*=[^\s>]*\s*>/
     VACUOUS_BOOLEAN     = /\A(true|false|nil)\s*(#.*)?\z/
 
     attr_reader :source_path, :warnings
@@ -178,7 +186,7 @@ class Tryouts
       end
 
       case malformed_expectation(text, trailing: trailing)
-      when :typo
+      when :typo, :doubled
         # Almost certainly a mistyped operator. Keep it as an expectation that
         # fails, so the test stays visible instead of silently vanishing.
         add_malformed_warning(text, line)
@@ -192,11 +200,19 @@ class Tryouts
     end
 
     def add_malformed_warning(text, line)
-      @warnings << ParserWarning.malformed_expectation(
-        line_number: line + 1,
-        syntax: malformed_syntax(text),
-        context: text,
-      )
+      @warnings << if text.start_with?('##')
+                     ParserWarning.doubled_hash_expectation(
+                       line_number: line + 1,
+                       syntax: text[DOUBLED_SHAPE],
+                       context: text,
+                     )
+                   else
+                     ParserWarning.malformed_expectation(
+                       line_number: line + 1,
+                       syntax: malformed_syntax(text),
+                       context: text,
+                     )
+                   end
     end
 
     def expectation_token(match, text, line)
@@ -231,14 +247,16 @@ class Tryouts
     end
 
     # Comments that look like an attempt at an expectation but are not one.
-    # A `#=...>` shape is a typo of a real operator (:typo). A comment opening
-    # with `>` or `<` might be one (:suspicious); after code on the same line
-    # that is ordinary prose (`x # > 3 is fine`), so it is not flagged there.
+    # A `#=...>` shape is a typo of a real operator (:typo). The same shape
+    # behind `##` is an expectation written with one `#` too many (:doubled);
+    # it is not a description and not a way to comment an expectation out
+    # (`# #=>` is). A comment opening with `>` or `<` might be one
+    # (:suspicious); after code on the same line that is ordinary prose
+    # (`x # > 3 is fine`), so it is not flagged there.
     def malformed_expectation(text, trailing:)
+      return :doubled if text.match?(DOUBLED_SHAPE)
       return nil if text.start_with?('##')
-      return :typo if text.match?(/\A#\s*=\s+>/)       # "# = >"
-      return :typo if text.match?(/\A#\s*===+>/)       # "#===>"
-      return :typo if text.match?(%r{\A#\s*=[^=:!~%*|/>\s<\d][^>\s]*>}) # "#=X>"
+      return :typo if text.match?(EXPECTATION_SHAPE)
       return nil if trailing
 
       :suspicious if text.match?(/\A#\s*>[^=]/) || text.match?(/\A#\s*<[^=]/)

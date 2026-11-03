@@ -39,6 +39,18 @@ class Tryouts
       )
     end
 
+    # `##=> 2` is an expectation behind a description marker. It is neither
+    # a description nor an expectation, so it fails until it is rewritten.
+    def self.doubled_hash_expectation(line_number:, syntax:, context:)
+      new(
+        type: :malformed_expectation,
+        message: "Malformed expectation syntax '#{syntax}' at line #{line_number}",
+        line_number: line_number,
+        context: context,
+        suggestion: "Expectations start with a single '#'. Write '#=>' to assert, or '# #=>' to comment the expectation out",
+      )
+    end
+
     # `#==> true` evaluates the literal `true`, not the result. It always passes.
     def self.vacuous_expectation(line_number:, context:)
       new(

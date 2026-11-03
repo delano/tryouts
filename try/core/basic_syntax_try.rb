@@ -39,7 +39,8 @@ a + b
 
 ## TEST 7: test expectations can be commented out
 'foo'
-##=> 'this is a skipped test'
+#=> 'foo'
+# #=> 'this is a skipped test'
 
 # Everything after this is run as teardown code
 
