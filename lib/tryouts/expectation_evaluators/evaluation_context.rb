@@ -2,6 +2,8 @@
 #
 # frozen_string_literal: true
 
+require 'prism'
+
 class Tryouts
   module ExpectationEvaluators
     # Raised when an expectation expression is not valid Ruby. SyntaxError is a
@@ -20,6 +22,8 @@ class Tryouts
     # `elapsed_ms` are lambda parameters: they belong to this test alone and
     # cannot leak into the next one.
     class EvaluationContext
+      PARAMETERS = [:result, :_, :error, :elapsed_ms].freeze
+
       attr_reader :result, :error, :elapsed_ms, :stdout, :stderr
 
       # @param binding [Binding] the binding the test code ran in
@@ -45,6 +49,8 @@ class Tryouts
       # @param expression [String] Ruby source after the expectation arrow
       # @param line [Integer] 1-based line of the expectation comment
       def evaluate(expression, line)
+        check_syntax(expression, line)
+
         # The expression gets its own line so a trailing `# comment` in it
         # cannot swallow the closing brace. The file's magic comments and the
         # lambda header go on the lines above it, so the expression sits on
@@ -52,8 +58,28 @@ class Tryouts
         source = [*@magic_comments, '->(result, _, error, elapsed_ms) {', expression, '}'].join("\n")
         check  = @binding.eval(source, @path, line - 1 - @magic_comments.size)
         check.call(@result, @result, @error, @elapsed_ms)
-      rescue SyntaxError => ex
-        raise ExpressionSyntaxError, ex.message.lines.reject { |l| l.include?('->(result, _, error, elapsed_ms)') }.join.strip
+      rescue SyntaxError
+        # Ruby's own message would point at the lambda wrapped around the
+        # expression, which the user never wrote.
+        raise ExpressionSyntaxError, syntax_error_message(expression, line)
+      end
+
+      private
+
+      # Parse the expression on its own, with the test's locals in scope, so
+      # a syntax error is described in terms of what the user wrote and at the
+      # expectation's own line. `__END__` parses, but would cut the wrapped
+      # source short.
+      def check_syntax(expression, line)
+        parsed = Prism.parse(expression, scopes: [@binding.local_variables + PARAMETERS])
+        return unless parsed.failure? || parsed.data_loc
+
+        reason = parsed.errors.first&.message || '__END__ cannot appear in an expectation'
+        raise ExpressionSyntaxError, syntax_error_message(expression, line, reason)
+      end
+
+      def syntax_error_message(expression, line, reason = nil)
+        ["#{@path}:#{line}: syntax error in expectation `#{expression.strip}`", reason].compact.join(': ')
       end
     end
   end
