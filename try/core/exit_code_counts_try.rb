@@ -80,3 +80,23 @@ output[/\d+ of \d+ files passed/]
 ## Passing files still exit 0
 run_files(["## fine\n1\n#=> 1\n", "## also fine\n2\n#=> 2\n"]).first
 #=> 0
+
+## A file that errors outside the test batch is reported by name in the debug log
+out    = StringIO.new
+runner = Tryouts::TestRunner.new(
+  files: ['broken_try.rb'],
+  options: { framework: :direct },
+  output_manager: Tryouts::CLI::FormatterFactory.create_output_manager(stdout: out, stderr: out),
+)
+log            = StringIO.new
+was_debugging  = Tryouts.debug?
+$stderr, saved = log, $stderr
+Tryouts.debug  = true
+begin
+  runner.send(:handle_file_error, 'broken_try.rb', RuntimeError.new('formatter broke'))
+ensure
+  Tryouts.debug = was_debugging
+  $stderr       = saved
+end
+[log.string.include?('processing broken_try.rb: formatter broke'), out.string.include?('Batch execution failed: formatter broke')]
+#=> [true, true]

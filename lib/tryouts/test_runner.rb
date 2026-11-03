@@ -171,7 +171,7 @@ class Tryouts
       )
       processor.process
     rescue StandardError => ex
-      handle_file_error(ex)
+      handle_file_error(file, ex)
       @global_tally[:aggregator].add_infrastructure_failure(
         :file_processing, file, ex.message, ex
       )
@@ -202,9 +202,9 @@ class Tryouts
       )
     end
 
-    def handle_file_error(exception)
+    def handle_file_error(file, exception)
       @status       = :error
-      Tryouts.debug "TestRunner#process_file: An error occurred processing #{file}: #{ex.message}"
+      Tryouts.debug "TestRunner#process_file: An error occurred processing #{file}: #{exception.message}"
       error_message = "Batch execution failed: #{exception.message}"
       backtrace     = exception.respond_to?(:backtrace) ? exception.backtrace : nil
 
