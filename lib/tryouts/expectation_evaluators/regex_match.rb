@@ -21,16 +21,22 @@ class Tryouts
     #   "HELLO WORLD"      #=~> /hello/i          # Pass: case insensitive match
     #   "hello world"      #=~> /goodbye/         # Fail: pattern not found
     #
+    #   Integer("abc")
+    #   #=~> /invalid value/                      # Pass: matches the exception message
+    #
     # IMPLEMENTATION DETAILS:
     # - Converts actual_result to string using to_s for regex matching
-    # - Uses Ruby's =~ operator for pattern matching (returns match position or nil)
-    # - Evaluates expectation content to resolve regex patterns with flags
+    # - When the result is an exception (the test raised), matches its message
+    # - A test with a #=~> expectation may raise a StandardError; the
+    #   exception is then the result
+    # - Uses String#match? (no match data, no $~ side effects)
+    # - The expression is evaluated in the test's binding, so it may build the
+    #   pattern from the test's locals
     # - Expected display shows pattern.inspect (e.g., "/hello/i", "/\d+/")
     # - Actual display shows stringified result for pattern comparison
     #
     # DESIGN DECISIONS:
     # - Always converts to string (allows regex matching on any object)
-    # - Uses =~ operator (Ruby standard) rather than match? for compatibility
     # - Pattern evaluation supports dynamic regex construction
     # - Displays pattern.inspect for clear regex representation
     class RegexMatch < Base

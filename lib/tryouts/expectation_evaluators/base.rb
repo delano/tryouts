@@ -7,8 +7,20 @@ class Tryouts
     # Base class for all expectation evaluators.
     #
     # An evaluator gets the expectation, the test case and an EvaluationContext.
-    # It evaluates the expression after the arrow with #evaluate_expression and
-    # returns a result hash built with #build_result.
+    # The test code has already run, once, by the time #evaluate is called;
+    # an evaluator never runs it again. It evaluates the expression after the
+    # arrow with #evaluate_expression, which compiles it into the test's own
+    # binding (see EvaluationContext), and returns a result hash built with
+    # #build_result.
+    #
+    # VARIABLE AVAILABILITY (in every expectation expression):
+    # - the test's local variables, instance variables and constants
+    # - `result` / `_`: the value of the test's last statement, or the
+    #   exception it raised when the test was allowed to raise
+    # - `error`: the exception the test raised, or nil
+    # - `elapsed_ms`: how long the test code took, in milliseconds
+    #
+    # #evaluate receives the same value as `result` in actual_result.
     class Base
       attr_reader :expectation, :test_case, :context
 

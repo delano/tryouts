@@ -12,11 +12,15 @@ A modern Ruby testing framework that uses simple comments to define what should 
 
 ## Key Features
 
-- **Documentation-style tests** using comment-based expectations (`#=>`)
+- **Documentation-style tests** using comment-based expectations (`#=>`), on the line below or trailing the code (`1 + 1 #=> 2`)
 - **Great expectation syntax** for more expressive assertions (`#==>` for true, `#=/=>` for false, `#=:>` for class/module)
 - **Framework integration** write with tryouts syntax, run with RSpec or Minitest
 - **Agent-optimized output** structured, token-efficient output for LLM consumption
 - **Enhanced error reporting** with line numbers and context
+
+## How a file runs
+
+A tryouts file is a Ruby script. It is executed top to bottom in one binding. Local and instance variables persist from each line to the next. An expectation comment asserts something about the value of the statement immediately above it, or the statement it trails on the same line. A `##` comment names the group of statements that ends at the next expectation, for reporting only.
 
 ## Installation
 
@@ -46,63 +50,108 @@ Tryouts use a comment-based syntax for expectations:
 
 ```ruby
 # Setup code runs before all tests
-puts 'Setup running'
+require 'json'
+config = { 'name' => 'tryouts', 'tags' => %w[ruby testing] }
 
 ## Simple test with expectation
 a = 1 + 1
 #=> 2
 
-## Multi-line test with description
-## TEST: Addition works correctly
+## An expectation can trail the line it checks
+'hello'.upcase #=> 'HELLO'
+
+## Several statements make up one test;
+## the last one is the subject
 a = 1
 b = 2
 a + b
 #=> 3
 
-## Testing object methods
-'hello'.upcase
-#=> 'HELLO'
+## Locals from setup and earlier tests are still in scope
+[config['name'], a]
+#=> ['tryouts', 1]
 
 ## Expressions are evaluated
 81
 #=> 9 * 9
 
+## One subject can have several expectations
+JSON.generate(config)
+#=:> String
+#=~> /"tags":\["ruby","testing"\]/
+#==> result.start_with?('{')
+
 ## Testing errors with rescue
 begin
-  raise RuntimeError, "test error"
-rescue RuntimeError
+  Integer('forty-two')
+rescue ArgumentError
   :caught
 end
 #=> :caught
 
+## Testing that the code raises
+Integer('forty-two')
+#=!> ArgumentError
+#=~> /invalid value/
+
 # Teardown runs after all tests
-puts 'Cleanup complete'
+config.clear
 ```
 
 ### Test Structure
 
 Each test file is made up of three sections:
-- **Setup**: Code before first test case
-- **Test Cases**: Description lines (`##`), Ruby code, and expectations (`#=>`)
-- **Teardown**: Code after last test case
+- **Setup**: Code before the first test case
+- **Test Cases**: A description (`##`), Ruby code, and expectations (`#=>`)
+- **Teardown**: Code after the last test case's expectations
+
+A test case is the run of statements from its `##` description down to the statement its expectations sit under (the subject). The value of the subject is `result`. Consecutive `##` lines join into one description, and the text is kept as written. A single `#` is always an ordinary comment, so prose in setup or between tests never turns into a test.
+
+An expectation goes in the gap after its subject, or at the end of the subject's last line. `# =>` with a space is the same as `#=>`, which is how IRB transcripts and Ruby docs write it.
+
+Code between one test's expectations and the next `##` description is not part of either test. It runs in order, like setup, and anything it defines is visible to the tests below it. If it raises, the rest of the file is skipped.
+
+```ruby
+## Starts empty
+@cache = {}
+@cache.size
+#=> 0
+
+@cache[:user] = 'alice'
+
+## Sees the line above
+@cache.fetch(:user)
+#=> 'alice'
+```
+
+By default (strict mode) every test needs a `##` description; `--no-strict` allows unnamed ones. The parser also warns about expectations it cannot attach to anything, a mistyped operator such as `#=x>` (which fails rather than being skipped), `#=>`-shaped comments inside a method or block body, and expectations that can never fail, such as `#==> true`.
 
 ### Great Expectations System
 
   | Syntax | Description                | Example                             | Context       |
   |--------|----------------------------|-------------------------------------|---------------|
-  | `#=>`  | Traditional value equality | `#=> [1, 2, 3]`                     | result, _     |
+  | `#=>`  | Traditional value equality (`==`) | `#=> [1, 2, 3]`                     | result, _     |
   | `#==>` | Must be exactly true       | `#==> result.include?(2)`            | result, _     |
   | `#=/=>`| Must be exactly false      | `#=/=> _.empty?`                     | result, _     |
-  | `#=\|>` | Must be true OR false     | `#=\|> 0.positive?`                   | result, _     |
-  | `#=!>` | Must raise an exception    | `#=!> error.is_a?(ZeroDivisionError)` | error         |
-  | `#=:>` | Must match result type     | `#=:> String`                         | result, _     |
-  | `#=~>` | Must match regex pattern   | `#=~> /^[^@]+@[^@]+\.[^@]+$/`         | result, _     |
-  | `#=%>` | Must complete within time  | `#=%> 2000 # in milliseconds`         | result, _     |
-  | `#=*>` | Must be non-nil            | `#=*> result`                         | result, _     |
-  | `#=1>` | Match content in STDOUT    | `#=1> "You have great success"`       | result, _     |
-  | `#=2>` | Match content in STDERR    | `#=2> /[a-zA-Z0-9]+-?[0-9]{1,5}`      | result, _     |
-  | `#=<>` | Fails on purpose           | `#=<> result.include?(4)`            | result, _     |
+  | `#=\|>` | Must be true OR false     | `#=\|> result.any?`                  | result, _     |
+  | `#=!>` | Must raise; fails if nothing is raised. A class or module is checked with `is_a?`, anything else must be truthy | `#=!> ZeroDivisionError` or `#=!> error.message.include?('divided')` | error         |
+  | `#=:>` | Must be a kind of the class or module | `#=:> String`                         | result, _     |
+  | `#=~>` | Must match regex pattern (`result.to_s`, or the exception message if the test raised) | `#=~> /^[^@]+@[^@]+\.[^@]+$/`         | result, _     |
+  | `#=%>` | Must complete within a limit in milliseconds, with 10% tolerance | `#=%> 2000`         | elapsed_ms    |
+  | `#=*>` | Must be non-nil            | `#=*>`                                | result, _     |
+  | `#=1>` | STDOUT contains the string or matches the regex | `#=1> "You have great success"`       | stdout        |
+  | `#=2>` | STDERR contains the string or matches the regex | `#=2> /request-id \d{1,5}/`        | stderr        |
+  | `#=<>` | Must NOT hold: a regex must not match, a true/false predicate must be false, any other value must not be equal | `#=<> result.include?(4)`            | result, _     |
 
+Every expression runs in the test's own binding, so it can use the test's local variables as well as `result` and `_` (the subject's value), `error` (the exception it raised, or `nil`) and `elapsed_ms` (how long the test took). In `#=%>`, `result` is still the value; the measurement is `elapsed_ms`. `#=!>` never re-runs the code: the test runs once and the exception it raised is checked. Text after `#=*>` is ignored, with a warning.
+
+### Shared and fresh context
+
+By default a file runs in one shared binding, as described in [How a file runs](#how-a-file-runs). With `--no-shared-context` each test gets its own: a new object and binding, into which the setup is re-run, then any code between earlier tests, then the test and its expectations, then the teardown. Nothing one test does can leak into another, but a test can no longer read a local that an earlier test defined (`a` in the "Locals from setup" example above would be a `NameError`). Setup and teardown output and failures are reported once, not per test. A failure in setup or in code between tests stops the file.
+
+```bash
+try --no-shared-context try/core/basic_syntax_try.rb
+```
 
 ### Using other test runners
 
@@ -122,6 +171,9 @@ try -v    # verbose (includes source code and return values)
 try -q    # quiet mode
 try -f    # show failures only
 try -D    # debug mode
+try --inspect             # show how a file is split into setup, tests and teardown
+try --no-strict           # allow tests without a ## description
+try --no-shared-context   # run each test in its own fresh binding
 
 # Agent-optimized output for LLMs
 try --agent                              # structured, token-efficient output
@@ -158,7 +210,7 @@ Instead of overwhelming AI with raw output, TOPAZ provides clean semantic data f
 
 ### Core Components
 
-- **Prism Parser**: Native Ruby parsing with pattern matching for line classification
+- **Prism Parser**: Native Ruby parsing; each comment is attached to the top-level statement it follows or trails
 - **Data Structures**: Immutable `Data.define` classes for test representation
 - **Framework Translators**: Convert tryouts to RSpec/Minitest format
 - **CLI**: Modern command-line interface with framework selection

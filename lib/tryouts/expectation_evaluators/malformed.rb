@@ -9,6 +9,8 @@ class Tryouts
     # A comment shaped like an expectation with an operator that does not
     # exist, such as `#=INVALID> 2` or `#===> x`. It always fails, so a typo
     # surfaces as a failing test instead of a test that silently vanishes.
+    # The parser also reports it as a malformed_expectation warning. Nothing
+    # after the arrow is evaluated.
     class Malformed < Base
       def self.handles?(expectation_type)
         expectation_type == :malformed

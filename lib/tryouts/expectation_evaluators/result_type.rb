@@ -15,17 +15,31 @@ class Tryouts
     #
     # SYNTAX: #=:> ClassName
     # Examples:
-    #   "hello"     #=:> String     # Pass: String.is_a?(String)
-    #   [1, 2, 3]   #=:> Array      # Pass: Array.is_a?(Array)
-    #   42          #=:> Integer    # Pass: Integer.is_a?(Integer)
-    #   "hello"     #=:> Object     # Pass: String.is_a?(Object) - inheritance
-    #   "hello"     #=:> Integer    # Fail: String is not Integer
+    #   "hello"     #=:> String       # Pass: "hello".is_a?(String)
+    #   [1, 2, 3]   #=:> Array        # Pass: [1, 2, 3].is_a?(Array)
+    #   42          #=:> Integer      # Pass: 42.is_a?(Integer)
+    #   "hello"     #=:> Object       # Pass: inheritance
+    #   42          #=:> Comparable   # Pass: modules work too
+    #   "hello"     #=:> Integer      # Fail: "hello" is not an Integer
+    #
+    #   Point = Struct.new(:x, :y)
+    #   Point.new(1, 2)
+    #   #=:> Point                    # Pass: constants the test defined resolve
+    #
+    #   Integer("abc")
+    #   #=:> ArgumentError            # Pass: the test raised, result is the exception
     #
     # IMPLEMENTATION DETAILS:
     # - Uses Ruby's is_a? method for type checking (supports inheritance)
-    # - Evaluates expectation content to resolve class constants (String, Array, etc.)
-    # - Expected display shows the evaluated class name (e.g., "String", "Integer")
-    # - Actual display shows the actual result's class for easy comparison
+    # - The expression is evaluated in the test's binding, so constants resolve
+    #   exactly as they do in the test code; there is no Object.const_get
+    #   fallback. An unknown constant is a NameError and the expectation fails
+    # - The expression must evaluate to a Class or Module, otherwise the
+    #   expectation fails with a TypeError
+    # - A test with a #=:> expectation may raise a StandardError; the
+    #   exception is then the result, so its class can be checked
+    # - Expected display shows the evaluated class; actual display shows the
+    #   result's class
     #
     # DESIGN DECISIONS:
     # - Chose is_a? over class == for inheritance support

@@ -2,14 +2,15 @@
 
 A concise guide for agentic LLMs on writing Tryouts tests:
 
-**Core Structure**: 3-section format (setup/testcases/teardown) with comment-based descriptions and expectations
+**Core Structure**: A tryouts file is a Ruby script, run top to bottom. Statements before the first test are setup, statements after the last test are teardown, and each test is a `##` description, some code, and comment-based expectations.
 
 **Syntax Rules**:
-- Test cases are bookended with comments: prefix `##` for descriptions, Ruby code, and `#=>` expectations
-- Multiple expectation types available (`#==>` for booleans, `#=:>` for types, `#=!>` for rescuing errors etc.)
-- Instance variables persist across setup, tests, and teardown
+- A test case is a `##` description, Ruby code, and one or more expectations (`#=>` and friends) under its last statement
+- An expectation checks the top-level statement directly above it, or the statement it trails on the same line (`1 + 1 #=> 2`)
+- Multiple expectation types available (`#==>` for booleans, `#=:>` for types, `#=!>` for exceptions etc.)
+- Local and instance variables persist from each statement to the next, across setup, tests and teardown
 - Helper methods allowed in setup
-- Use a single `# ` prefix for actual comments. DO NOT LABEL SECTIONS.
+- Use a single `# ` prefix for actual comments; a single `#` is never a description. DO NOT LABEL SECTIONS.
 
 **Philosophy**: Code should be plain and realistic, avoiding test-specific patterns like mocks, asserts DSL.
 
@@ -26,99 +27,140 @@ Tryouts are Ruby tests that double as documentation. Use comment-based expectati
 
 ## File Structure
 
-Every tryouts file has 3 sections:
+A tryouts file is a Ruby script, executed top to bottom in one binding. It has three parts, none of them labelled:
 
 ```ruby
-# SETUP SECTION (optional)
-# Code runs once before all tests
-puts 'Setup code'
-@shared_variable = 'available to all tests'
+require 'json'
+@defaults = { 'retries' => 3 }
 
-## TEST CASE 1: Basic calculation
-# Description lines start with ##
-a = 1 + 1
-#=> 2
+## Defaults serialise to JSON
+JSON.generate(@defaults)
+#=> '{"retries":3}'
 
-## TEST CASE 2: String manipulation
+## Upcasing a string
 'hello'.upcase
 #=> 'HELLO'
 
-# TEARDOWN SECTION (optional)
-# Code runs once after all tests
-puts 'Cleanup complete'
+@defaults.clear
 ```
+
+- **Setup**: statements before the first test (`require`, `@defaults = ...`). Runs once.
+- **Test cases**: each starts at a `##` description and ends at the statement its expectations sit under.
+- **Teardown**: statements after the last test's expectations (`@defaults.clear`). Runs once.
 
 ## Test Case Structure
 
 Each test case has 3 parts:
-1. **Description**: Lines starting with `##`
-2. **Code**: Regular Ruby code
-3. **Expectations**: One or more lines starting with `#=>`
+1. **Description**: Lines starting with `##`. Consecutive `##` lines join into one description. The text is kept as written.
+2. **Code**: One or more Ruby statements
+3. **Expectations**: One or more expectation comments in the gap after the last statement (the subject), or trailing it on the same line
 
 ```ruby
-## TEST: Multiple expectations allowed
-result = [1, 2, 3]
+## Multiple expectations allowed
+numbers = [1, 2, 3]
 #=> [1, 2, 3]
 #=> [1] + [2, 3]
+
+## An expectation can trail the line it checks
+numbers.sum #=> 6
+```
+
+`# =>` with a space means the same as `#=>`. Every test needs a `##` description; without one the parser rejects the file (strict mode, the default). `--no-strict` allows unnamed tests.
+
+Code between one test's expectations and the next `##` description belongs to neither test. It runs in order, like setup, and the tests below it see what it did. If it raises, the rest of the file is skipped.
+
+```ruby
+## Starts empty
+@cache = {}
+@cache.size
+#=> 0
+
+@cache[:user] = 'alice'
+
+## Sees the line above
+@cache.fetch(:user)
+#=> 'alice'
 ```
 
 ## Expectation Types
 
 | Syntax | Purpose | Example |
 |--------|---------|---------|
-| `#=>` | Value equality | `#=> 42` |
-| `#==>` | Must be true | `#==> result > 0` |
-| `#=/=>` | Must be false | `#=/=> result.empty?` |
-| `#=:>` | Type check | `#=:> String` |
-| `#=~>` | Regex match | `#=~> /^\d+$/` |
-| `#=!>` | Exception handling | `#=!> error.is_a?(StandardError)` |
-| `#=%>` | Performance (ms) | `#=%> 100` |
+| `#=>` | Value equality (`==`) | `#=> 42` |
+| `#==>` | Must be exactly true | `#==> result > 0` |
+| `#=/=>` | Must be exactly false | `#=/=> result.empty?` |
+| `#=\|>` | Must be true or false | `#=\|> result.any?` |
+| `#=:>` | Is a kind of class or module | `#=:> String` |
+| `#=~>` | Regex match against `result.to_s` (the exception message, if the test raised) | `#=~> /^\d+$/` |
+| `#=!>` | Must raise; a class or module is checked with `is_a?`, any other expression must be truthy | `#=!> ZeroDivisionError` |
+| `#=%>` | Ran within a limit in milliseconds (10% tolerance) | `#=%> 100` |
+| `#=*>` | Not nil | `#=*>` |
+| `#=<>` | Negation: a regex must not match, a true/false expression must be false, any other value must not be equal | `#=<> /error/` |
+| `#=1>` | STDOUT includes the string or matches the regex | `#=1> 'Saved'` |
+| `#=2>` | STDERR includes the string or matches the regex | `#=2> /warning/` |
+
+Every expectation is a Ruby expression evaluated in the test's own binding. It can use the test's local and instance variables, and:
+- `result` and `_`: the value of the subject, or the exception it raised when the test has a `#=!>`, `#=:>` or `#=~>` expectation (any other raise makes the test an error)
+- `error`: the exception the test raised, or `nil`
+- `elapsed_ms`: how long the test code took
+
+A mistyped operator such as `#=x>` always fails. The parser warns about expectations that cannot fail (`#==> true`), text after `#=*>`, an expectation with no statement above it, and `#=>`-shaped comments inside a method or block body (those are plain comments, not expectations).
 
 ## Exception Testing
 
 ```ruby
-## TEST: Exception handling
-1 / 0
-#=!> error.is_a?(ZeroDivisionError)
+## The code must raise
+Integer('forty-two')
+#=!> ArgumentError
+#=~> /invalid value/
 
-## TEST: Exception with rescue
+## A condition on the exception
+1 / 0
+#=!> error.message.include?('divided')
+
+## Rescue and test the result as a value
 begin
-  raise "custom error"
-rescue => e
-  e.message
+  Integer('forty-two')
+rescue ArgumentError => e
+  e.class
 end
-#=> "custom error"
+#=> ArgumentError
 ```
+
+`#=!>` runs the code once and checks what it raised. If nothing is raised, the test fails.
 
 ## Key Rules
 
-1. **One result per test case**: Last expression is the test result
-2. **Instance variables persist**: `@var` available across setup, test cases, and teardown
-3. **Helper methods allowed**: Define in setup section
-4. **Comments ignored**: Only `#=>` lines are expectations
+1. **One subject per test case**: Expectations check the last statement of the test
+2. **Variables persist**: Local and instance variables carry over from each statement to the next, across setup, tests and teardown (in the default shared context)
+3. **Helper methods allowed**: Define in setup
+4. **Comments ignored**: Only expectation comments (`#=>`, `#==>`, ...) after a top-level statement are expectations; `##` starts a description; anything else is a comment
 5. **Blank lines OK**: Between code and expectations
 
 ## Common Patterns
 
 ```ruby
-# Setup helpers
-def helper_method
-  'I help with testing'
+def greeting(name)
+  "Hello, #{name}"
 end
 
-## TEST: Using helpers
-helper_method
-#=> 'I help with testing'
+## Using helpers
+greeting('Alice')
+#=> 'Hello, Alice'
 
-## TEST: Instance variables
+## Instance variables
 @counter = (@counter || 0) + 1
 @counter
 #=> 1
 
-## TEST: Complex objects
+## Local variables from earlier tests are still in scope
 user = { name: 'Alice', age: 30 }
 user[:name]
 #=> 'Alice'
+
+## The same local, one test later
+user[:age] + 1
+#=> 31
 ```
 
 ## Running Tests
@@ -144,17 +186,20 @@ Focus on readable, realistic Ruby code that demonstrates actual usage.
 
 ## Tryouts Execution Context Modes
 
-**Shared Context (default for Tryouts)**
+See `docs/about-shared-or-fresh-context.md` for the full description.
 
-- Setup runs once at file start
-- All tests share the same container object
-- Instance variables persist across all test cases
+**Shared Context (default)**
+
+- The file is one script: setup, tests, code between tests, and teardown run once, in order, in one binding
+- Local and instance variables persist from each statement to the next
 - State accumulates - changes in test 1 affect test 2, etc.
 
-**Fresh Context (default for RSpec/Minitest modes)**
+**Fresh Context (`--no-shared-context`)**
 
-- Setup runs once at file start in a setup container
-- Each test gets a new container object
-- Instance variables from setup are copied to each fresh container
-- Test isolation - changes in test 1 don't affect test 2
-- BUT: Setup instance variables are inherited by all tests
+- Each test gets a new object and binding
+- Before each test, the setup runs again in it, then any code between earlier tests; after the test, the teardown
+- Nothing is copied between bindings, so a mutable object from setup (`@items = []`) is a new object in every test
+- Test isolation - changes in test 1 don't affect test 2, and a test cannot read locals an earlier test defined
+- Globals, `ENV`, files on disk and changes to existing classes are not reset
+
+`--rspec` and `--minitest` translate the file and use that framework's own setup and teardown hooks.

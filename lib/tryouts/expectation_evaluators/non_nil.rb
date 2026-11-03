@@ -15,27 +15,30 @@ class Tryouts
     #
     # SYNTAX: #=*>
     # Examples:
-    #   user = User.create(name: "test")
-    #   #=*>                              # Pass: user object exists (not nil)
+    #   Time.now
+    #   #=*>                              # Pass: a Time (not nil)
     #
-    #   response = api_call()
-    #   #=*>                              # Pass: got some response (not nil)
+    #   ENV.fetch("PATH")
+    #   #=*>                              # Pass: got some string (not nil)
     #
-    #   nil
+    #   { a: 1 }[:b]
     #   #=*>                              # Fail: result is nil
     #
-    #   raise StandardError.new("error")
-    #   #=*>                              # Fail: exception occurred
+    #   Integer("abc")
+    #   #=*>                              # Error: the raise is a test error
     #
     # VALIDATION LOGIC:
     # - Passes when result is not nil AND no exception was raised during execution
-    # - Fails when result is nil OR an exception occurred
+    # - Fails when result is nil, or when the test raised and another
+    #   expectation (#=!>, #=:>, #=~>) allowed it
     # - Does not evaluate any additional expression (unlike other expectation types)
     #
     # IMPLEMENTATION DETAILS:
     # - Simple existence check without complex evaluation
-    # - No expression parsing needed - syntax is just #=*>
-    # - Expected display shows "non-nil result with no exception"
+    # - No expression parsing needed - syntax is just #=*>. Text after the
+    #   arrow is ignored and draws an ignored_expectation_text warning
+    # - Expected display shows "non-nil result", or "non-nil result with no
+    #   exception" when the test raised
     # - Actual display shows the actual result value or exception
     #
     # DESIGN DECISIONS:
@@ -46,8 +49,8 @@ class Tryouts
     # - Useful for integration tests where exact values are unpredictable
     #
     # VARIABLE ACCESS:
-    # - No special variables needed since no expression is evaluated
-    # - Works purely on the actual test result value
+    # - No expression is evaluated, so no variables are used
+    # - Works purely on the actual test result value and context.error
     class NonNil < Base
       def self.handles?(expectation_type)
         expectation_type == :non_nil

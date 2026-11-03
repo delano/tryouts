@@ -6,6 +6,44 @@ require_relative 'base'
 
 class Tryouts
   module ExpectationEvaluators
+    # Evaluator for exception expectations using syntax: #=!> expression
+    #
+    # PURPOSE:
+    # - Declares that the test code is expected to raise
+    # - Checks the raised exception by class or module, or by any expression
+    #
+    # SYNTAX: #=!> ErrorClass, or #=!> expression
+    # Examples:
+    #   Integer("abc")
+    #   #=!> ArgumentError                         # Pass: error.is_a?(ArgumentError)
+    #
+    #   Integer("abc")
+    #   #=!> StandardError                         # Pass: is_a? includes ancestors
+    #
+    #   Integer("abc")
+    #   #=!> error.message.include?("abc")         # Pass: the expression is truthy
+    #
+    #   Integer("42")
+    #   #=!> ArgumentError                         # Fail: nothing was raised
+    #
+    # MATCHING:
+    # - If the expression evaluates to a Module (a class or a module such as
+    #   Comparable), passes when error.is_a?(it)
+    # - Otherwise passes when the expression is truthy
+    # - Fails, and never re-runs the code, when the test raised nothing
+    #
+    # IMPLEMENTATION DETAILS:
+    # - The test code runs exactly once, before any expectation. A test with
+    #   a #=!> expectation may raise StandardError, ScriptError,
+    #   SystemStackError, NoMemoryError or SecurityError; the exception is
+    #   then context.error and also the result
+    # - Expression is evaluated in the test's binding: it sees the test's
+    #   locals, plus `error` (the exception), `result`/`_` (the same
+    #   exception) and `elapsed_ms`
+    # - Other expectations on the same test see the same `error`, and #=~>
+    #   matches the exception message
+    # - Expected display shows the class name or the expression value;
+    #   actual display shows the raised class name or the message
     class Exception < Base
       def self.handles?(expectation_type)
         expectation_type == :exception

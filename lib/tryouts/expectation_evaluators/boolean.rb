@@ -29,7 +29,8 @@ class Tryouts
     # - More lenient than True/False evaluators but stricter than truthy/falsy
     #
     # IMPLEMENTATION DETAILS:
-    # - Expression has access to `result` and `_` variables (actual_result)
+    # - Expression is evaluated in the test's binding: it sees the test's
+    #   locals, plus `result`/`_` (the test value), `error` and `elapsed_ms`
     # - Expected display shows 'true or false' indicating flexible acceptance
     # - Actual display shows the evaluated expression result
     # - Distinguishes from regular expectations through boolean type validation

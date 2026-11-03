@@ -762,10 +762,13 @@ class Tryouts
       def render_framework_tips
         tips = []
         tips << "Framework Tips:"
-        tips << "  • Instance variables (@var) persist across testcases; local variables do not"
-        tips << "  • Each testcase can have multiple expectations (multiple #=> lines)"
-        tips << "  • Exception testing: Use #=!> to signal expected exception; 'error' variable becomes available"
-        tips << "  • In exception tests, #=~> automatically refers to error.message for pattern matching"
+        tips << "  • A file runs top to bottom as one Ruby script; in shared context (default) local and instance variables persist across setup, testcases and teardown"
+        tips << "  • Fresh context (--no-shared-context): each testcase gets a new object; setup and the code between earlier testcases re-run before it, teardown after it"
+        tips << "  • Only ## starts a description (consecutive ## lines join); a single # line is a plain comment"
+        tips << "  • An expectation checks the statement directly above it, or the one it trails (1 + 1 #=> 2); a testcase can have several"
+        tips << "  • Expectations run in the test's binding and can use its locals, plus result/_ (the value), error (exception or nil) and elapsed_ms"
+        tips << "  • Exception testing: #=!> ErrorClass or #=!> expr; the code runs once and the expectation fails if nothing was raised"
+        tips << "  • In a testcase that raised, result is the exception and #=~> matches its message"
         tips.join("\n")
       end
 
