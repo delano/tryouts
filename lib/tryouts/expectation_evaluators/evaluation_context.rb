@@ -15,14 +15,29 @@ class Tryouts
     #
     # Each expectation is compiled into a lambda inside the test's own binding:
     #
-    #   ->(result, _, error, elapsed_ms) { <expression> }
+    #   ->(result, _, error, elapsed_ms) { (
+    #   <expression>
+    #   ) }
     #
     # so the expression sees the test's local variables, instance variables and
     # constants exactly as the test code left them. `result`, `_`, `error` and
     # `elapsed_ms` are lambda parameters: they belong to this test alone and
-    # cannot leak into the next one.
+    # cannot leak into the next one. The expression gets its own line, so a
+    # trailing `# comment` in it cannot swallow the closing brace, and sits in
+    # parentheses, so a stray `}` in it is a syntax error rather than the end
+    # of the lambda.
     class EvaluationContext
-      PARAMETERS = [:result, :_, :error, :elapsed_ms].freeze
+      HEADER = '->(result, _, error, elapsed_ms) { ('
+      FOOTER = ') }'
+
+      # Prism describes syntax errors with the running Ruby's grammar where it
+      # knows that version, and with its latest grammar otherwise.
+      PRISM_OPTIONS = begin
+        Prism.parse('', version: RUBY_VERSION)
+        { version: RUBY_VERSION }.freeze
+      rescue ArgumentError
+        {}.freeze
+      end
 
       attr_reader :result, :error, :elapsed_ms, :stdout, :stderr
 
@@ -49,37 +64,34 @@ class Tryouts
       # @param expression [String] Ruby source after the expectation arrow
       # @param line [Integer] 1-based line of the expectation comment
       def evaluate(expression, line)
-        check_syntax(expression, line)
-
-        # The expression gets its own line so a trailing `# comment` in it
-        # cannot swallow the closing brace. The file's magic comments and the
-        # lambda header go on the lines above it, so the expression sits on
-        # the expectation's real line.
-        source = [*@magic_comments, '->(result, _, error, elapsed_ms) {', expression, '}'].join("\n")
-        check  = @binding.eval(source, @path, line - 1 - @magic_comments.size)
-        check.call(@result, @result, @error, @elapsed_ms)
-      rescue SyntaxError
-        # Ruby's own message would point at the lambda wrapped around the
-        # expression, which the user never wrote.
-        raise ExpressionSyntaxError, syntax_error_message(expression, line)
+        compile(expression, line).call(@result, @result, @error, @elapsed_ms)
       end
 
       private
 
-      # Parse the expression on its own, with the test's locals in scope, so
-      # a syntax error is described in terms of what the user wrote and at the
-      # expectation's own line. `__END__` parses, but would cut the wrapped
-      # source short.
-      def check_syntax(expression, line)
-        parsed = Prism.parse(expression, scopes: [@binding.local_variables + PARAMETERS])
-        return unless parsed.failure? || parsed.data_loc
-
-        reason = parsed.errors.first&.message || '__END__ cannot appear in an expectation'
-        raise ExpressionSyntaxError, syntax_error_message(expression, line, reason)
+      # The file's magic comments and the lambda header go on the lines above
+      # the expression, so it sits on the expectation's real line. Ruby is
+      # the judge of what compiles; Prism only explains a SyntaxError, since
+      # Ruby's own message would point at the wrapper the user never wrote.
+      def compile(expression, line)
+        source = [*@magic_comments, HEADER, expression, FOOTER].join("\n")
+        @binding.eval(source, @path, line - 1 - @magic_comments.size)
+      rescue SyntaxError
+        reason = syntax_error_reason(expression)
+        raise ExpressionSyntaxError, ["#{@path}:#{line}: syntax error in expectation `#{expression.strip}`", reason].compact.join(': ')
       end
 
-      def syntax_error_message(expression, line, reason = nil)
-        ["#{@path}:#{line}: syntax error in expectation `#{expression.strip}`", reason].compact.join(': ')
+      # The first error Prism reports on the expression's own line (line 2 of
+      # the wrapped source). Failing that, an error at the closing line that
+      # is about the expression, with the wrapper's `)` dropped from it.
+      # Messages about recovering from the wrapper's braces are left out.
+      def syntax_error_reason(expression)
+        parsed = Prism.parse([HEADER, expression, FOOTER].join("\n"), scopes: [@binding.local_variables], **PRISM_OPTIONS)
+        return '__END__ cannot appear in an expectation' if parsed.data_loc
+
+        errors = parsed.errors.reject { |e| e.message.match?(/assuming it is closing|ignoring it/) }
+        errors.find { |e| e.location.start_line == 2 }&.message ||
+          errors.filter_map { |e| e.message[/\Aunexpected '\)'; (.+)/, 1] if e.location.start_line == 3 }.first
       end
     end
   end
