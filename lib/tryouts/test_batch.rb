@@ -74,6 +74,8 @@ class Tryouts
       @circuit_breaker_active   = false
     end
 
+    # Constants the file defined on Object are removed when it finishes, so
+    # another file may define the same names (see ScriptBinding).
     def run(before_test_hook = nil, &)
       return false if empty?
 
@@ -102,6 +104,8 @@ class Tryouts
 
       @status = :completed
       !failed?
+    ensure
+      ScriptBinding.remove_constants(path)
     end
 
     def empty?
@@ -185,10 +189,19 @@ class Tryouts
       process_test_result(result, display)
       @output_manager&.test_end(test_case, idx, @test_case_count) if display
 
-      run_section(:teardown, @testrun.teardown, binding) unless @shared
+      finish_fresh_test(binding) unless @shared
       update_circuit_breaker(result)
       yield(test_case) if block_given?
       result
+    end
+
+    # The test's teardown, then its constants go, so the setup defines fresh
+    # ones for the next test (`class Point < Struct.new(:x, :y)` would
+    # otherwise be a superclass mismatch on the second run).
+    def finish_fresh_test(binding)
+      run_section(:teardown, @testrun.teardown, binding)
+    ensure
+      ScriptBinding.remove_constants(path)
     end
 
     # A new object and Binding with the setup and the preceding interludes
@@ -304,9 +317,7 @@ class Tryouts
       deferred      = kind == :teardown && !@shared
 
       announce_section(kind, section) unless rerun || deferred
-      captured_output = capture_output do
-        rerun ? ScriptBinding.quiet_redefinitions { eval_section(section, binding) } : eval_section(section, binding)
-      end
+      captured_output = capture_output { eval_section(section, binding) }
       return if rerun
 
       if deferred

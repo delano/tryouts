@@ -2,12 +2,15 @@
 #
 # frozen_string_literal: true
 
-# A tryouts file runs at the top level, like `ruby file.rb`: classes and
-# methods it defines are ordinary top-level definitions, and reopening a
-# core class patches the real one.
+# A tryouts file runs at the top level, like `ruby file.rb`: classes it
+# defines are ordinary top-level classes, reopening a core class patches the
+# real one, and self is a main object. A top-level `def` belongs to that main
+# object, so it never lands on Object for other code to trip over. The
+# constants a file defines are removed when it finishes, and in fresh context
+# after each test.
 
 require 'fileutils'
-require 'stringio'
+require 'shellwords'
 require 'tempfile'
 require_relative '../../lib/tryouts'
 
@@ -21,16 +24,22 @@ def default_port
   8080
 end
 
+def format(cents)
+  "$#{cents / 100}.#{(cents % 100).to_s.rjust(2, '0')}"
+end
+
 class ScopeTryServer
-  def port
-    default_port
+  def initialize(port)
+    @port = port
   end
+
+  attr_reader :port
 end
 
 ServerConfig = Struct.new(:host, :port)
 
-def scope_try_statuses(source, shared:)
-  file = Tempfile.new(['scope', '_try.rb'])
+def scope_try_statuses(source, shared:, name: 'scope')
+  file = Tempfile.new([name, '_try.rb'])
   file.write(source)
   file.flush
 
@@ -42,6 +51,22 @@ ensure
   file&.close!
 end
 
+point_class = <<~'RUBY'
+  require 'shellwords'
+
+  class ScopeTryPoint < Struct.new(:x, :y)
+    def sum = x + y
+  end
+
+  ## first
+  ScopeTryPoint.new(1, 2).sum
+  #=> 3
+
+  ## second
+  ScopeTryPoint.new(2, 2).sum
+  #=> 4
+RUBY
+
 ## Reopening a core class patches the real class
 25.to_minutes_label
 #=> '25 min'
@@ -50,9 +75,22 @@ end
 ScopeTryServer.name
 #=> 'ScopeTryServer'
 
-## A class defined in the file can call a top-level method
-ScopeTryServer.new.port
+## A top-level method is callable from the file's code and its blocks
+ScopeTryServer.new(default_port).port
 #=> 8080
+
+## A top-level method does not become a method of Object
+Object.method_defined?(:default_port) || Object.private_method_defined?(:default_port)
+#=> false
+
+## A top-level method does not shadow a Kernel method for other objects
+[format(1250), 5.method(:format).owner]
+#=> ['$12.50', Kernel]
+
+## A top-level method can be made private, as in a script
+private def tidy(text) = text.strip
+[tidy('  done  '), respond_to?(:tidy)]
+#=> ['done', false]
 
 ## Objects of a class defined in the file can be marshalled
 Marshal.load(Marshal.dump(ServerConfig.new('localhost', 3000)))
@@ -62,13 +100,17 @@ Marshal.load(Marshal.dump(ServerConfig.new('localhost', 3000)))
 Object.const_get('ScopeTryServer')
 #=> ScopeTryServer
 
-## The file starts at the top-level nesting
-Module.nesting
-#=> []
+## The file starts at the top-level nesting, outside any method
+[Module.nesting, __method__]
+#=> [[], nil]
 
-## Top-level include works as in a script
+## self prints as main, as in a script
+[to_s, inspect]
+#=> ['main', 'main']
+
+## Top-level include mixes into Object
 include FileUtils
-respond_to?(:mkdir_p, true)
+Object.include?(FileUtils)
 #=> true
 
 ## Top-level using is refused with an explanation
@@ -94,16 +136,17 @@ scope_try_statuses(selves, shared: true)
 [fresh_ids, $scope_try_selves.uniq.size]
 #=> [2, 1]
 
-## Re-running code that assigns a constant does not warn while quieted
-code = Tryouts::ScriptBinding.create
-code.eval('SCOPE_TRY_RETRIES = 3')
-previous_stderr = $stderr
-quieted = $stderr = StringIO.new
-Tryouts::ScriptBinding.quiet_redefinitions { code.eval('SCOPE_TRY_RETRIES = 3') }
-warned = $stderr = StringIO.new
-code.eval('SCOPE_TRY_RETRIES = 3')
-$stderr = previous_stderr
-[quieted.string, warned.string.include?('already initialized constant SCOPE_TRY_RETRIES')]
-#=> ['', true]
+## Fresh context runs a setup that subclasses Struct.new before every test
+scope_try_statuses(point_class, shared: false)
+#=> [:passed, :passed]
+
+## Two files in one run may define the same class
+[scope_try_statuses(point_class, shared: true, name: 'first'), scope_try_statuses(point_class, shared: true, name: 'second')]
+#=> [[:passed, :passed], [:passed, :passed]]
+
+## The file's constants are gone when it finishes, a required library's stay
+scope_try_statuses(point_class, shared: true)
+[Object.const_defined?(:ScopeTryPoint), Object.const_defined?(:Shellwords)]
+#=> [false, true]
 
 $scope_try_selves = nil
