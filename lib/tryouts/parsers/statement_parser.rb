@@ -64,7 +64,8 @@ class Tryouts
 
     # One entry per top-level statement, with its full extent. A heredoc body
     # lies after the statement's own location (which ends at `<<~X`), so the
-    # extent is widened to the heredoc terminator.
+    # extent is widened to the heredoc terminator. Statements that share a
+    # heredoc's opener line are one entry (see build_statements).
     Statement = Struct.new(:node, :start_offset, :end_offset, :start_line, :end_line, :trailing, :gap) do
       # Trailing expectations come first: they are on the statement's own line.
       def expectations
@@ -102,16 +103,28 @@ class Tryouts
 
     private
 
+    # A statement that starts inside the previous one's extent shares the
+    # opener line of a heredoc (`a = <<~A; b = 1`). The two run as one unit,
+    # so each runs once and the slice holds every body opened on the line.
+    # The later statement is the unit's node: its value is the unit's value
+    # and its end is where the trailing slot starts.
     def build_statements
-      body = @prism_result.value.statements.body
-      body.map do |node|
+      @prism_result.value.statements.body.each_with_object([]) do |node, statements|
         loc        = node.location
         end_offset = extent_end_offset(node)
-        Statement.new(
-          node, loc.start_offset, end_offset,
-          loc.start_line, line_at(end_offset - 1),
-          [], []
-        )
+        previous   = statements.last
+
+        if previous && loc.start_offset < previous.end_offset
+          previous.node       = node
+          previous.end_offset = [previous.end_offset, end_offset].max
+          previous.end_line   = line_at(previous.end_offset - 1)
+        else
+          statements << Statement.new(
+            node, loc.start_offset, end_offset,
+            loc.start_line, line_at(end_offset - 1),
+            [], []
+          )
+        end
       end
     end
 
