@@ -216,6 +216,13 @@ jumps = parse.call('jumps', "## next\n1\n#=> next 1\n\n## break\n2\n#=> break 2\
 [minitest_passed.call(jumps), rspec_statuses.call(jumps)]
 #=> [[true, true], [:passed, :passed]]
 
+## try --rspec exits non-zero when an example fails, and the next file runs only its own examples
+failing = write_file.call('rspec_fails', "## wrong sum\n1 + 1\n#=> 3\n")
+passing = write_file.call('rspec_passes', "## right sum\n1 + 1\n#=> 2\n")
+output, status = Open3.capture2e(RbConfig.ruby, try_command, '--rspec', failing, passing)
+[status.success?, output.scan(/^\d+ examples?, \d+ failures?$/)]
+#=> [false, ["1 example, 1 failure", "1 example, 0 failures"]]
+
 ## try --minitest exits non-zero for a file whose only expectation is detached
 output, status = Open3.capture2e(RbConfig.ruby, try_command, '--minitest', write_file.call('detached', "## total\n#=> 3\n"))
 [status.success?, output[/^\d+ runs, \d+ assertions, \d+ failures/]]

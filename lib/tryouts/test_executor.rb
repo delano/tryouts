@@ -78,8 +78,9 @@ class Tryouts
       @output_manager.info 'Executing with RSpec framework', 2
       @translator.translate(@testrun)
       require 'rspec/core'
-      RSpec::Core::Runner.run([])
-      0
+      status = RSpec::Core::Runner.run([]) # 0, or 1 when an example failed
+      RSpec.clear_examples # so the next file runs only its own examples
+      status
     end
 
     def execute_minitest_mode
