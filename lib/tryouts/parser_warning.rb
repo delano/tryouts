@@ -84,6 +84,20 @@ class Tryouts
       )
     end
 
+    # A `##` description with code below it but no expectation before the
+    # next description, so no test has that name. Often an expectation with
+    # a mistyped operator that reads as a plain comment (`#==`, `#=~ /x/`).
+    def self.description_without_expectation(line_number:, description:, section:, context:)
+      runs_as = { setup: 'setup', interlude: 'an interlude', teardown: 'teardown' }.fetch(section)
+      new(
+        type: :description_without_expectation,
+        message: "Test '#{description}' at line #{line_number} has no expectation; its code runs as #{runs_as}",
+        line_number: line_number,
+        context: context,
+        suggestion: "Add an expectation such as '#=> value' below the test's code, and check the operator of any comment meant as one (#=>, #==>, #=~>, #=1>, ...). Use a single '#' for a heading that is not a test",
+      )
+    end
+
     # An expectation with no statement above it in its own test: before the
     # first statement, or below a `##` description with no code in between.
     # It is not evaluated.

@@ -12,8 +12,9 @@ class Tryouts
     # evaluated. Two kinds:
     #
     # - :malformed is a comment shaped like an expectation with an operator
-    #   that does not exist, such as `#=INVALID> 2`, `#=!!> x`, `#= = > x`
-    #   or `#<=> x`, or one written behind a description marker (`##=> 2`).
+    #   that does not exist, such as `#=INVALID> 2`, `#=!!> x`, `#= = > x`,
+    #   `#<=> x` or `#!> x` (the `=` left out), or one written behind a
+    #   description marker (`##=> 2`).
     # - :detached is an expectation with no statement above it in its own
     #   test: before the first statement, or directly under a `##` line.
     class Malformed < Base

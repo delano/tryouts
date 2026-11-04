@@ -38,40 +38,90 @@ class Tryouts
   #   testrun = Tryouts::StatementParser.new('try/basic_try.rb').parse
   #   testrun.test_cases.first.expectations.first.line  # 0-based source line
   class StatementParser
-    # Operator text between `#=` and `>` mapped to the expectation type.
-    # `#=>` has an empty operator.
-    OPERATORS = {
-      '' => :regular,
-      '=' => :true, # rubocop:disable Lint/BooleanSymbol
-      '/=' => :false, # rubocop:disable Lint/BooleanSymbol
-      '|' => :boolean,
-      '!' => :exception,
-      '<' => :intentional_failure,
-      '*' => :non_nil,
-      ':' => :result_type,
-      '~' => :regex_match,
-      '%' => :performance_time,
-    }.freeze
+    # What a comment's text says it is, before it is anchored to a statement.
+    module CommentShapes
+      # Operator text between `#=` and `>` mapped to the expectation type.
+      # `#=>` has an empty operator.
+      OPERATORS = {
+        '' => :regular,
+        '=' => :true, # rubocop:disable Lint/BooleanSymbol
+        '/=' => :false, # rubocop:disable Lint/BooleanSymbol
+        '|' => :boolean,
+        '!' => :exception,
+        '<' => :intentional_failure,
+        '*' => :non_nil,
+        ':' => :result_type,
+        '~' => :regex_match,
+        '%' => :performance_time,
+      }.freeze
 
-    # `#=>>` is not `#=>` with a body of `> ...`; it is a mistyped operator.
-    EXPECTATION_PATTERN = %r{\A#(?<space>\s*)=(?<op>/=|\d+|[=|!<*:~%]|)>(?!>)\s?(?<body>.*)\z}m
-    # What follows the `#` of anything shaped like an expectation: optional
-    # spaces, `=`, an operator-like token, and `>`. The token may hold spaces
-    # between operator characters and digits (`= = >`, `=2 2>`, `=1 >`) but
-    # not between words, so prose such as `# = Section >` is not one. `<=`
-    # or `>=` straight after the `#` is an operator written backwards
-    # (`#<=>`, `#>=`).
-    OPERATOR_SHAPE      = %r{(?:\s*=[^\s>]*[\s=<!|*:~%/\\\d-]*>|[<>]=\S*)}
-    # One that EXPECTATION_PATTERN rejects is a mistyped operator (`#=!!>`,
-    # `#=/>`, `#=1x>`, `#= = >`, `#<=>`). The match runs to the end of the
-    # token (`#=>>`), so it is the whole mistyped operator.
-    EXPECTATION_SHAPE   = /\A##{OPERATOR_SHAPE}\S*/
-    # The same shape behind a description marker (`##=>`, `###=>`,
-    # `## = >`) is an expectation with one `#` too many, never a description.
-    DOUBLED_SHAPE       = /\A##+#{OPERATOR_SHAPE}\S*/
-    # A `##` line with text after it. A bare `##` is a plain comment.
-    DESCRIPTION_PATTERN = /\A##++\s*(?<text>\S.*)\z/m
-    VACUOUS_BOOLEAN     = /\A(true|false|nil)\s*(#.*)?\z/
+      # `#=>>` is not `#=>` with a body of `> ...`; it is a mistyped operator.
+      EXPECTATION_PATTERN = %r{\A#(?<space>\s*)=(?<op>/=|\d+|[=|!<*:~%]|)>(?!>)\s?(?<body>.*)\z}m
+      # What follows the `#` of anything shaped like an expectation: optional
+      # spaces, `=`, an operator-like token, and `>`. The token may hold spaces
+      # between operator characters and digits (`= = >`, `=2 2>`, `=1 >`) but
+      # not between words, so prose such as `# = Section >` is not one. `<=`
+      # or `>=` straight after the `#` is an operator written backwards
+      # (`#<=>`, `#>=`), and operator characters and `>` straight after it
+      # are an operator with its `=` left out (`#!>`, `#~>`, `#->`, `#!=>`).
+      # Four or more `=` before the `>` are a divider (`# =====>`), not one.
+      OPERATOR_SHAPE      = %r{(?!\s*={4,}>)(?:\s*=[^\s>]*[\s=<!|*:~%/\\\d-]*>|[<>]=\S*|[!|*:~%/<-][=!|*:~%/<-]*>)}
+      # One that EXPECTATION_PATTERN rejects is a mistyped operator (`#=!!>`,
+      # `#=/>`, `#=1x>`, `#= = >`, `#<=>`). The match runs to the end of the
+      # token (`#=>>`), so it is the whole mistyped operator.
+      EXPECTATION_SHAPE   = /\A##{OPERATOR_SHAPE}\S*/
+      # The same shape behind a description marker (`##=>`, `###=>`,
+      # `## = >`) is an expectation with one `#` too many, never a description.
+      DOUBLED_SHAPE       = /\A##+#{OPERATOR_SHAPE}\S*/
+      # `# >= 5` is the same mistake as `#>= 5` when what follows is a value,
+      # not prose (`# >= 2 items is plenty`, `# <=> compares`).
+      SPACED_BACKWARDS    = /\A#\s+(?:<=>?|>=)\s*(?<body>.*)\z/m
+      # A `##` line with text after it. A bare `##` is a plain comment, or a
+      # spacer between the lines of one description.
+      DESCRIPTION_PATTERN = /\A##++\s*(?<text>\S.*)\z/m
+      BARE_DESCRIPTION    = /\A\s*##+\s*\z/
+      # A plain comment that starts like an expectation (`#==`, `#=1`, `#> 5`,
+      # `# >= 5 6`).
+      EXPECTATION_LIKE    = /\A#\s?[=<>]/
+      VACUOUS_BOOLEAN     = /\A(true|false|nil)\s*(#.*)?\z/
+
+      private
+
+      # Comments that look like an attempt at an expectation but are not one.
+      # An OPERATOR_SHAPE is a typo of a real operator (:typo). The same shape
+      # behind `##` is an expectation written with one `#` too many (:doubled);
+      # it is not a description and not a way to comment an expectation out
+      # (`# #=>` is). A comment opening with `>` or `<` might be one
+      # (:suspicious); after code on the same line that is ordinary prose
+      # (`x # > 3 is fine`), so it is not flagged there, and neither is a
+      # spaced backwards operator.
+      def malformed_expectation(text, trailing:)
+        return :doubled if text.match?(DOUBLED_SHAPE)
+        return nil if text.start_with?('##')
+        return :typo if text.match?(EXPECTATION_SHAPE)
+        return nil if trailing
+        return :typo if (match = SPACED_BACKWARDS.match(text)) && ruby_value?(match[:body])
+
+        :suspicious if text.match?(/\A#\s*>[^=]/) || text.match?(/\A#\s*<[^=]/)
+      end
+
+      # One Ruby expression that is not a bare word or command (`5`, `'abc'`,
+      # `result.size`). Prose is either not Ruby (`2 items`) or reads as a
+      # method call with no receiver (`compares`, `is the spaceship operator`).
+      def ruby_value?(code)
+        result = Prism.parse(code)
+        body   = result.value.statements.body
+        result.success? && body.one? && !(body.first in Prism::CallNode[receiver: nil])
+      end
+
+      # The whole operator token, spaces and closing `>` included (`=1 >`,
+      # `=>>`). A :suspicious comment has no such shape; its first word stands in.
+      def malformed_syntax(text)
+        (text[EXPECTATION_SHAPE] || text[/\A#\s*\S*/]).sub(/\A#\s*/, '')
+      end
+    end
+
+    include CommentShapes
 
     attr_reader :source_path, :warnings
 
@@ -216,14 +266,14 @@ class Tryouts
         return { kind: :expectation, type: :malformed, content: text, pipe: nil, line: line, spaced: false }
       when :suspicious
         add_malformed_warning(text, line)
-        return { kind: :comment, line: line }
+        return { kind: :comment, text: text, line: line }
       end
 
       if !trailing && (match = DESCRIPTION_PATTERN.match(text))
         return { kind: :description, text: match[:text].strip, line: line }
       end
 
-      { kind: :comment, line: line }
+      { kind: :comment, text: text, line: line }
     end
 
     def add_malformed_warning(text, line)
@@ -263,9 +313,12 @@ class Tryouts
       }
     end
 
+    # Only an unspaced one: `# => 2` in a method body is a doc comment. A
+    # mistyped or doubled operator there is as dead as a valid one.
     def warn_about_nested_expectation(comment)
       text = comment.slice.strip
-      return unless text.start_with?('#=') && EXPECTATION_PATTERN.match?(text)
+      return unless text.match?(/\A#+[^#\s]/)
+      return unless EXPECTATION_PATTERN.match?(text) || malformed_expectation(text, trailing: true)
 
       @warnings << ParserWarning.nested_expectation(
         line_number: comment.location.start_line,
@@ -273,33 +326,12 @@ class Tryouts
       )
     end
 
-    # Comments that look like an attempt at an expectation but are not one.
-    # An OPERATOR_SHAPE is a typo of a real operator (:typo). The same shape
-    # behind `##` is an expectation written with one `#` too many (:doubled);
-    # it is not a description and not a way to comment an expectation out
-    # (`# #=>` is). A comment opening with `>` or `<` might be one
-    # (:suspicious); after code on the same line that is ordinary prose
-    # (`x # > 3 is fine`), so it is not flagged there.
-    def malformed_expectation(text, trailing:)
-      return :doubled if text.match?(DOUBLED_SHAPE)
-      return nil if text.start_with?('##')
-      return :typo if text.match?(EXPECTATION_SHAPE)
-      return nil if trailing
-
-      :suspicious if text.match?(/\A#\s*>[^=]/) || text.match?(/\A#\s*<[^=]/)
-    end
-
-    # The whole operator token, spaces and closing `>` included (`=1 >`,
-    # `=>>`). A :suspicious comment has no such shape; its first word stands in.
-    def malformed_syntax(text)
-      (text[EXPECTATION_SHAPE] || text[/\A#\s*\S*/]).sub(/\A#\s*/, '')
-    end
-
     # Turn the annotated statement list into Setup, test cases (with interludes
     # in between) and Teardown.
     def assemble
       detached    = detach_unanchored_expectations
       subjects    = @statements.each_index.select { |i| @statements[i].subject? }
+      warn_about_descriptions_without_expectations(subjects)
       test_cases  = []
       setup_range = nil
       cursor      = 0
@@ -338,24 +370,72 @@ class Tryouts
     # Gap g sits after statement g, so the test begins at statement g + 1. A
     # gap that also holds the previous subject's expectations only offers the
     # descriptions written after them. Only `##` lines on adjacent lines join
-    # into one description, and the last such block before the code is the
-    # test's description. An earlier block, cut off by a blank line or a plain
+    # into one description (a bare `##` spacer between them does not break
+    # it), and the last such block before the code is the test's
+    # description. An earlier block, cut off by a blank line or a plain
     # comment (a section heading, a commented-out test), is a comment.
     #
     # @return [Array(Integer, Hash), nil] gap index (-1 for the file's leading
     #   gap) and description info
     def description_for(cursor, subject_index)
       (subject_index - 1).downto(cursor - 1) do |gap_index|
-        gap         = gap_index.negative? ? @leading_gap : @statements[gap_index].gap
-        last_expect = gap.rindex { |c| c[:kind] == :expectation } || -1
-        lines       = gap[(last_expect + 1)..].select { |c| c[:kind] == :description }
-        next if lines.empty?
-
-        block = lines.slice_when { |a, b| b[:line] != a[:line] + 1 }.to_a.last
-        text  = block.map { |c| c[:text] }.join(' ')
-        return [gap_index, { text: text, line: block.first[:line] }]
+        block = description_block(gap_at(gap_index)) or next
+        return [gap_index, { text: block.map { |c| c[:text] }.join(' '), line: block.first[:line] }]
       end
       nil
+    end
+
+    def gap_at(gap_index)
+      gap_index.negative? ? @leading_gap : @statements[gap_index].gap
+    end
+
+    # The description lines in a gap that name the code after it, or nil.
+    def description_block(gap)
+      last_expect = gap.rindex { |c| c[:kind] == :expectation } || -1
+      lines       = gap[(last_expect + 1)..].select { |c| c[:kind] == :description }
+      lines.slice_when { |a, b| !one_description?(a, b) }.to_a.last
+    end
+
+    # Description line b continues a's description: it is on the next line,
+    # or only bare `##` spacer lines lie between them.
+    def one_description?(a, b)
+      @lines[(a[:line] + 1)...b[:line]].all? { |line| line.match?(BARE_DESCRIPTION) }
+    end
+
+    # A description followed by code with no expectation before the next
+    # description (or the end of the file) names no test, so its code runs
+    # as setup, an interlude or teardown. When a comment in that code starts
+    # like an expectation, it is one whose operator lost a character (`#==`,
+    # `#=~ /x/`, `#=1 "hi"`, `#> 5`) and the test has vanished. Without such
+    # a comment the `##` line is a heading over setup or helper code, which
+    # is not worth a warning.
+    def warn_about_descriptions_without_expectations(subjects)
+      (-1...@statements.size).each do |gap_index|
+        block = description_block(gap_at(gap_index)) or next
+        code  = ((gap_index + 1)...@statements.size).slice_when { |i, _| description_block(@statements[i].gap) }.first
+        next if code.nil? || code.intersect?(subjects) || !attempted_expectation?(code)
+
+        @warnings << ParserWarning.description_without_expectation(
+          line_number: block.first[:line] + 1,
+          description: block.map { |c| c[:text] }.join(' '),
+          section: section_for(code, subjects),
+          context: @lines[block.first[:line]].strip,
+        )
+      end
+    end
+
+    def attempted_expectation?(code)
+      code.any? do |i|
+        statement = @statements[i]
+        comments  = statement.trailing + statement.gap.take_while { |c| c[:kind] != :description }
+        comments.any? { |c| c[:kind] == :comment && c[:text]&.match?(EXPECTATION_LIKE) }
+      end
+    end
+
+    def section_for(code, subjects)
+      return :setup if subjects.none? { |i| i < code.first }
+
+      subjects.any? { |i| i > code.last } ? :interlude : :teardown
     end
 
     def build_test_case(range, description)
@@ -436,7 +516,7 @@ class Tryouts
         case c[:kind]
         when :description
           current = groups.last
-          if current && current[1].empty? && current[0].last[:line] + 1 == c[:line]
+          if current && current[1].empty? && one_description?(current[0].last, c)
             current[0] << c
           else
             groups << [[c], []]

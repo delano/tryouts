@@ -251,3 +251,77 @@ testrun = parse_tryouts(<<~'RUBY')
 RUBY
 [testrun.test_cases.map { |tc| [tc.description, tc.code] }, testrun.warnings]
 #=> [[["first", "total = 1"]], []]
+
+## A doubled or mistyped expectation inside a method or block body is reported like '#=>' there
+warning_types(<<~'RUBY')
+  def total(prices)
+    sum = prices.sum
+    ##=> 2.0
+    sum
+  end
+
+  ## maps each price
+  [1.25, 0.75].map do |price|
+    price * 2
+    #=X> 2.5
+  end
+  #=> [2.5, 1.5]
+RUBY
+#=> [[:nested_expectation, 3], [:nested_expectation, 10]]
+
+## A spaced '# =>' doc comment inside a method body is not reported
+warning_types(<<~'RUBY')
+  def total(prices)
+    prices.sum # => 2.0
+    # => 2.0 for the default cart
+  end
+
+  ## sums prices
+  total([1.25, 0.75])
+  #=> 2.0
+RUBY
+#=> []
+
+## A spaced backwards operator before a value fails; before prose it is a comment
+testrun = parse_tryouts(<<~'RUBY')
+  ## at least five
+  [1, 2].size
+  # >= 5
+
+  ## at most ten
+  [1, 2].size
+  # <= result.size
+
+  ## prose
+  # >= 2 items is plenty
+  # <=> compares
+  [1, 2].size
+  #=> 2
+RUBY
+testrun.test_cases.map { |tc| tc.expectations.map(&:type) }
+#=> [[:malformed], [:malformed], [:regular]]
+
+## A bare '##' spacer between description lines does not split the description
+testrun = parse_tryouts(<<~'RUBY', strict: true)
+  ## Sums two numbers
+  ##
+  ## and the result is an Integer
+  1 + 1
+  #=> 2
+RUBY
+[testrun.test_cases.map(&:description), testrun.test_cases.first.line_range.first]
+#=> [["Sums two numbers and the result is an Integer"], 0]
+
+## A spacer also joins the description of an expectation with no statement above it
+testrun = parse_tryouts(<<~'RUBY')
+  ## counts items
+  [1, 2, 3].size
+  #=> 3
+
+  ## an empty list
+  ##
+  ## has no items
+  #=> 0
+RUBY
+testrun.test_cases.map(&:description)
+#=> ["counts items", "an empty list has no items"]
