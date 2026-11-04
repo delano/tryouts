@@ -6,11 +6,11 @@
 # defines are ordinary top-level classes, reopening a core class patches the
 # real one, and self is a main object. A top-level `def` belongs to that main
 # object, so it never lands on Object for other code to trip over. The
-# constants a file defines are removed when it finishes, and in fresh context
-# after each test.
+# classes a file defines stay defined for the rest of the run, as when Ruby
+# loads several files; fresh context removes them only before it re-runs the
+# setup for the next test.
 
 require 'fileutils'
-require 'shellwords'
 require 'tempfile'
 require_relative '../../lib/tryouts'
 
@@ -52,8 +52,6 @@ ensure
 end
 
 point_class = <<~'RUBY'
-  require 'shellwords'
-
   class ScopeTryPoint < Struct.new(:x, :y)
     def sum = x + y
   end
@@ -136,17 +134,58 @@ scope_try_statuses(selves, shared: true)
 [fresh_ids, $scope_try_selves.uniq.size]
 #=> [2, 1]
 
-## Fresh context runs a setup that subclasses Struct.new before every test
-scope_try_statuses(point_class, shared: false)
+## Fresh context re-runs a setup that subclasses Struct.new before every test, and the class stays after the last
+[scope_try_statuses(point_class, shared: false), Object.const_defined?(:ScopeTryPoint)]
+#=> [[:passed, :passed], true]
+
+## Fresh context re-runs a setup that includes a module of its own with constants
+greeter = <<~'RUBY'
+  module ScopeTryGreetings
+    HELLO = 'hello'
+  end
+  include ScopeTryGreetings
+
+  ## first test
+  HELLO
+  #=> 'hello'
+
+  ## second test
+  HELLO.upcase
+  #=> 'HELLO'
+RUBY
+scope_try_statuses(greeter, shared: false)
 #=> [:passed, :passed]
 
-## Two files in one run may define the same class
-[scope_try_statuses(point_class, shared: true, name: 'first'), scope_try_statuses(point_class, shared: true, name: 'second')]
-#=> [[:passed, :passed], [:passed, :passed]]
+## A class one file defines is still defined when the next file runs
+route_class = <<~'RUBY'
+  class ScopeTryRoute < Struct.new(:path)
+  end
 
-## The file's constants are gone when it finishes, a required library's stay
-scope_try_statuses(point_class, shared: true)
-[Object.const_defined?(:ScopeTryPoint), Object.const_defined?(:Shellwords)]
-#=> [false, true]
+  ## defines the route class
+  ScopeTryRoute.new('/health').path
+  #=> '/health'
+RUBY
+route_user = <<~'RUBY'
+  ## uses the route class the earlier file defined
+  ScopeTryRoute.new('/status').path
+  #=> '/status'
+RUBY
+[scope_try_statuses(route_class, shared: true, name: 'routes'), scope_try_statuses(route_user, shared: true, name: 'router')]
+#=> [[:passed], [:passed]]
+
+## A library the setup requires stays loaded when fresh context re-runs the setup
+walker = <<~'RUBY'
+  require 'find'
+
+  ## first test
+  Find.respond_to?(:find)
+  #=> true
+
+  ## second test
+  Find.respond_to?(:find)
+  #=> true
+RUBY
+[Object.const_defined?(:Find), scope_try_statuses(walker, shared: false)]
+#=> [false, [:passed, :passed]]
 
 $scope_try_selves = nil

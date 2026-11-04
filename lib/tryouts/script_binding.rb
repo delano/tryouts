@@ -12,14 +12,24 @@ class Tryouts
   # `Module.nesting` is [] and `__method__` is nil. Top-level `include`
   # mixes into Object, and `private def helper` works, as in a script.
   #
-  # Constants are global, as in a script. Constants a file defines on Object
-  # (found by Object.const_source_location pointing at the file) are removed
-  # with #remove_constants when the file finishes, and in fresh context after
-  # each test, so the next run of the setup defines them afresh and another
-  # file may reuse the name. Constants defined by required libraries are
-  # never removed. Under --parallel, files that run at the same time still
-  # share Object's constants while they run, so they should not define the
-  # same top-level constant.
+  # Constants are global, as in a script. The classes and constants a file
+  # defines stay defined for the rest of the run, the way they would if
+  # several Ruby files were loaded into one process (RSpec and Minitest
+  # behave the same), so two files should not define the same top-level
+  # class differently. Under --parallel, files that run at the same time
+  # share them too.
+  #
+  # Fresh context re-runs the setup (and interludes) for every test. Before
+  # it does so for the second and later tests, #remove_constants removes the
+  # constants defined directly on Object by the file, so `class Point <
+  # Struct.new(:x, :y)` is defined afresh rather than raising superclass
+  # mismatch. Nothing is removed after the last test, so its values still
+  # inspect correctly in the summary. Consequences of re-running class
+  # definitions:
+  # - Constants the file nests inside an existing namespace (JSON::Point,
+  #   or a constant inside a module of a library) are not removed.
+  # - Each re-run defines new class objects, so inherited hooks and
+  #   registries kept by retained library classes see every re-run.
   #
   # Differences from a script:
   # - A top-level `def` defines a public singleton method on self rather than
@@ -65,11 +75,12 @@ class Tryouts
       Object.new.extend(Main).instance_eval(&TOPLEVEL_BLOCK)
     end
 
-    # Removes the constants on Object that were defined by code in path.
+    # Removes the constants defined directly on Object (not those it
+    # inherits from an included module) by code in path.
     # @param path [String] the file the code was evaluated as
     def self.remove_constants(path)
-      Object.constants.each do |name|
-        Object.send(:remove_const, name) if Object.const_source_location(name)&.first == path
+      Object.constants(false).each do |name|
+        Object.send(:remove_const, name) if Object.const_source_location(name, false)&.first == path
       end
     end
   end

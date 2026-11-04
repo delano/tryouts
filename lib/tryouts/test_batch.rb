@@ -74,8 +74,6 @@ class Tryouts
       @circuit_breaker_active   = false
     end
 
-    # Constants the file defined on Object are removed when it finishes, so
-    # another file may define the same names (see ScriptBinding).
     def run(before_test_hook = nil, &)
       return false if empty?
 
@@ -104,8 +102,6 @@ class Tryouts
 
       @status = :completed
       !failed?
-    ensure
-      ScriptBinding.remove_constants(path)
     end
 
     def empty?
@@ -174,7 +170,7 @@ class Tryouts
     # context) and a setup failure never leaves a test half-reported. The
     # teardown runs after the test's result.
     def run_single_test(test_case, idx, interludes, before_test_hook)
-      binding = @shared ? @binding : fresh_binding(interludes, test_case)
+      binding = @shared ? @binding : fresh_binding(interludes, test_case, idx)
       return nil if @aborted
 
       display = should_display_test_result?(test_case)
@@ -189,24 +185,19 @@ class Tryouts
       process_test_result(result, display)
       @output_manager&.test_end(test_case, idx, @test_case_count) if display
 
-      finish_fresh_test(binding) unless @shared
+      run_section(:teardown, @testrun.teardown, binding) unless @shared
       update_circuit_breaker(result)
       yield(test_case) if block_given?
       result
     end
 
-    # The test's teardown, then its constants go, so the setup defines fresh
-    # ones for the next test (`class Point < Struct.new(:x, :y)` would
-    # otherwise be a superclass mismatch on the second run).
-    def finish_fresh_test(binding)
-      run_section(:teardown, @testrun.teardown, binding)
-    ensure
-      ScriptBinding.remove_constants(path)
-    end
-
     # A new object and Binding with the setup and the preceding interludes
-    # already evaluated in it, for test_case.
-    def fresh_binding(interludes, test_case)
+    # already evaluated in it, for test_case. From the second test on, the
+    # constants the file defined go first, so the setup defines them afresh
+    # (`class Point < Struct.new(:x, :y)` would otherwise be a superclass
+    # mismatch on the second run; see ScriptBinding).
+    def fresh_binding(interludes, test_case, idx)
+      ScriptBinding.remove_constants(path) if idx > 1
       binding = ScriptBinding.create
       run_section(:setup, @testrun.setup, binding, test_case)
       interludes.each do |interlude|
