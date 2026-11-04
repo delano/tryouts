@@ -578,7 +578,7 @@ class Tryouts
           context_lines << "Errors:"
           @errors.each do |error|
             # Clean up the error message to remove redundant prefixes
-            clean_message = error[:message].gsub(/^ERROR:\s*/i, '').strip
+            clean_message = error[:message].to_s.scrub.gsub(/^ERROR:\s*/i, '').strip
             context_lines << "  #{clean_message}"
             if error[:backtrace] && @options[:debug]
               error[:backtrace].first(3).each do |trace|

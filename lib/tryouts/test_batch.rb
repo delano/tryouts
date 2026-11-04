@@ -236,8 +236,8 @@ class Tryouts
     def run_test_code(test_case, binding)
       value  = nil
       error  = nil
-      stdout = test_case.expectations.any?(&:output?) ? StringIO.new : nil
-      stderr = stdout && StringIO.new
+      stdout = test_case.expectations.any?(&:output?) ? StringIO.new(''.b) : nil
+      stderr = stdout && StringIO.new(''.b)
 
       started = Process.clock_gettime(Process::CLOCK_MONOTONIC, :nanosecond)
       begin
@@ -256,8 +256,8 @@ class Tryouts
         result: error || value,
         error: error,
         elapsed_ns: elapsed,
-        stdout: stdout&.string,
-        stderr: stderr&.string,
+        stdout: stdout && captured_text(stdout),
+        stderr: stderr && captured_text(stderr),
       )
     end
 
@@ -482,7 +482,13 @@ class Tryouts
       err = StringIO.new(''.b)
       capture_streams(out, err, &)
     ensure
-      [out, err].each { |io| output << io.string.dup.force_encoding(Encoding::UTF_8).scrub }
+      [out, err].each { |io| output << captured_text(io) }
+    end
+
+    # What a test or section wrote, as valid UTF-8: the buffer is binary so
+    # any bytes can be written to it, and invalid sequences are replaced.
+    def captured_text(io)
+      io.string.dup.force_encoding(Encoding::UTF_8).scrub
     end
 
     # Redirects $stdout to `out` and $stderr to `err` for the duration of the

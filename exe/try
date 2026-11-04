@@ -70,8 +70,8 @@ begin
 
   # If user provided explicit paths but nothing matched, exit with error
   if explicit_paths_given && files.empty?
-    warn 'Error: No test files found matching the given paths'
-    exit 1
+    Kernel.warn 'Error: No test files found matching the given paths'
+    Kernel.exit 1
   end
 
   # Default file discovery if no files specified
@@ -90,9 +90,11 @@ begin
   end
 
   cli = Tryouts::CLI.new
-  exit cli.run(files, **options)
+  # Kernel.exit and Kernel.warn: a test file's top-level `include` mixes into
+  # Object, so a module of its own could otherwise answer these calls.
+  Kernel.exit cli.run(files, **options)
 rescue StandardError => ex
-  warn "Error: #{ex.message}"
-  warn ex.backtrace.join("\n") if options&.dig(:debug)
-  exit 1
+  Kernel.warn "Error: #{ex.message}"
+  Kernel.warn ex.backtrace.join("\n") if options&.dig(:debug)
+  Kernel.exit 1
 end
