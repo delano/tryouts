@@ -90,6 +90,23 @@ private def tidy(text) = text.strip
 [tidy('  done  '), respond_to?(:tidy)]
 #=> ['done', false]
 
+## A bare private makes the top-level defs after it private, and a bare public ends that
+visibility = <<~'RUBY'
+  private
+
+  def secret_token = 'abc123'
+
+  public
+
+  def greeting = 'hello'
+
+  ## both methods are callable, only the second from outside
+  [secret_token, respond_to?(:secret_token), respond_to?(:greeting)]
+  #=> ['abc123', false, true]
+RUBY
+[scope_try_statuses(visibility, shared: true), scope_try_statuses(visibility, shared: false)]
+#=> [[:passed], [:passed]]
+
 ## Objects of a class defined in the file can be marshalled
 Marshal.load(Marshal.dump(ServerConfig.new('localhost', 3000)))
 #=> ServerConfig.new('localhost', 3000)

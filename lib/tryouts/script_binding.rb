@@ -35,7 +35,9 @@ class Tryouts
   # - A top-level `def` defines a public singleton method on self rather than
   #   a private method on Object. It is callable from the file's top-level
   #   code and blocks there, but not from inside a class the file defines,
-  #   and it never shadows a Kernel method for any other code.
+  #   and it never shadows a Kernel method for any other code. A bare
+  #   `private` makes the top-level defs after it private, and a bare
+  #   `public` ends that, as in a script.
   # - Top-level `using` raises. Every section and expectation is evaluated
   #   separately, so a refinement activated at the top level could not reach
   #   the code after it. `using` inside a class or module body works.
@@ -53,12 +55,24 @@ class Tryouts
         Object.include(*modules)
       end
 
+      # A bare `public` or `private` sets the visibility of the top-level
+      # defs after it, as in a script.
       def public(*names)
-        singleton_class.send(:public, *names)
+        return singleton_class.send(:public, *names) unless names.empty?
+
+        singleton_class.instance_variable_set(:@private_defs, false)
+        nil
       end
 
       def private(*names)
-        singleton_class.send(:private, *names)
+        return singleton_class.send(:private, *names) unless names.empty?
+
+        singleton_class.instance_variable_set(:@private_defs, true)
+        nil
+      end
+
+      def singleton_method_added(name)
+        singleton_class.send(:private, name) if singleton_class.instance_variable_get(:@private_defs)
       end
 
       def define_method(...)
