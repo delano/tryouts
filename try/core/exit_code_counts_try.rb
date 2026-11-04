@@ -81,22 +81,14 @@ output[/\d+ of \d+ files passed/]
 run_files(["## fine\n1\n#=> 1\n", "## also fine\n2\n#=> 2\n"]).first
 #=> 0
 
-## A file that errors outside the test batch is reported by name in the debug log
-out    = StringIO.new
-runner = Tryouts::TestRunner.new(
-  files: ['broken_try.rb'],
-  options: { framework: :direct },
-  output_manager: Tryouts::CLI::FormatterFactory.create_output_manager(stdout: out, stderr: out),
-)
-log            = StringIO.new
-was_debugging  = Tryouts.debug?
-$stderr, saved = log, $stderr
-Tryouts.debug  = true
-begin
-  runner.send(:handle_file_error, 'broken_try.rb', RuntimeError.new('formatter broke'))
-ensure
-  Tryouts.debug = was_debugging
-  $stderr       = saved
+## A file that cannot be read is reported by name and counts as a failed file
+Dir.mktmpdir do |dir|
+  unreadable = File.join(dir, 'folder_try.rb')
+  Dir.mkdir(unreadable)
+  passing = File.join(dir, 'fine_try.rb')
+  File.write(passing, "## fine\n1\n#=> 1\n")
+  out  = StringIO.new
+  code = Tryouts::CLI.new.run([unreadable, passing], stdout: out, stderr: out)
+  [code, out.string.include?('folder_try.rb: Is a directory'), out.string[/\d+ of \d+ files passed/]]
 end
-[log.string.include?('processing broken_try.rb: formatter broke'), out.string.include?('Batch execution failed: formatter broke')]
-#=> [true, true]
+#=> [1, true, '1 of 2 files passed']
