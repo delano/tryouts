@@ -47,15 +47,17 @@ class Tryouts
 
       def initialize(options = {})
         super
-        @budget = TokenBudget.new(options[:agent_limit] || TokenBudget::DEFAULT_LIMIT)
-        @focus_mode = options[:agent_focus] || :failures
-        @collected_files = []
-        @current_file_data = nil
-        @total_stats = { files: 0, tests: 0, failures: 0, errors: 0, elapsed_time: 0 }
+        @budget          = TokenBudget.new(options[:agent_limit] || TokenBudget::DEFAULT_LIMIT)
+        @focus_mode      = options[:agent_focus] || :failures
+        # Per-file data, keyed by the file's path. Under --parallel several
+        # files report at once, so every event names the file it belongs to.
+        @files           = {}
+        @files_lock      = Mutex.new
+        @total_stats     = { files: 0, tests: 0, failures: 0, errors: 0, not_run: 0, elapsed_time: 0 }
         @output_rendered = false
-        @options = options  # Store all options for execution context display
-        @all_warnings = []  # Store warnings globally for execution details
-        @errors = []  # Errors reported during the run (setup, interlude, teardown, file)
+        @options         = options # Store all options for execution context display
+        @all_warnings    = [] # Store warnings globally for execution details
+        @errors          = [] # Errors reported during the run (setup, interlude, teardown, file)
 
         # No colors in agent mode for cleaner parsing
         @use_colors = false
@@ -69,102 +71,45 @@ class Tryouts
         end
       end
 
-      # File-level operations - start collecting file data
-      def file_start(file_path, context_info: {})
-        @current_file_data = {
-          path: relative_path(file_path),
-          tests: 0,
-          failures: [],
-          errors: [],
-          passed: 0,
-          context_info: context_info  # Store context info for later display
-        }
-      end
-
-      def file_end(file_path, context_info: {})
-        # Finalize current file data
-        if @current_file_data
-          @collected_files << @current_file_data
-          @current_file_data = nil
-        end
-        # REMOVED: No longer attempts to render here to avoid premature output
-      end
-
-      def file_parsed(_file_path, test_count:, setup_present: false, teardown_present: false)
-        # Store per-file parsed test count for reference
-        # Total executed tests come from TestResultAggregator via grand_total()
-        if @current_file_data
-          @current_file_data[:tests] = test_count
-        end
+      def file_parsed(file_path, test_count:, **)
+        file_data(file_path)[:tests] = test_count
       end
 
       def parser_warnings(file_path, warnings:)
         return if warnings.empty? || !@options.fetch(:warnings, true)
 
-        # Store warnings globally for execution details and per-file
         warnings.each do |warning|
-          warning_data = {
+          @all_warnings << {
             type: warning.type.to_s,
             message: warning.message,
             line: warning.line_number,
             suggestion: warning.suggestion,
             file: relative_path(file_path)
           }
-          @all_warnings << warning_data
-        end
-
-        # Also store in current file data for potential future use
-        if @current_file_data
-          @current_file_data[:warnings] = @all_warnings.select { |w| w[:file] == relative_path(file_path) }
         end
       end
 
-      # Section failures reach agent output through error_message, under Errors:
-      def file_result(file_path, total_tests:, failed_count:, error_count:, elapsed_time: nil, **)
-        # Update elapsed time (other stats come from TestResultAggregator via grand_total)
-        @total_stats[:elapsed_time] += elapsed_time if elapsed_time
-
-        # Update per-file data - file_result is called AFTER file_end, so data is in @collected_files
-        relative_file_path = relative_path(file_path)
-        file_data = @collected_files.find { |f| f[:path] == relative_file_path }
-
-        if file_data
-          file_data[:passed] = total_tests - failed_count - error_count
-          # Also ensure tests count is correct if it wasn't set properly earlier
-          file_data[:tests] ||= total_tests
-        end
+      # Section failures are listed with the file here, and their messages
+      # under Errors:
+      def file_result(file_path, total_tests:, failed_count:, error_count:, section_failures: [], not_run: 0, **)
+        data                    = file_data(file_path)
+        data[:passed]           = total_tests - failed_count - error_count
+        data[:not_run]          = not_run
+        data[:section_failures] = section_failures
       end
-
 
       # Test-level operations - collect failure data
       def test_result(result_packet)
-        return unless @current_file_data
+        return if result_packet.passed?
 
-        # For summary mode, we still need to collect failures for counting, just don't build detailed data
-        if result_packet.failed? || result_packet.error?
-          if @focus_mode == :summary
-            # Just track counts for summary
-            if result_packet.error?
-              @current_file_data[:errors] << { basic: true }
-            else
-              @current_file_data[:failures] << { basic: true }
-            end
-          else
-            # Build detailed failure data for other modes
-            failure_data = build_failure_data(result_packet)
+        data  = file_data(result_packet.test_case.path)
+        # Summary mode only counts failures, so it skips the details
+        entry = @focus_mode == :summary ? { basic: true } : build_failure_data(result_packet)
+        (result_packet.error? ? data[:errors] : data[:failures]) << entry
 
-            if result_packet.error?
-              @current_file_data[:errors] << failure_data
-            else
-              @current_file_data[:failures] << failure_data
-            end
-
-            # Mark truncation for first-failure mode (handle limiting in render phase)
-            if (@focus_mode == :first_failure || @focus_mode == :'first-failure') &&
-               (@current_file_data[:failures].size + @current_file_data[:errors].size) > 1
-              @current_file_data[:truncated] = true
-            end
-          end
+        # Mark truncation for first-failure mode (handle limiting in render phase)
+        if first_failure_mode? && (data[:failures].size + data[:errors].size) > 1
+          data[:truncated] = true
         end
       end
 
@@ -174,7 +119,7 @@ class Tryouts
         # with accurate counts from the TestResultAggregator
       end
 
-      def grand_total(total_tests:, failed_count:, error_count:, successful_files:, total_files:, elapsed_time:)
+      def grand_total(total_tests:, failed_count:, error_count:, successful_files:, total_files:, elapsed_time:, not_run: 0)
         return if @output_rendered  # Prevent double rendering
 
         # Use the accurate counts from TestResultAggregator (passed as parameters)
@@ -183,6 +128,7 @@ class Tryouts
           tests: total_tests,           # Actual executed test count from aggregator
           failures: failed_count,       # Actual failures from aggregator
           errors: error_count,          # Actual errors from aggregator
+          not_run: not_run,             # Tests never reached after a setup or interlude failure
           successful_files: successful_files,
           total_files: total_files,
           elapsed_time: elapsed_time,
@@ -271,54 +217,23 @@ class Tryouts
       end
 
       def render_summary_only
-        output = []
-
-        time_str = if @total_stats[:elapsed_time] < 2.0
-          " (#{(@total_stats[:elapsed_time] * 1000).round}ms)"
-        else
-          " (#{@total_stats[:elapsed_time].round(2)}s)"
-        end
-
-        # Count failures manually from collected file data (same as other render methods)
-        failed_count = @collected_files.sum { |f| f[:failures].size }
-        error_count = @collected_files.sum { |f| f[:errors].size }
-        issues_count = failed_count + error_count
-        passed_count = [@total_stats[:tests] - issues_count, 0].max
-
-        status_parts = []
-        if issues_count > 0
-          details = []
-          details << "#{failed_count} failed" if failed_count > 0
-          details << "#{error_count} errors" if error_count > 0
-          summary = "#{passed_count} testcases passed, #{failed_count} failed"
-          summary += ", #{error_count} errors" if error_count > 0
-          status_parts << "SUMMARY: #{summary}#{time_str}"
-        else
-          # Agent doesn't need output in the positive case (i.e. for passing
-          # tests). It just fills out the context window.
-        end
-
-        status_parts << "(#{format_time(@total_stats[:elapsed_time])})" if @total_stats[:elapsed_time]
-
-        output << status_parts.join(" ")
-
-        # Always show file information for agent context
+        output = ["SUMMARY: #{summary_counts} in #{@total_stats[:files]} files#{time_suffix}"]
+        output.concat([failed_files_line].compact)
         output << ""
 
-        files_with_issues = @collected_files.select { |f| f[:failures].any? || f[:errors].any? }
+        files_with_issues = collected_files.select { |f| issues?(f) }
         if files_with_issues.any?
           output << "FILES:"
           files_with_issues.each do |file_data|
             issue_count = file_data[:failures].size + file_data[:errors].size
-            output << "  #{file_data[:path]}: #{issue_count} issue#{'s' if issue_count != 1}"
+            details     = section_details(file_data)
+            details.unshift("#{issue_count} issue#{'s' if issue_count != 1}") if issue_count > 0
+            output <<"  #{file_data[:path]}: #{details.join(', ')}"
           end
-        elsif @collected_files.any?
-          # Show files that were processed successfully
+        elsif collected_files.any?
           output << "FILES:"
-          @collected_files.each do |file_data|
-            # Use the passed count from file_result if available, otherwise calculate
-            passed_tests = file_data[:passed] ||
-                          ((file_data[:tests] || 0) - file_data[:failures].size - file_data[:errors].size)
+          collected_files.each do |file_data|
+            passed_tests = file_data[:passed] || 0
             output << "  #{file_data[:path]}: #{passed_tests} test#{'s' if passed_tests != 1} passed"
           end
         end
@@ -327,22 +242,17 @@ class Tryouts
         output << ""
         output << render_execution_context
 
-        puts output.join("\n") if output.any?
+        puts output.join("\n")
       end
 
+      # Errors only (exceptions, and setup, interlude and teardown failures);
+      # assertion failures are left out.
       def render_critical_only
-        # Only show errors (exceptions), skip assertion failures
-        critical_files = @collected_files.select { |f| f[:errors].any? }
-
-        time_str = if @total_stats[:elapsed_time] < 2.0
-          " (#{(@total_stats[:elapsed_time] * 1000).round}ms)"
-        else
-          " (#{@total_stats[:elapsed_time].round(2)}s)"
-        end
+        critical_files = collected_files.select { |f| f[:errors].any? || f[:section_failures].any? }
 
         output = []
 
-        if critical_files.empty?
+        if critical_files.empty? && @errors.empty?
           output << "No critical errors found"
           # Add execution context at the end
           output << ""
@@ -353,7 +263,7 @@ class Tryouts
 
         # Summary first
         output << "SUMMARY:"
-        output << "#{critical_files.size} file#{'s' if critical_files.size != 1} with critical errors#{time_str}"
+        output << "#{critical_files.size} file#{'s' if critical_files.size != 1} with critical errors#{time_suffix}"
         output << ""
 
         # Error details
@@ -364,6 +274,7 @@ class Tryouts
           end
 
           output << "#{file_data[:path]}:"
+          output << "  #{section_details(file_data).join(', ')}" if section_details(file_data).any?
 
           file_data[:errors].each do |error|
             error_line = "  L#{error[:line]}: #{error[:error]}"
@@ -387,28 +298,14 @@ class Tryouts
       def render_full_structured
         output = []
 
-        time_str = if @total_stats[:elapsed_time] < 2.0
-          " (#{(@total_stats[:elapsed_time] * 1000).round}ms)"
-        else
-          " (#{@total_stats[:elapsed_time].round(2)}s)"
-        end
-
-        # Count actual failures from collected data
-        failed_count = @collected_files.sum { |f| f[:failures].size }
-        error_count = @collected_files.sum { |f| f[:errors].size }
-        issues_count = failed_count + error_count
-        passed_count = [@total_stats[:tests] - issues_count, 0].max
-
         # Summary first
         output << "SUMMARY:"
-        summary = "#{passed_count} testcases passed, #{failed_count} failed"
-        summary += ", #{error_count} errors" if error_count > 0
-        summary += " in #{@total_stats[:files]} files#{time_str}"
-        output << summary
+        output << "#{summary_counts} in #{@total_stats[:files]} files#{time_suffix}"
+        output.concat([failed_files_line].compact)
         output << ""
 
         # Show files with issues only (unless suppressed)
-        files_with_issues = @collected_files.select { |f| f[:failures].any? || f[:errors].any? }
+        files_with_issues = collected_files.select { |f| issues?(f) }
 
         if files_with_issues.any? && !@options[:agent_no_failures]
           files_with_issues.each do |file_data|
@@ -434,28 +331,64 @@ class Tryouts
         puts output.join("\n")
       end
 
+      # "3 testcases passed, 1 failed, 2 errors, 2 not run", from the
+      # aggregator's counts
+      def summary_counts
+        failed = @total_stats[:failures]
+        errors = @total_stats[:errors]
+        passed = [@total_stats[:tests] - failed - errors, 0].max
+
+        summary  = "#{passed} testcases passed, #{failed} failed"
+        summary += ", #{errors} errors" if errors > 0
+        summary += ", #{@total_stats[:not_run]} not run" if @total_stats[:not_run] > 0
+        summary
+      end
+
+      # "Failed files: 2 of 4 (1 setup failure, 1 teardown failure)", when a
+      # file failed; a file can fail through its setup, an interlude or its
+      # teardown with every test that ran passing. A file that never reported
+      # a result (it failed to parse or load) is a file failure.
+      def failed_files_line
+        total  = @total_stats[:total_files].to_i
+        failed = total - @total_stats[:successful_files].to_i
+        return nil unless failed > 0
+
+        kinds                   = collected_files.flat_map { |f| f[:section_failures] }.tally
+        unloaded                = total - collected_files.count { |f| f[:passed] }
+        kinds[:file_processing] = kinds.fetch(:file_processing, 0) + unloaded if unloaded > 0
+
+        causes = kinds.map do |kind, count|
+          name = { orphan: 'interlude', file_processing: 'file' }.fetch(kind, kind.to_s)
+          "#{count} #{name} failure#{'s' if count != 1}"
+        end
+
+        line = "Failed files: #{failed} of #{total}"
+        causes.empty? ? line : "#{line} (#{causes.join(', ')})"
+      end
+
+      # ["interlude failed", "2 not run"] for one file
+      def section_details(file_data)
+        details = section_failure_details(file_data[:section_failures])
+        details << "#{file_data[:not_run]} not run" if file_data[:not_run] > 0
+        details
+      end
+
+      def time_suffix
+        elapsed = @total_stats[:elapsed_time]
+        elapsed < 2.0 ? " (#{(elapsed * 1000).round}ms)" : " (#{elapsed.round(2)}s)"
+      end
+
       def render_file_section(file_data)
         lines = []
 
         # File header
         lines << "#{file_data[:path]}:"
 
-        # Check if file has any issues
-        has_issues = file_data[:failures].any? || file_data[:errors].any?
-
-        # If no issues, show success summary
-        if !has_issues
-          # Use the passed count from file_result if available, otherwise calculate
-          passed_tests = file_data[:passed] ||
-                        ((file_data[:tests] || 0) - file_data[:failures].size - file_data[:errors].size)
-
-
-          lines << "  ✓ #{passed_tests} test#{'s' if passed_tests != 1} passed"
-          return lines.join("\n")
-        end
+        # Setup, interlude or teardown failures, and tests that never ran
+        lines << "  #{section_details(file_data).join(', ')}" if section_details(file_data).any?
 
         # For first-failure mode, only show first error or failure
-        if @focus_mode == :first_failure || @focus_mode == :'first-failure'
+        if first_failure_mode?
           shown_count = 0
 
           # Show first error
@@ -614,12 +547,8 @@ class Tryouts
         # TOPAZ protocol - compact
         context_lines << "  protocol: TOPAZ v0.3 | focus: #{@focus_mode} | limit: #{@budget.limit}"
 
-        # File count being tested
-        if @collected_files && @collected_files.any?
-          context_lines << "  files_under_test: #{@collected_files.size}"
-        elsif @total_stats[:files] && @total_stats[:files] > 0
-          context_lines << "  files_under_test: #{@total_stats[:files]}"
-        end
+        # Files given to the run, including any that failed to parse
+        context_lines << "  files_under_test: #{@total_stats[:files]}" if @total_stats[:files] > 0
 
         # Add errors reported during the run (syntax, setup, interlude, teardown)
         if @errors.any?
@@ -773,7 +702,7 @@ class Tryouts
 
       # Render copy-paste command for re-running failures with verbose-fails-stack
       def render_rerun_command
-        files_with_issues = @collected_files.select { |f| f[:failures].any? || f[:errors].any? }
+        files_with_issues = collected_files.select { |f| issues?(f) }
         return "" if files_with_issues.empty?
 
         cmd = []
@@ -789,7 +718,37 @@ class Tryouts
 
       # Check if there are any failures or errors
       def has_failures?
-        @collected_files.any? { |f| f[:failures].any? || f[:errors].any? }
+        collected_files.any? { |f| issues?(f) }
+      end
+
+      # The data collected for one file, created on its first event
+      def file_data(file_path)
+        @files_lock.synchronize do
+          @files[file_path] ||= {
+            path: relative_path(file_path),
+            tests: 0,
+            passed: nil,
+            not_run: 0,
+            section_failures: [],
+            failures: [],
+            errors: [],
+          }
+        end
+      end
+
+      def collected_files
+        @files_lock.synchronize { @files.values }
+      end
+
+      # A failing or erroring test, a failed setup, interlude or teardown,
+      # or tests that never ran
+      def issues?(file_data)
+        file_data[:failures].any? || file_data[:errors].any? ||
+          file_data[:section_failures].any? || file_data[:not_run] > 0
+      end
+
+      def first_failure_mode?
+        [:first_failure, :'first-failure'].include?(@focus_mode)
       end
     end
   end

@@ -89,14 +89,14 @@ class Tryouts
         end
       end
 
-      def file_result(_file_path, total_tests:, failed_count:, error_count:, elapsed_time: nil, section_failures: [])
-        issues_count = failed_count + error_count + section_failures.size
+      def file_result(_file_path, total_tests:, failed_count:, error_count:, elapsed_time: nil, section_failures: [], not_run: 0)
+        issues_count = failed_count + error_count + section_failures.size + not_run
         passed_count = total_tests - failed_count - error_count
         details = []
 
         if issues_count > 0
           status = Console.color(:red, '✗')
-          details << "#{passed_count}/#{total_tests} passed"
+          details << "#{passed_count}/#{total_tests + not_run} passed"
         else
           status = Console.color(:green, '✓')
           details << "#{total_tests} passed"
@@ -110,6 +110,7 @@ class Tryouts
           details << "#{failed_count} failed"
         end
 
+        details << "#{not_run} not run" if not_run > 0
         details.concat(section_failure_details(section_failures))
 
         time_str = format_timing(elapsed_time)
@@ -213,7 +214,7 @@ class Tryouts
         @stderr.puts "    Teardown output (#{lines} lines)"
       end
 
-      def grand_total(total_tests:, failed_count:, error_count:, successful_files:, total_files:, elapsed_time:)
+      def grand_total(total_tests:, failed_count:, error_count:, successful_files:, total_files:, elapsed_time:, not_run: 0)
         @stderr.puts
 
         issues_count = failed_count + error_count
@@ -222,7 +223,9 @@ class Tryouts
           details = []
           details << "#{failed_count} failed" if failed_count > 0
           details << "#{error_count} errors" if error_count > 0
-          result = Console.color(:red, "#{details.join(', ')}, #{passed} passed")
+          result = Console.color(:red, "#{details.join(', ')}, #{passed} passed#{not_run_detail(not_run)}")
+        elsif not_run > 0
+          result = Console.color(:red, "#{total_tests} tests passed#{not_run_detail(not_run)}")
         else
           result = Console.color(:green, "#{total_tests} tests passed")
         end

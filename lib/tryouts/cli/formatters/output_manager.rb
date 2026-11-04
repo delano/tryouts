@@ -72,14 +72,17 @@ class Tryouts
         )
       end
 
-      def file_success(file_path, total_tests, failed_count, error_count, elapsed_time, section_failures: [])
+      # total_tests counts the tests that ran; not_run, those the file never
+      # reached because its setup or an interlude failed.
+      def file_success(file_path, total_tests, failed_count, error_count, elapsed_time, section_failures: [], not_run: 0)
         @formatter.file_result(
           file_path,
           total_tests: total_tests,
           failed_count: failed_count,
           error_count: error_count,
           elapsed_time: elapsed_time,
-          section_failures: section_failures
+          section_failures: section_failures,
+          not_run: not_run
         )
       end
 
@@ -137,7 +140,7 @@ class Tryouts
         @formatter.batch_summary(failure_collector)
       end
 
-      def grand_total(total_tests, failed_count, error_count, successful_files, total_files, elapsed_time)
+      def grand_total(total_tests, failed_count, error_count, successful_files, total_files, elapsed_time, not_run: 0)
         @live_status_manager.handle_event(:grand_total, total_tests, failed_count, error_count, successful_files, total_files, elapsed_time)
         @formatter.grand_total(
           total_tests: total_tests,
@@ -145,7 +148,8 @@ class Tryouts
           error_count: error_count,
           successful_files: successful_files,
           total_files: total_files,
-          elapsed_time: elapsed_time
+          elapsed_time: elapsed_time,
+          not_run: not_run
         )
       end
 

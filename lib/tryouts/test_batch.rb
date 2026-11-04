@@ -419,7 +419,7 @@ class Tryouts
 
     # Test cases that never ran because the batch stopped early.
     def not_run_count
-      test_cases.size - @results.size
+      size - @results.size
     end
 
     def build_test_result(test_case, context, expectations_result)

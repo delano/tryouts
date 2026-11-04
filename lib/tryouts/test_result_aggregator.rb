@@ -17,6 +17,7 @@ class Tryouts
         passed: Concurrent::AtomicFixnum.new(0),
         failed: Concurrent::AtomicFixnum.new(0),
         errors: Concurrent::AtomicFixnum.new(0),
+        not_run: Concurrent::AtomicFixnum.new(0),
       }
       @infrastructure_failures = Concurrent::Array.new
       @file_counts             = {
@@ -40,6 +41,11 @@ class Tryouts
         @test_counts[:errors].increment
         @failure_collector.add_failure(file_path, result_packet)
       end
+    end
+
+    # Test cases a file never ran, because its setup or an interlude failed
+    def add_not_run(count)
+      @test_counts[:not_run].increment(count) if count.positive?
     end
 
     # Add an infrastructure-level failure (setup, teardown, file-level)
@@ -79,6 +85,7 @@ class Tryouts
         passed: @test_counts[:passed].value,
         failed: @failure_collector.failure_count,
         errors: @failure_collector.error_count,
+        not_run: @test_counts[:not_run].value,
         total_issues: @failure_collector.total_issues,
       }
     end
@@ -92,6 +99,7 @@ class Tryouts
         passed: display[:passed],
         failed: display[:failed],
         errors: display[:errors],
+        not_run: display[:not_run],
         infrastructure_failures: @infrastructure_failures.size,
         total_issues: display[:total_issues] + @infrastructure_failures.size,
       }
@@ -127,6 +135,7 @@ class Tryouts
       @test_counts[:passed].update { |_| 0 }
       @test_counts[:failed].update { |_| 0 }
       @test_counts[:errors].update { |_| 0 }
+      @test_counts[:not_run].update { |_| 0 }
       @infrastructure_failures.clear
       @file_counts[:total].update { |_| 0 }
       @file_counts[:successful].update { |_| 0 }
@@ -141,6 +150,7 @@ class Tryouts
       parts << "#{display[:passed]} passed" if display[:passed] > 0
       parts << "#{display[:failed]} failed" if display[:failed] > 0
       parts << "#{display[:errors]} errors" if display[:errors] > 0
+      parts << "#{display[:not_run]} not run" if display[:not_run] > 0
       parts << "#{total[:infrastructure_failures]} infrastructure failures" if total[:infrastructure_failures] > 0
 
       parts.empty? ? 'All tests passed' : parts.join(', ')

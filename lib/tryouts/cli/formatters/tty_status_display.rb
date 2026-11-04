@@ -180,6 +180,7 @@ class Tryouts
         parts << @pastel.green("#{state.passed} passed") if state.passed > 0
         parts << @pastel.red("#{state.failed} failed") if state.failed > 0
         parts << @pastel.yellow("#{state.errors} errors") if state.errors > 0
+        parts << @pastel.yellow("#{state.not_run} not run") if state.not_run > 0
 
         if parts.any?
           @io.print "Tests: #{parts.join(', ')}"

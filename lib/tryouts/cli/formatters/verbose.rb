@@ -90,8 +90,8 @@ class Tryouts
         end
       end
 
-      def file_result(_file_path, total_tests:, failed_count:, error_count:, elapsed_time: nil, section_failures: [])
-        issues_count = failed_count + error_count + section_failures.size
+      def file_result(_file_path, total_tests:, failed_count:, error_count:, elapsed_time: nil, section_failures: [], not_run: 0)
+        issues_count = failed_count + error_count + section_failures.size + not_run
         passed_count = total_tests - failed_count - error_count
         details = ["#{passed_count} passed"]
 
@@ -99,12 +99,13 @@ class Tryouts
         if issues_count > 0
           details << "#{failed_count} failed" if failed_count > 0
           details << "#{error_count} errors" if error_count > 0
+          details << "#{not_run} not run" if not_run > 0
           details.concat(section_failure_details(section_failures))
           details_str = details.join(', ')
           color = :red
 
           time_str = elapsed_time ? " (#{elapsed_time.round(2)}s)" : ''
-          message = "✗ Out of #{total_tests} tests: #{details_str}#{time_str}"
+          message = "✗ Out of #{total_tests + not_run} tests: #{details_str}#{time_str}"
           puts indent_text(Console.color(color, message), 1)
         else
           message = "#{total_tests} tests passed"
@@ -204,7 +205,7 @@ class Tryouts
         end
       end
 
-      def grand_total(total_tests:, failed_count:, error_count:, successful_files:, total_files:, elapsed_time:)
+      def grand_total(total_tests:, failed_count:, error_count:, successful_files:, total_files:, elapsed_time:, not_run: 0)
         puts
         puts '=== TOTAL ==='
 
@@ -220,9 +221,9 @@ class Tryouts
           details = []
           details << "#{failed_count} failed" if failed_count > 0
           details << "#{error_count} errors" if error_count > 0
-          printf("%-10s %s\n", "Testcases:", "#{details.join(', ')}, #{passed} passed#{time_str}")
+          printf("%-10s %s\n", "Testcases:", "#{details.join(', ')}, #{passed} passed#{not_run_detail(not_run)}#{time_str}")
         else
-          printf("%-10s %s\n", "Testcases:", "#{total_tests} tests passed#{time_str}")
+          printf("%-10s %s\n", "Testcases:", "#{total_tests} tests passed#{not_run_detail(not_run)}#{time_str}")
         end
 
         printf("%-10s %s\n", "Files:", "#{successful_files} of #{total_files} passed")
@@ -425,7 +426,7 @@ class Tryouts
       end
 
       # Show file result summaries in fails-only mode (matching compact behavior)
-      def file_result(_file_path, total_tests:, failed_count:, error_count:, elapsed_time: nil, section_failures: [])
+      def file_result(_file_path, total_tests:, failed_count:, error_count:, elapsed_time: nil, section_failures: [], not_run: 0)
         # Always show summary - this matches compact formatter behavior
         super
       end

@@ -18,11 +18,12 @@ class Tryouts
     end
 
     def process
+      # Counted before parsing, so a file that fails to parse is a failed file
+      @global_tally[:aggregator].increment_total_files
       testrun = StatementParser.new(@file, @options).parse
 
       # Report total test count (before filtering for display)
       # Line spec filtering affects output only, not execution
-      @global_tally[:aggregator].increment_total_files
       @output_manager.file_parsed(@file, testrun.total_tests)
       @output_manager.parser_warnings(@file, warnings: testrun.warnings)
 

@@ -199,6 +199,7 @@ class Tryouts
         file_counts[:successful],
         file_counts[:total],
         elapsed_time,
+        not_run: display_counts[:not_run],
       )
     end
 

@@ -56,6 +56,7 @@ class Tryouts
       file_failed_count   = test_results.count(&:failed?)
       file_error_count    = test_results.count(&:error?)
       executed_test_count = test_results.size
+      not_run_count       = @testrun.total_tests - executed_test_count
 
       # Setup, interlude and teardown failures recorded for this file. Each
       # counts once toward the exit code, alongside the failing tests.
@@ -65,11 +66,12 @@ class Tryouts
       # NOTE: Individual test results are added to the aggregator in TestBatch
       # Here we just update the file success count atomically
       aggregator.increment_successful_files if success && section_failures.empty?
+      aggregator.add_not_run(not_run_count)
 
       duration = Time.now.to_f - @file_start.to_f
       @output_manager.file_success(
         @file, executed_test_count, file_failed_count, file_error_count, duration,
-        section_failures: section_failures
+        section_failures: section_failures, not_run: not_run_count
       )
 
       file_failed_count + file_error_count + section_failures.size

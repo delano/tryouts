@@ -43,13 +43,18 @@ class Tryouts
         write(char)
       end
 
+      # An S for each test the file never reached
+      def file_result(_file_path, not_run: 0, **)
+        write(Console.color(:yellow, 'S' * not_run)) if not_run > 0
+      end
+
       # Summary operations - quiet mode skips failure summary
       def batch_summary(failure_collector)
         # Quiet formatter defaults to no failure summary
         # Users can override with --failure-summary if needed
       end
 
-      def grand_total(total_tests:, failed_count:, error_count:, successful_files:, total_files:, elapsed_time:)
+      def grand_total(total_tests:, failed_count:, error_count:, successful_files:, total_files:, elapsed_time:, not_run: 0)
         return unless @show_final_summary
 
         puts
@@ -67,7 +72,9 @@ class Tryouts
           details = []
           details << "#{failed_count} failed" if failed_count > 0
           details << "#{error_count} errors" if error_count > 0
-          puts Console.color(:red, "Total: #{details.join(', ')}, #{passed} passed (#{time_str})")
+          puts Console.color(:red, "Total: #{details.join(', ')}, #{passed} passed#{not_run_detail(not_run)} (#{time_str})")
+        elsif not_run > 0
+          puts Console.color(:red, "Total: #{total_tests} passed#{not_run_detail(not_run)} (#{time_str})")
         else
           puts Console.color(:green, "Total: #{total_tests} passed (#{time_str})")
         end
