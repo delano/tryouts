@@ -118,9 +118,10 @@ class Tryouts
           end
 
           lines << "  it #{test_case.description.inspect} do"
-          lines.concat(GeneratedCode.result_lines(test_case))
+          code = GeneratedCode.new(test_case)
+          lines.concat(code.result_lines)
           test_case.expectations.each do |expectation|
-            lines.concat(assertion_lines(test_case, expectation))
+            lines.concat(assertion_lines(code, expectation))
           end
           lines << '  end'
           lines << ''
@@ -140,30 +141,33 @@ class Tryouts
 
       # The RSpec expectations for one tryouts expectation, with the same
       # pass/fail as direct mode (see GeneratedCode)
-      def assertion_lines(test_case, expectation)
-        expr = GeneratedCode.expression(expectation)
+      def assertion_lines(code, expectation)
+        expr = code.expression(expectation)
         case expectation.type
-        when :regular then ["    expect(result).to eq(#{expr})"]
+        when :regular then ["    expect(#{code.result}).to eq(#{expr})"]
         when :true then ["    expect(#{expr}).to be(true)"] # rubocop:disable Lint/BooleanSymbol
         when :false then ["    expect(#{expr}).to be(false)"] # rubocop:disable Lint/BooleanSymbol
         when :boolean then ["    expect([true, false]).to include(#{expr})"]
-        when :result_type then ["    expect(result).to be_a(#{expr})"]
-        when :regex_match then ["    expect(result.to_s).to match(#{expr})"]
+        when :result_type then ["    expect(#{code.result}).to be_a(#{expr})"]
+        when :regex_match then ["    expect(#{code.result}.to_s).to match(#{expr})"]
         when :non_nil
           # Not nil and, where the code may have rescued one, no error
-          [*('    expect(error).to be_nil' if GeneratedCode.rescues?(test_case)), '    expect(result).not_to be_nil']
+          [*("    expect(#{code.error}).to be_nil" if code.rescues?), "    expect(#{code.result}).not_to be_nil"]
         when :exception
-          # The expression's value decides, as in direct mode: a Module is
-          # what the error must be a kind of, anything else must be truthy
-          ["    expected = #{expr}",
-           '    expect(error).not_to be_nil',
-           '    if expected.is_a?(Module)',
-           '      expect(error).to be_a(expected)',
-           '    else',
-           '      expect(expected).to be_truthy',
-           '    end']
+          # Only once the code has raised is the expression evaluated, as in
+          # direct mode, and its value decides: a Module is what the error
+          # must be a kind of, anything else must be truthy. The value is a
+          # lambda parameter, so a local of the test's keeps its own.
+          ["    expect(#{code.error}).not_to be_nil",
+           '    ->(expected) do',
+           '      if expected.is_a?(Module)',
+           "        expect(#{code.error}).to be_a(expected)",
+           '      else',
+           '        expect(expected).to be_truthy',
+           '      end',
+           "    end.call(#{expr})"]
         else
-          ["    RSpec::Expectations.fail_with(#{GeneratedCode.untranslated_message(test_case, expectation, 'RSpec').inspect})"]
+          ["    RSpec::Expectations.fail_with(#{code.untranslated_message(expectation, 'RSpec').inspect})"]
         end
       end
     end

@@ -293,4 +293,64 @@ output, = Open3.capture2e(RbConfig.ruby, Gem.bin_path('rspec-core', 'rspec'), Fi
 output[/^\d+ examples, \d+ failures.*$/]
 #=> "33 examples, 20 failures"
 
+# Tests whose code or expectations use, for something of their own, a name
+# the generated code needs: two fail in direct mode, the others pass
+own_names = <<~'RUBY'
+  ## a test that only returns an error has not raised it
+  error = ArgumentError.new('only returned')
+  error
+  #=!> ArgumentError
+
+  ## a word kept in a local named error is not an error
+  error = 'just a word'
+  Integer('12')
+  #=:> Integer
+  #=*>
+
+  ## a local named started leaves the run time alone
+  started = Time.now
+  :ok
+  #==> elapsed_ms < 1000
+
+  ## an expectation that assigns result leaves the test's value alone
+  4
+  #=> result = 5
+
+  ## a local named expected keeps its value
+  expected = 'bad input'
+  raise ArgumentError, expected
+  #=!> ArgumentError
+  #==> error.message == expected
+
+  ## a local named result is not the test's value
+  result = [1, 2, 3]
+  result.size
+  #=> 3
+  #==> result == 3
+RUBY
+own_names_run = parse.call('own_names', own_names)
+
+## Direct mode passes and fails the tests that use the generated code's names in this pattern
+batch = Tryouts::TestBatch.new(own_names_run, shared_context: false)
+batch.run
+batch.results.map(&:passed?)
+#=> [false, true, true, false, true, true]
+
+## Generated Minitest code fails the same two of them, and none errors
+File.write(File.join(dir, 'own_names_test.rb'), generate.call('--generate-minitest', own_names_run.source_file))
+output, = Open3.capture2e(RbConfig.ruby, File.join(dir, 'own_names_test.rb'))
+[output[/^\d+ runs, \d+ assertions, \d+ failures, \d+ errors/], output.scan(/^Test\w+#test_(\d+)_/).flatten.sort]
+#=~> /\A\["6 runs, \d+ assertions, 2 failures, 0 errors", \["000", "003"\]\]\z/
+
+## Generated RSpec code fails the same two of them
+File.write(File.join(dir, 'own_names_spec.rb'), generate.call('--generate-rspec', own_names_run.source_file))
+output, = Open3.capture2e(RbConfig.ruby, Gem.bin_path('rspec-core', 'rspec'), File.join(dir, 'own_names_spec.rb'))
+[output[/^\d+ examples, \d+ failures$/], output.scan(/^rspec \S+ # own_names_try (.+)$/).flatten.sort]
+#=> ["6 examples, 2 failures", ["a test that only returns an error has not raised it", "an expectation that assigns result leaves the test's value alone"]]
+
+## The generated code adds an underscore to a name the test uses, and an expectation reads its own result
+generate.call('--generate-minitest', own_names_run.source_file)
+#=~> /^    rescue Exception => error_\n      raise if error_\.is_a\?\(SignalException\) \|\| error_\.is_a\?\(SystemExit\)\n      error_\n    end\n    refute_nil error_$/
+#=~> /^    assert_same\(true, ->\(result\) \{ \(\n      result == 3\n    \) \}\.call\(result_\)\)$/
+
 FileUtils.remove_entry(dir)

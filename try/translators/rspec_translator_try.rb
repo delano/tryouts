@@ -102,7 +102,7 @@ exception_code
 
 ## TEST: Exception expectation requires an error and a truthy expression
 exception_code
-#=~> /^    expected = \(\n      error\.is_a\?\(ArgumentError\)\n    \)\n    expect\(error\)\.not_to be_nil\n    if expected\.is_a\?\(Module\)\n      expect\(error\)\.to be_a\(expected\)\n    else\n      expect\(expected\)\.to be_truthy\n    end$/
+#=~> /^    expect\(error\)\.not_to be_nil\n    ->\(expected\) do\n      if expected\.is_a\?\(Module\)\n        expect\(error\)\.to be_a\(expected\)\n      else\n        expect\(expected\)\.to be_truthy\n      end\n    end\.call\(\(\n      error\.is_a\?\(ArgumentError\)\n    \)\)$/
 
 ## TEST: Teardown method generation when present
 teardown_code = Tryouts::Teardown.new(
@@ -341,7 +341,7 @@ commented_testrun = Tryouts::Testrun.new(
   warnings: []
 )
 translator.generate_code(commented_testrun)
-#=~> /^    expected = \(\n      ArgumentError # invalid input\n    \)\n    expect\(error\)\.not_to be_nil\n    if expected\.is_a\?\(Module\)\n      expect\(error\)\.to be_a\(expected\)\n    else\n      expect\(expected\)\.to be_truthy\n    end$/
+#=~> /^    expect\(error\)\.not_to be_nil\n    ->\(expected\) do\n      if expected\.is_a\?\(Module\)\n        expect\(error\)\.to be_a\(expected\)\n      else\n        expect\(expected\)\.to be_truthy\n      end\n    end\.call\(\(\n      ArgumentError # invalid input\n    \)\)$/
 
 ## TEST: A non-nil expectation on a test that may raise also expects that nothing was raised
 raised_case = Tryouts::TestCase.new(

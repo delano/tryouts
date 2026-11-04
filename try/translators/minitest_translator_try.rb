@@ -199,7 +199,7 @@ exception_testrun = Tryouts::Testrun.new(
 exception_code = translator.generate_code(exception_testrun)
 exception_code
 #=~> /^    rescue Exception => error\n      raise if error\.is_a\?\(SignalException\) \|\| error\.is_a\?\(SystemExit\)$/
-#=~> /^    expected = \(\n      error\.is_a\?\(ZeroDivisionError\)\n    \)\n    refute_nil error\n    if expected\.is_a\?\(Module\)\n      assert_kind_of expected, error\n    else\n      assert expected\n    end$/
+#=~> /^    refute_nil error\n    ->\(expected\) do\n      if expected\.is_a\?\(Module\)\n        assert_kind_of expected, error\n      else\n        assert expected\n      end\n    end\.call\(\(\n      error\.is_a\?\(ZeroDivisionError\)\n    \)\)$/
 
 ## TEST: Multiple test cases generate multiple methods with proper indexing
 translator = Tryouts::Translators::MinitestTranslator.new
@@ -398,7 +398,7 @@ commented_testrun = Tryouts::Testrun.new(
   warnings: []
 )
 translator.generate_code(commented_testrun)
-#=~> /^    expected = \(\n      ArgumentError # invalid input\n    \)\n    refute_nil error\n    if expected\.is_a\?\(Module\)\n      assert_kind_of expected, error\n    else\n      assert expected\n    end$/
+#=~> /^    refute_nil error\n    ->\(expected\) do\n      if expected\.is_a\?\(Module\)\n        assert_kind_of expected, error\n      else\n        assert expected\n      end\n    end\.call\(\(\n      ArgumentError # invalid input\n    \)\)$/
 
 ## TEST: A non-nil expectation on a test that may raise also asserts that nothing was raised
 translator = Tryouts::Translators::MinitestTranslator.new

@@ -137,9 +137,10 @@ class Tryouts
 
           method_name = "test_#{index.to_s.rjust(3, '0')}_#{MinitestTranslator.parameterize(test_case.description)}"
           lines << "  def #{method_name}"
-          lines.concat(GeneratedCode.result_lines(test_case))
+          code = GeneratedCode.new(test_case)
+          lines.concat(code.result_lines)
           test_case.expectations.each do |expectation|
-            lines.concat(assertion_lines(test_case, expectation))
+            lines.concat(assertion_lines(code, expectation))
           end
           lines << '  end'
           lines << ''
@@ -159,30 +160,33 @@ class Tryouts
 
       # The Minitest assertions for one tryouts expectation, with the same
       # pass/fail as direct mode (see GeneratedCode)
-      def assertion_lines(test_case, expectation)
-        expr = GeneratedCode.expression(expectation)
+      def assertion_lines(code, expectation)
+        expr = code.expression(expectation)
         case expectation.type
-        when :regular then ["    assert_equal(#{expr}, result)"]
+        when :regular then ["    assert_equal(#{expr}, #{code.result})"]
         when :true then ["    assert_same(true, #{expr})"] # rubocop:disable Lint/BooleanSymbol
         when :false then ["    assert_same(false, #{expr})"] # rubocop:disable Lint/BooleanSymbol
         when :boolean then ["    assert_includes([true, false], #{expr})"]
-        when :result_type then ["    assert_kind_of(#{expr}, result)"]
-        when :regex_match then ["    assert_match(#{expr}, result.to_s)"]
+        when :result_type then ["    assert_kind_of(#{expr}, #{code.result})"]
+        when :regex_match then ["    assert_match(#{expr}, #{code.result}.to_s)"]
         when :non_nil
           # Not nil and, where the code may have rescued one, no error
-          [*('    assert_nil error' if GeneratedCode.rescues?(test_case)), '    refute_nil result']
+          [*("    assert_nil #{code.error}" if code.rescues?), "    refute_nil #{code.result}"]
         when :exception
-          # The expression's value decides, as in direct mode: a Module is
-          # what the error must be a kind of, anything else must be truthy
-          ["    expected = #{expr}",
-           '    refute_nil error',
-           '    if expected.is_a?(Module)',
-           '      assert_kind_of expected, error',
-           '    else',
-           '      assert expected',
-           '    end']
+          # Only once the code has raised is the expression evaluated, as in
+          # direct mode, and its value decides: a Module is what the error
+          # must be a kind of, anything else must be truthy. The value is a
+          # lambda parameter, so a local of the test's keeps its own.
+          ["    refute_nil #{code.error}",
+           '    ->(expected) do',
+           '      if expected.is_a?(Module)',
+           "        assert_kind_of expected, #{code.error}",
+           '      else',
+           '        assert expected',
+           '      end',
+           "    end.call(#{expr})"]
         else
-          ["    flunk(#{GeneratedCode.untranslated_message(test_case, expectation, 'Minitest').inspect})"]
+          ["    flunk(#{code.untranslated_message(expectation, 'Minitest').inspect})"]
         end
       end
     end
