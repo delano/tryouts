@@ -307,7 +307,8 @@ class Tryouts
     # and any failure are shown under that announcement (see #report).
     #
     # What the section printed is collected in `output` even when it raises:
-    # that is usually the diagnostic.
+    # that is usually the diagnostic. It is shown outside the rescue, so an
+    # error while displaying it is never taken for the section's failure.
     def run_section(kind, section, binding, for_test = nil)
       return if section.nil? || section.empty?
 
@@ -316,13 +317,15 @@ class Tryouts
       output        = +''
 
       announce_section(kind, section) unless rerun || deferred?(kind)
-      capture_output(output) { eval_section(section, binding) }
+      begin
+        capture_output(output) { eval_section(section, binding) }
+      rescue ProgramError => ex
+        return section_failed(kind, section, ex, with_rerun_context(ex.message, rerun, for_test), output)
+      rescue SystemExit, SignalException => ex
+        message = "#{section_label(kind)} terminated by #{ex.class}: #{ex.message}"
+        return section_failed(kind, section, ex, with_rerun_context(message, rerun, for_test), output)
+      end
       section_output(kind, output) unless rerun
-    rescue ProgramError => ex
-      section_failed(kind, section, ex, with_rerun_context(ex.message, rerun, for_test), output)
-    rescue SystemExit, SignalException => ex
-      message = "#{section_label(kind)} terminated by #{ex.class}: #{ex.message}"
-      section_failed(kind, section, ex, with_rerun_context(message, rerun, for_test), output)
     end
 
     # Fresh context holds back what the teardown shows until it is announced.
@@ -464,13 +467,16 @@ class Tryouts
     # Redirects the process-global $stdout/$stderr for the duration of the
     # block and appends what was written (stdout, then stderr) to `output`,
     # whether or not the block raises. Returns the block's value. Used around
-    # setup, teardown, interludes and every test, for display.
+    # setup, teardown, interludes and every test, for display. The buffers
+    # take bytes in any encoding, as a terminal does, and what they hold is
+    # read as UTF-8 (the encoding of Ruby source) with invalid bytes
+    # replaced, so every formatter gets valid text.
     def capture_output(output, &)
-      out = StringIO.new
-      err = StringIO.new
+      out = StringIO.new(''.b)
+      err = StringIO.new(''.b)
       capture_streams(out, err, &)
     ensure
-      output << out.string << err.string
+      [out, err].each { |io| output << io.string.dup.force_encoding(Encoding::UTF_8).scrub }
     end
 
     # Redirects $stdout to `out` and $stderr to `err` for the duration of the

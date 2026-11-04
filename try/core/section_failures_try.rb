@@ -212,4 +212,17 @@ RUBY
 [run[:passed], run[:statuses]]
 #=> [false, [:error, :passed]]
 
+## Setup and test output that is not valid UTF-8 is shown with the bad bytes replaced
+run = run_sections_fixture(<<~'RUBY')
+  $stdout.write "header \xFF\xFE\n".b
+  puts 'loaded é'
+
+  ## writes a binary record
+  $stdout.write "record \xC3\n".b
+  1
+  #=> 1
+RUBY
+[run[:passed], run[:statuses], run[:console].include?("header \uFFFD\uFFFD\nloaded é"), run[:console].include?("record \uFFFD")]
+#=> [true, [:passed], true, true]
+
 $connections_opened = nil
