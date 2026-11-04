@@ -85,28 +85,24 @@ generated_code.include?("puts 'before all setup'")
 #=> true
 
 ## TEST: Generated code contains it block with description
-generated_code.include?("it 'simple multiplication'")
+generated_code.include?('it "simple multiplication" do')
 #=> true
 
-## TEST: Generated code contains expect().to eq() for regular expectations
-generated_code.include?("expect(result).to eq(6)")
-#=> true
+## TEST: Generated code runs the test code once into result
+generated_code
+#=~> /^    result = begin\n      2 \* 3\n    end$/
 
-## TEST: Exception expectation generates expect{}.to raise_error structure
-exception_code.include?("expect {")
-#=> true
+## TEST: Generated code compares result with the expectation on its own line in parentheses
+generated_code
+#=~> /^    expect\(result\)\.to eq\(\(\n      6\n    \)\)$/
 
-## TEST: Exception expectation includes raise_error block
-exception_code.include?("}.to raise_error do |caught_error|")
-#=> true
+## TEST: Exception expectation rescues the error the test raises into error
+exception_code
+#=~> /^      raise ArgumentError, 'test error'\n    rescue StandardError, ScriptError, SystemStackError, NoMemoryError, SecurityError => error$/
 
-## TEST: Exception expectation includes error variable assignment
-exception_code.include?("error = caught_error")
-#=> true
-
-## TEST: Exception expectation includes truthy assertion
-exception_code.include?("expect(error.is_a?(ArgumentError)).to be_truthy")
-#=> true
+## TEST: Exception expectation requires an error and a truthy expression
+exception_code
+#=~> /^    expect\(error\)\.not_to be_nil\n    expect\(\(\n      error\.is_a\?\(ArgumentError\)\n    \)\)\.to be_truthy$/
 
 ## TEST: Teardown method generation when present
 teardown_code = Tryouts::Teardown.new(
@@ -150,10 +146,10 @@ multi_testrun = Tryouts::Testrun.new(
 )
 
 multi_code = translator.generate_code(multi_testrun)
-multi_code.scan(/it '/).length
+multi_code.scan(/^  it "/).length
 #=> 2
-#==> multi_code.include?("it 'string concatenation'")
-#==> multi_code.include?("it 'string length'")
+#==> multi_code.include?('it "string concatenation"')
+#==> multi_code.include?('it "string length"')
 
 ## TEST: File basename is used in describe block
 filename_testrun = Tryouts::Testrun.new(
@@ -205,7 +201,7 @@ empty_desc_testrun = Tryouts::Testrun.new(
 
 empty_desc_code = translator.generate_code(empty_desc_testrun)
 # Should still generate an it block even with empty description
-empty_desc_code.include?("it ''")
+empty_desc_code.include?('it "" do')
 #=> true
 
 ## TEST: Generated code ends with proper structure

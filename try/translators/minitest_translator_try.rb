@@ -89,8 +89,8 @@ testrun = Tryouts::Testrun.new(
   warnings: []
 )
 generated_code = translator.generate_code(testrun)
-generated_code.include?("assert_equal 6, result")
-#=> true
+generated_code
+#=~> /^    assert_equal\(\(\n      6\n    \), result\)$/
 
 ## TEST: Generated code includes required minitest imports
 translator = Tryouts::Translators::MinitestTranslator.new
@@ -177,7 +177,7 @@ has_teardown_content = generated_code.include?("puts 'cleanup'")
 has_teardown_method && has_teardown_content
 #=> true
 
-## TEST: Exception expectation generates assert_raises structure
+## TEST: Exception expectation rescues the error and asserts on it
 translator = Tryouts::Translators::MinitestTranslator.new
 exception_test_case = Tryouts::TestCase.new(
   description: "division by zero",
@@ -197,10 +197,9 @@ exception_testrun = Tryouts::Testrun.new(
   warnings: []
 )
 exception_code = translator.generate_code(exception_testrun)
-has_assert_raises = exception_code.include?("error = assert_raises(StandardError)")
-has_error_validation = exception_code.include?('assert error.is_a?(ZeroDivisionError), "Exception expectation failed: error.is_a?(ZeroDivisionError)"')
-has_assert_raises && has_error_validation
-#=> true
+exception_code
+#=~> /^    rescue StandardError, ScriptError, SystemStackError, NoMemoryError, SecurityError => error$/
+#=~> /^    refute_nil error\n    assert\(\(\n      error\.is_a\?\(ZeroDivisionError\)\n    \)\)$/
 
 ## TEST: Multiple test cases generate multiple methods with proper indexing
 translator = Tryouts::Translators::MinitestTranslator.new

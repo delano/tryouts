@@ -51,7 +51,7 @@ Tryouts::Translators::MinitestTranslator.new.generate_code(testrun).lines.first
 
 ## Generated Minitest code asserts on the expectation's own source
 Tryouts::Translators::MinitestTranslator.new.generate_code(testrun)
-#=~> /^    assert_equal "one"\.frozen\? \? 1 : 0, result$/
-#=~> /^    assert error\.is_a\?\(FrozenError\), "Exception expectation failed: error\.is_a\?\(FrozenError\)"$/
+#=~> /^      "one"\.frozen\? \? 1 : 0\n    \), result\)$/
+#=~> /^      error\.is_a\?\(FrozenError\)\n    \)\)$/
 
 file.close!

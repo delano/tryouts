@@ -9,26 +9,16 @@ class Tryouts
     # it. The translators evaluate the same way, so a test sees the same
     # literals under --rspec and --minitest.
     #
-    # Each method returns the arguments for instance_eval, class_eval or
-    # eval: the code under the magic comments, the file's path, and a first
-    # line that keeps the code on its own line in the file.
+    # section returns the arguments for instance_eval, class_eval or eval:
+    # the code under the magic comments, the file's path, and a first line
+    # that keeps the code on its own line in the file. Expectations go
+    # through the evaluators, whose EvaluationContext does the same.
     module EvalSource
       # A setup, test case, interlude or teardown
       def self.section(testrun, section)
-        build(testrun, section.code, section.eval_start_line)
-      end
-
-      # An expectation's expression, on the expectation's line. Hand-built
-      # expectations may have no line.
-      def self.expectation(testrun, expectation)
-        build(testrun, expectation.content, expectation.line ? expectation.line + 1 : 1)
-      end
-
-      def self.build(testrun, code, line)
         magic = testrun.magic_comments
-        [[*magic, code].join("\n"), testrun.source_file, line - magic.size]
+        [[*magic, section.code].join("\n"), testrun.source_file, section.eval_start_line - magic.size]
       end
-      private_class_method :build
     end
   end
 end

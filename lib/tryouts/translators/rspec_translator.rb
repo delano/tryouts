@@ -3,6 +3,8 @@
 # frozen_string_literal: true
 
 require_relative 'eval_source'
+require_relative 'example_run'
+require_relative 'generated_code'
 
 class Tryouts
   module Translators
@@ -58,53 +60,37 @@ class Tryouts
           # Setup before all tests
           if testrun.setup && !testrun.setup.empty?
             before(:all) do
-              instance_eval(*EvalSource.section(testrun, testrun.setup))
+              ExampleRun.top_level_binding(self).eval(*EvalSource.section(testrun, testrun.setup))
             end
           end
 
           # Generate test cases
-          testrun.test_cases.each_with_index do |test_case, _index|
+          testrun.test_cases.each do |test_case|
             # Orphan blocks become plain statements in the describe body, in source order
             if test_case.is_a?(Tryouts::OrphanBlock)
               unless test_case.empty?
-                instance_eval(*EvalSource.section(testrun, test_case))
+                ExampleRun.top_level_class_binding(self).eval(*EvalSource.section(testrun, test_case))
               end
               next
             end
 
-            next if test_case.empty? || !test_case.expectations?
-
+            # Every test case is an example, as in direct mode: one with no
+            # code (a detached expectation) fails there and here.
             it test_case.description do
-              if test_case.exception_expectations?
-                # Handle exception expectations
-                error = nil
-                expect do
-                  instance_eval(*EvalSource.section(testrun, test_case)) unless test_case.code.strip.empty?
-                end.to raise_error do |caught_error|
-                  error = caught_error
-                end
-
-                test_case.exception_expectations.each do |expectation|
-                  expected_value = instance_eval(*EvalSource.expectation(testrun, expectation))
-                  expect(expected_value).to be_truthy
-                end
-              else
-                # Handle regular expectations
-                result = instance_eval(*EvalSource.section(testrun, test_case)) unless test_case.code.strip.empty?
-
-                test_case.regular_expectations.each do |expectation|
-                  expected_value = instance_eval(*EvalSource.expectation(testrun, expectation))
-                  expect(result).to eq(expected_value)
-                end
+              ExampleRun.new(testrun, test_case, ExampleRun.top_level_binding(self)).each_outcome do |passed, message|
+                expect(passed).to be_truthy, message
               end
             end
           end
 
-          # Teardown after all tests
-          if testrun.teardown && !testrun.teardown.empty?
-            after(:all) do
-              instance_eval(*EvalSource.section(testrun, testrun.teardown))
+          # Teardown after all tests, then the constants the file defined go,
+          # as in direct mode
+          after(:all) do
+            unless testrun.teardown.nil? || testrun.teardown.empty?
+              ExampleRun.top_level_binding(self).eval(*EvalSource.section(testrun, testrun.teardown))
             end
+          ensure
+            ScriptBinding.remove_constants(testrun.source_file)
           end
         end
       end
@@ -133,37 +119,11 @@ class Tryouts
             next
           end
 
-          next if test_case.empty? || !test_case.expectations?
-
-          lines << "  it '#{test_case.description}' do"
-
-          if test_case.exception_expectations?
-            # Handle exception expectations
-            lines << '    error = nil'
-            lines << '    expect {'
-            unless test_case.code.strip.empty?
-              test_case.code.lines.each { |line| lines << "      #{line.chomp}" }
-            end
-            lines << '    }.to raise_error do |caught_error|'
-            lines << '      error = caught_error'
-            lines << '    end'
-
-            test_case.exception_expectations.each do |expectation|
-              lines << "    expect(#{expectation.content}).to be_truthy"
-            end
-          else
-            # Handle regular expectations
-            unless test_case.code.strip.empty?
-              lines << '    result = begin'
-              test_case.code.lines.each { |line| lines << "      #{line.chomp}" }
-              lines << '    end'
-            end
-
-            test_case.regular_expectations.each do |expectation|
-              lines << "    expect(result).to eq(#{expectation.content})"
-            end
+          lines << "  it #{test_case.description.inspect} do"
+          lines.concat(GeneratedCode.result_lines(test_case))
+          test_case.expectations.each do |expectation|
+            lines.concat(assertion_lines(test_case, expectation))
           end
-
           lines << '  end'
           lines << ''
         end
@@ -176,6 +136,31 @@ class Tryouts
 
         lines << 'end'
         lines.join("\n")
+      end
+
+      private
+
+      # The RSpec expectations for one tryouts expectation, with the same
+      # pass/fail as direct mode (see GeneratedCode)
+      def assertion_lines(test_case, expectation)
+        expr = GeneratedCode.expression(expectation)
+        case expectation.type
+        when :regular then ["    expect(result).to eq(#{expr})"]
+        when :true then ["    expect(#{expr}).to be(true)"] # rubocop:disable Lint/BooleanSymbol
+        when :false then ["    expect(#{expr}).to be(false)"] # rubocop:disable Lint/BooleanSymbol
+        when :boolean then ["    expect([true, false]).to include(#{expr})"]
+        when :result_type then ["    expect(result).to be_a(#{expr})"]
+        when :regex_match then ["    expect(result.to_s).to match(#{expr})"]
+        when :non_nil then ['    expect(result).not_to be_nil']
+        when :exception
+          if GeneratedCode.constant?(expectation)
+            ["    expect(error).to be_a(#{expectation.content})"]
+          else
+            ['    expect(error).not_to be_nil', "    expect(#{expr}).to be_truthy"]
+          end
+        else
+          ["    RSpec::Expectations.fail_with(#{GeneratedCode.untranslated_message(test_case, expectation, 'RSpec').inspect})"]
+        end
       end
     end
   end

@@ -3,6 +3,8 @@
 # frozen_string_literal: true
 
 require_relative 'eval_source'
+require_relative 'example_run'
+require_relative 'generated_code'
 
 class Tryouts
   module Translators
@@ -68,7 +70,7 @@ class Tryouts
           # Setup method
           if testrun.setup && !testrun.setup.empty?
             define_method(:setup) do
-              instance_eval(*EvalSource.section(testrun, testrun.setup))
+              ExampleRun.instance_binding(self).eval(*EvalSource.section(testrun, testrun.setup))
             end
           end
 
@@ -82,31 +84,12 @@ class Tryouts
               next
             end
 
-            next if test_case.empty? || !test_case.expectations?
-
+            # Every test case is a test, as in direct mode: one with no code
+            # (a detached expectation) fails there and here.
             method_name = "test_#{index.to_s.rjust(3, '0')}_#{MinitestTranslator.parameterize(test_case.description)}"
             define_method(method_name) do
-              if test_case.exception_expectations?
-                # Handle exception expectations. The raised exception is bound to
-                # a local named `error`, which is what #=!> expectations refer to,
-                # so the expectation is eval'd against this binding rather than
-                # instance_eval'd.
-                error = assert_raises(StandardError) do
-                  instance_eval(*EvalSource.section(testrun, test_case)) unless test_case.code.strip.empty?
-                end
-
-                test_case.exception_expectations.each do |expectation|
-                  result = binding.eval(*EvalSource.expectation(testrun, expectation)) # rubocop:disable Security/Eval
-                  assert result, "Exception expectation failed: #{expectation.content}"
-                end
-              else
-                # Handle regular expectations
-                result = instance_eval(*EvalSource.section(testrun, test_case)) unless test_case.code.strip.empty?
-
-                test_case.regular_expectations.each do |expectation|
-                  expected_value = instance_eval(*EvalSource.expectation(testrun, expectation))
-                  assert_equal expected_value, result
-                end
+              ExampleRun.new(testrun, test_case, ExampleRun.instance_binding(self)).each_outcome do |passed, message|
+                assert passed, message
               end
             end
           end
@@ -114,7 +97,7 @@ class Tryouts
           # Teardown method
           if testrun.teardown && !testrun.teardown.empty?
             define_method(:teardown) do
-              instance_eval(*EvalSource.section(testrun, testrun.teardown))
+              ExampleRun.instance_binding(self).eval(*EvalSource.section(testrun, testrun.teardown))
             end
           end
         end
@@ -152,35 +135,12 @@ class Tryouts
             next
           end
 
-          next if test_case.empty? || !test_case.expectations?
-
           method_name = "test_#{index.to_s.rjust(3, '0')}_#{MinitestTranslator.parameterize(test_case.description)}"
           lines << "  def #{method_name}"
-
-          if test_case.exception_expectations?
-            # Handle exception expectations
-            lines << '    error = assert_raises(StandardError) do'
-            unless test_case.code.strip.empty?
-              test_case.code.lines.each { |line| lines << "      #{line.chomp}" }
-            end
-            lines << '    end'
-
-            test_case.exception_expectations.each do |expectation|
-              lines << "    assert #{expectation.content}, #{"Exception expectation failed: #{expectation.content}".inspect}"
-            end
-          else
-            # Handle regular expectations
-            unless test_case.code.strip.empty?
-              lines << '    result = begin'
-              test_case.code.lines.each { |line| lines << "      #{line.chomp}" }
-              lines << '    end'
-            end
-
-            test_case.regular_expectations.each do |expectation|
-              lines << "    assert_equal #{expectation.content}, result"
-            end
+          lines.concat(GeneratedCode.result_lines(test_case))
+          test_case.expectations.each do |expectation|
+            lines.concat(assertion_lines(test_case, expectation))
           end
-
           lines << '  end'
           lines << ''
         end
@@ -193,6 +153,31 @@ class Tryouts
 
         lines << 'end'
         lines.join("\n")
+      end
+
+      private
+
+      # The Minitest assertions for one tryouts expectation, with the same
+      # pass/fail as direct mode (see GeneratedCode)
+      def assertion_lines(test_case, expectation)
+        expr = GeneratedCode.expression(expectation)
+        case expectation.type
+        when :regular then ["    assert_equal(#{expr}, result)"]
+        when :true then ["    assert_same(true, #{expr})"] # rubocop:disable Lint/BooleanSymbol
+        when :false then ["    assert_same(false, #{expr})"] # rubocop:disable Lint/BooleanSymbol
+        when :boolean then ["    assert_includes([true, false], #{expr})"]
+        when :result_type then ["    assert_kind_of(#{expr}, result)"]
+        when :regex_match then ["    assert_match(#{expr}, result.to_s)"]
+        when :non_nil then ['    refute_nil result']
+        when :exception
+          if GeneratedCode.constant?(expectation)
+            ["    assert_kind_of #{expectation.content}, error"]
+          else
+            ['    refute_nil error', "    assert(#{expr})"]
+          end
+        else
+          ["    flunk(#{GeneratedCode.untranslated_message(test_case, expectation, 'Minitest').inspect})"]
+        end
       end
     end
   end
