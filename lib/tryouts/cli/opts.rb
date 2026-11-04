@@ -268,13 +268,27 @@ class Tryouts
           opts.separator HELP.freeze
         end
 
-        files = parser.parse(args)
+        files = parser.parse(split_parallel_clusters(args))
         Tryouts.trace "Parsed files: #{files.inspect}, options: #{options.inspect}"
         [files, options]
       rescue OptionParser::ParseError => ex
         warn "Error: #{ex.message}"
         warn "Try 'try --help' for more information."
         exit 1
+      end
+
+      private
+
+      # OptionParser reads everything bundled after -j as its optional thread
+      # count and silently drops what is not a number, so -jv would lose -v.
+      # The count is only the digits attached to -j; the letters after them
+      # are flags of their own: -jv is -j -v, and -j4v is -j4 -v.
+      def split_parallel_clusters(args)
+        options_end = args.index('--') || args.size
+        args.take(options_end).flat_map do |arg|
+          match = arg.match(/\A(-[a-zA-Z]*?j\d*)([a-zA-Z].*)\z/)
+          match ? [match[1], "-#{match[2]}"] : arg
+        end + args.drop(options_end)
       end
     end
   end
