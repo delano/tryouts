@@ -97,8 +97,8 @@ code, output = run_file(leading)
 [code, output[/detached_try\.rb:\d+$/]]
 #=> [1, "detached_try.rb:1"]
 
-## A mistyped operator straight under a description is detached, so it fails too
-code, output = run_file(<<~'RUBY')
+## A mistyped operator straight under a description is detached, so it fails as a test of its own
+batch = batch_for(<<~'RUBY')
   ## first
   1
   #=> 1
@@ -106,5 +106,5 @@ code, output = run_file(<<~'RUBY')
   ## second
   #=X> 2
 RUBY
-code
-#=> 1
+batch.results.map { |r| [r.test_case.description, r.status, r.test_case.code] }
+#=> [["first", :passed, "1"], ["second", :failed, ""]]
