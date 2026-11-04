@@ -68,8 +68,19 @@ run_files([broken_interlude]).first
 run_files([broken_teardown]).first
 #=> 1
 
-## The same teardown failure counts once in fresh context, where teardown runs per test
-run_files([broken_teardown], shared_context: false).first
+## The same teardown failure counts once in fresh context, where teardown runs after each test
+teardown_after_each = <<~'RUBY'
+  ## first passing test
+  1
+  #=> 1
+
+  ## second passing test
+  2
+  #=> 2
+
+  raise 'teardown broke'
+RUBY
+run_files([teardown_after_each], shared_context: false).first
 #=> 1
 
 ## A file whose teardown failed is not counted as a passing file
