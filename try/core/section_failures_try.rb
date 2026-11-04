@@ -225,4 +225,42 @@ RUBY
 [run[:passed], run[:statuses], run[:console].include?("header \uFFFD\uFFFD\nloaded é"), run[:console].include?("record \uFFFD")]
 #=> [true, [:passed], true, true]
 
+## When a fresh-context setup fails on its re-run, the teardown that ran after the earlier test is shown first
+$connections_opened = 0
+run = run_sections_fixture(<<~'RUBY', shared: false)
+  $connections_opened += 1
+  puts "connection #{$connections_opened} opened"
+  raise "too many connections (#{$connections_opened})" if $connections_opened > 1
+
+  ## first test
+  1
+  #=> 1
+
+  ## second test
+  2
+  #=> 2
+
+  puts "connection #{$connections_opened} closed"
+RUBY
+run[:console].lines.map { |line| line.gsub(/\e\[[\d;]*m/, '').strip }.grep(/\A(Executing teardown|connection \d|ERROR)/).map { |line| line[/\A\S+ \S+/] }
+#=> ['connection 1', 'Executing teardown', 'connection 1', 'connection 2', 'ERROR: Global', 'ERROR: Stopping']
+
+## A fresh-context teardown failure names the test it ran after
+run = run_sections_fixture(<<~'RUBY', shared: false)
+  @uploads = []
+
+  ## first test
+  @uploads.size
+  #=> 0
+
+  ## second test
+  @uploads << 'avatar.png'
+  @uploads.size
+  #=> 1
+
+  raise 'uploads left behind' unless @uploads.empty?
+RUBY
+run[:console]
+#=~> /Teardown failed: uploads left behind \(after test 'second test'\)/
+
 $connections_opened = nil

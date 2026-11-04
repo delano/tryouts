@@ -102,7 +102,6 @@ class Tryouts
       end
 
       run_test_cases(before_test_hook, &)
-      announce_fresh_teardown if @aborted && !@shared
       return abort_batch if @aborted
 
       # e.g. the quiet formatter prints a newline after all test dots
@@ -196,7 +195,7 @@ class Tryouts
       process_test_result(result, display)
       @output_manager&.test_end(test_case, idx, @test_case_count) if display
 
-      run_section(:teardown, @testrun.teardown, binding) unless @shared
+      run_section(:teardown, @testrun.teardown, binding, test_case) unless @shared
       update_circuit_breaker(result)
       yield(test_case) if block_given?
       result
@@ -320,10 +319,10 @@ class Tryouts
       begin
         capture_output(output) { eval_section(section, binding) }
       rescue ProgramError => ex
-        return section_failed(kind, section, ex, with_rerun_context(ex.message, rerun, for_test), output)
+        return section_failed(kind, section, ex, with_test_context(kind, ex.message, rerun, for_test), output)
       rescue SystemExit, SignalException => ex
         message = "#{section_label(kind)} terminated by #{ex.class}: #{ex.message}"
-        return section_failed(kind, section, ex, with_rerun_context(message, rerun, for_test), output)
+        return section_failed(kind, section, ex, with_test_context(kind, message, rerun, for_test), output)
       end
       section_output(kind, output) unless rerun
     end
@@ -339,10 +338,13 @@ class Tryouts
       yield
     end
 
-    # A section that passed on its first run and fails on a later one says
+    # A fresh-context teardown says which test it ran after. A setup or
+    # interlude that passed on its first run and fails on a later one says
     # which test it was preparing.
-    def with_rerun_context(message, rerun, for_test)
-      return message unless rerun && for_test
+    def with_test_context(kind, message, rerun, for_test)
+      return message unless for_test
+      return "#{message} (after test '#{for_test.description}')" if kind == :teardown
+      return message unless rerun
 
       "#{message} (when run again for test '#{for_test.description}')"
     end
@@ -377,11 +379,16 @@ class Tryouts
     # Setup and interlude failures abort the batch: every later test's state
     # is suspect. Teardown failures are reported and the batch completes; a
     # fresh-context teardown that fails after every test is reported once.
+    #
+    # When a fresh-context setup re-run or interlude aborts the batch, the
+    # teardown that ran after the earlier tests is reported first, in the
+    # order things happened.
     def section_failed(kind, section, exception, message, output)
       @aborted ||= kind unless kind == :teardown
       return if @failed_sections.key?(section)
 
       @failed_sections[section] = true
+      announce_fresh_teardown if @aborted && !@shared
       section_output(kind, output)
 
       @global_tally&.dig(:aggregator)&.add_infrastructure_failure(kind, @testrun.source_file, message, exception)
