@@ -83,14 +83,12 @@ class Tryouts
             end
           end
 
-          # Teardown after all tests, then the constants the file defined go,
-          # as in direct mode
-          after(:all) do
-            unless testrun.teardown.nil? || testrun.teardown.empty?
+          # Teardown after all tests. The constants the file defined stay
+          # for the rest of the run, as in direct mode.
+          if testrun.teardown && !testrun.teardown.empty?
+            after(:all) do
               ExampleRun.top_level_binding(self).eval(*EvalSource.section(testrun, testrun.teardown))
             end
-          ensure
-            ScriptBinding.remove_constants(testrun.source_file)
           end
         end
       end

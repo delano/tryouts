@@ -189,10 +189,10 @@ minitest_passed.call(only_detached)
 rspec_statuses.call(only_detached)
 #=> [:failed]
 
-## An RSpec example sees a constant the setup defined, which goes when the examples are done
+## An RSpec example sees a constant the setup defined, which stays for the rest of the run
 setup_constant = parse.call('setup_constant', "TranslatedPriceLimit = 3\n\n## the limit\nTranslatedPriceLimit\n#=> 3\n")
 [rspec_statuses.call(setup_constant), defined?(TranslatedPriceLimit)]
-#=> [[:passed], nil]
+#=> [[:passed], 'constant']
 
 ## An RSpec example sees a class an interlude above it defined
 interlude_class = <<~'RUBY'
