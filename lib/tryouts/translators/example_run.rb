@@ -69,7 +69,7 @@ class Tryouts
         started = Process.clock_gettime(Process::CLOCK_MONOTONIC, :nanosecond)
         begin
           value = stdout ? capture_streams(stdout, stderr) { eval_code } : eval_code
-        rescue *TestBatch::EXPECTABLE_ERRORS => ex
+        rescue TestBatch::ProgramError => ex
           raise unless expects_error?(ex)
 
           error = ex

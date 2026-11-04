@@ -96,9 +96,9 @@ generated_code
 generated_code
 #=~> /^    expect\(result\)\.to eq\(\(\n      6\n    \)\)$/
 
-## TEST: Exception expectation rescues the error the test raises into error
+## TEST: Exception expectation rescues any error but a signal or exit into error
 exception_code
-#=~> /^      raise ArgumentError, 'test error'\n    rescue StandardError, ScriptError, SystemStackError, NoMemoryError, SecurityError => error$/
+#=~> /^      raise ArgumentError, 'test error'\n    rescue Exception => error\n      raise if error\.is_a\?\(SignalException\) \|\| error\.is_a\?\(SystemExit\)\n      error$/
 
 ## TEST: Exception expectation requires an error and a truthy expression
 exception_code

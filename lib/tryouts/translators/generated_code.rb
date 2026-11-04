@@ -2,7 +2,6 @@
 #
 # frozen_string_literal: true
 
-require_relative '../test_batch'
 require_relative '../expectation_evaluators/registry'
 
 class Tryouts
@@ -30,9 +29,14 @@ class Tryouts
         return ["#{INDENT}result = nil"] if code.empty?
 
         lines  = ["#{INDENT}result = begin", *code]
-        errors = rescued_errors(test_case)
-        if errors
-          lines << "#{INDENT}rescue #{errors} => error"
+        case rescued_errors(test_case)
+        when :program
+          # Every exception but a signal or exit, as TestBatch::ProgramError
+          lines << "#{INDENT}rescue Exception => error"
+          lines << "#{INDENT}  raise if error.is_a?(SignalException) || error.is_a?(SystemExit)"
+          lines << "#{INDENT}  error"
+        when :standard
+          lines << "#{INDENT}rescue StandardError => error"
           lines << "#{INDENT}  error"
         end
         lines << "#{INDENT}end"
@@ -67,9 +71,9 @@ class Tryouts
 
       def self.rescued_errors(test_case)
         if test_case.exception_expectations?
-          TestBatch::EXPECTABLE_ERRORS.join(', ')
+          :program
         elsif test_case.expectations.any? { |exp| exp.result_type? || exp.regex_match? }
-          'StandardError'
+          :standard
         end
       end
       private_class_method :rescued_errors

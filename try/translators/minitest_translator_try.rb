@@ -198,7 +198,7 @@ exception_testrun = Tryouts::Testrun.new(
 )
 exception_code = translator.generate_code(exception_testrun)
 exception_code
-#=~> /^    rescue StandardError, ScriptError, SystemStackError, NoMemoryError, SecurityError => error$/
+#=~> /^    rescue Exception => error\n      raise if error\.is_a\?\(SignalException\) \|\| error\.is_a\?\(SystemExit\)$/
 #=~> /^    refute_nil error\n    assert\(\(\n      error\.is_a\?\(ZeroDivisionError\)\n    \)\)$/
 
 ## TEST: Multiple test cases generate multiple methods with proper indexing

@@ -45,7 +45,7 @@ class Tryouts
     # a StandardError, a ScriptError, NoMemoryError, or a class of the
     # program's own that inherits from Exception directly. Interrupts,
     # signals, exit and the framework's own deadline never match, so they
-    # are not caught by accident.
+    # are not caught by accident. The --rspec and --minitest runs use it too.
     module ProgramError
       def self.===(exception)
         case exception
@@ -54,7 +54,6 @@ class Tryouts
         end
       end
     end
-    private_constant :ProgramError
 
     attr_reader :testrun, :failed_count, :status, :results, :output_manager
 
