@@ -149,8 +149,8 @@ class Tryouts
         #=2>  "text" | /regex/   stderr includes the text or matches the regex
         A mistyped operator (e.g. #=x>, #=>>) always fails, and so does ##=>
         (write #=> to assert, or # #=> to comment an expectation out). So does
-        one missing its = (#~> /x/, #:> String, # >= 5 before a single value);
-        prose (# >= 2 is plenty) and dividers of 4+ = (# =====>) are comments.
+        one missing its = (#~> /x/, #:> String, #>= 5); a spaced comparison
+        (# >= 2.0) and dividers (# =====>, #------>) are comments.
         One missing its > (#== 5, #=~ /x/) is a plain comment: a ## test whose
         code holds one and has no expectation gets a warning that its code
         runs as setup, an interlude or teardown.

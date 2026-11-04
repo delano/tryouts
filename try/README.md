@@ -173,7 +173,7 @@ warn 'disk is 91% full'
 
 The parser warns about:
 
-- a mistyped operator such as `#=X>` or `#=>>`, or `##=>` (the expectation always fails), and one missing its `=`: `#~> /x/`, `#:> String`, or `# >= 5` before a single value (prose such as `# >= 2 is plenty`, and dividers of four or more `=` such as `# =====>`, stay comments)
+- a mistyped operator such as `#=X>` or `#=>>`, or `##=>` (the expectation always fails), and one missing its `=`: `#~> /x/`, `#:> String`, or `#>= 5` (a spaced comparison such as `# >= 2.0`, and dividers such as `# =====>` or `#------>`, stay comments)
 - a `##` test whose code holds a comment shaped like an expectation (`#== 5`, `#=~ /x/`, `#> 5`) but has no expectation; its code runs as setup, an interlude or teardown
 - an expectation inside a statement body (not evaluated)
 - an expectation with no statement above it, including one directly under a `##` line (it also fails as a test of its own)
