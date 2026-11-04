@@ -92,7 +92,7 @@ class Tryouts
       # Section failures are listed with the file here, and their messages
       # under Errors:
       def file_result(file_path, total_tests:, failed_count:, error_count:, section_failures: [], not_run: 0, **)
-        data                    = file_data(file_path)
+        data                     = file_data(file_path)
         data[:passed]           = total_tests - failed_count - error_count
         data[:not_run]          = not_run
         data[:section_failures] = section_failures
@@ -156,7 +156,7 @@ class Tryouts
       # A file that failed to parse or load gets a section of its own, and
       # counts as a file failure
       def file_failure(file_path, message, backtrace: nil)
-        data = file_data(file_path)
+        data                     = file_data(file_path)
         data[:section_failures] |= [:file_processing]
         error_message("#{data[:path]}: #{message}", backtrace: backtrace)
       end

@@ -23,7 +23,7 @@ class Tryouts
     def process
       aggregator = @global_tally[:aggregator]
       aggregator.increment_total_files
-      failures = process_file
+      failures   = process_file
       aggregator.increment_successful_files if failures.zero?
       failures
     end

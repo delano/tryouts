@@ -221,12 +221,12 @@ class Tryouts
           details = []
           details << "#{failed_count} failed" if failed_count > 0
           details << "#{error_count} errors" if error_count > 0
-          puts Kernel.format('%-10s %s', 'Testcases:', "#{details.join(', ')}, #{passed} passed#{not_run_detail(not_run)}#{time_str}")
+          puts "Testcases: #{details.join(', ')}, #{passed} passed#{not_run_detail(not_run)}#{time_str}"
         else
-          puts Kernel.format('%-10s %s', 'Testcases:', "#{total_tests} tests passed#{not_run_detail(not_run)}#{time_str}")
+          puts "Testcases: #{total_tests} tests passed#{not_run_detail(not_run)}#{time_str}"
         end
 
-        puts Kernel.format('%-10s %s', 'Files:', "#{successful_files} of #{total_files} passed")
+        puts "Files:     #{successful_files} of #{total_files} passed"
       end
 
       # Debug and diagnostic output
