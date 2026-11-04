@@ -64,8 +64,10 @@ class Tryouts
       # or `>=` straight after the `#` is an operator written backwards
       # (`#<=>`, `#>=`), and operator characters and `>` straight after it
       # are an operator with its `=` left out (`#!>`, `#~>`, `#->`, `#!=>`).
-      # Four or more `=` before the `>` are a divider (`# =====>`), not one.
-      OPERATOR_SHAPE      = %r{(?!\s*={4,}>)(?:\s*=[^\s>]*[\s=<!|*:~%/\\\d-]*>|[<>]=\S*|[!|*:~%/<][=!|*:~%/<]*>)}
+      # Four or more `=` before the `>`, with a space after the `#`, are a
+      # divider (`# =====>`), not one; without the space (`#=====>`) they are
+      # a mistyped operator like any other.
+      OPERATOR_SHAPE      = %r{(?!\s+={4,}>)(?:\s*=[^\s>]*[\s=<!|*:~%/\\\d-]*>|[<>]=\S*|[!|*:~%/<][=!|*:~%/<]*>)}
       # One that EXPECTATION_PATTERN rejects is a mistyped operator (`#=!!>`,
       # `#=/>`, `#=1x>`, `#= = >`, `#<=>`). The match runs to the end of the
       # token (`#=>>`), so it is the whole mistyped operator.
@@ -376,9 +378,11 @@ class Tryouts
       gap_index.negative? ? @leading_gap : @statements[gap_index].gap
     end
 
-    # The description lines in a gap that name the code after it, or nil.
+    # The description lines in a gap that name the code after it, or nil. A
+    # detached expectation counts as one here: the description above it
+    # names that failing test and nothing else.
     def description_block(gap)
-      last_expect = gap.rindex { |c| c[:kind] == :expectation } || -1
+      last_expect = gap.rindex { |c| [:expectation, :detached].include?(c[:kind]) } || -1
       lines       = gap[(last_expect + 1)..].select { |c| c[:kind] == :description }
       lines.slice_when { |a, b| !one_description?(a, b) }.to_a.last
     end
@@ -486,8 +490,9 @@ class Tryouts
     # next test, so the statement above it belongs to another test. Either
     # way the expectation never attaches to a test it was not written for.
     # It is reported, and it becomes a test of its own that always fails,
-    # named by the description above it (unnamed before the first one). The
-    # description still names the test that follows too.
+    # named by the description above it (unnamed before the first one). That
+    # description names nothing else, so the test that follows is unnamed,
+    # which strict mode rejects.
     #
     # @return [Array<TestCase>] the failing tests, one per description
     def detach_unanchored_expectations

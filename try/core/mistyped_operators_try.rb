@@ -174,3 +174,12 @@ batch = batch_for(<<~'RUBY')
 RUBY
 [batch.results.map(&:status), batch.testrun.warnings.map { |w| w.message[/'(.*)'/, 1] }]
 #=> [[:failed], ["===>"]]
+
+## Without a space after the '#', four or more '=' before '>' are a mistyped operator too
+batch = batch_for(<<~'RUBY')
+  ## quadruples
+  4 * 4
+  #====> 16
+RUBY
+[batch.results.map(&:status), batch.testrun.warnings.map { |w| w.message[/'(.*)'/, 1] }]
+#=> [[:failed], ["====>"]]

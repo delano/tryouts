@@ -167,7 +167,7 @@ expectations = testrun.test_cases.map { |tc| tc.expectations.map(&:content) }
 #=> [[["3"], ["#=> 0"]], [[:expectation_without_subject, 6]]]
 #==> testrun.warnings.first.message.include?('the description at line 5')
 
-## That description names the detached test and the test that follows it
+## That description names only the detached test; the code below it joins the test the description above names
 testrun = parse_tryouts(<<~'RUBY')
   ## first
   total = 1
@@ -177,7 +177,18 @@ testrun = parse_tryouts(<<~'RUBY')
   #=> 2
 RUBY
 testrun.test_cases.map { |tc| [tc.description, tc.code] }
-#=> [["second", ""], ["second", "total += 1"]]
+#=> [["first", "total = 1\n## second\n#=> 1\ntotal += 1"], ["second", ""]]
+
+## With no description above to take that code, it is an unnamed test, which strict mode rejects
+parse_tryouts(<<~'RUBY', strict: true)
+  total = 1
+  ## second
+  #=> 1
+  total += 1
+  #=> 2
+RUBY
+#=!> Tryouts::TryoutSyntaxError
+#=~> /without explicit description at line 1/
 
 ## A mistyped operator with a space inside it, or written backwards, still fails
 testrun = parse_tryouts(<<~'RUBY')

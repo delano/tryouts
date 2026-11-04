@@ -94,6 +94,8 @@ class Tryouts
             together with -j share them too); give classes distinct names
           - Leading magic comments (# frozen_string_literal: true) apply to
             every section and expectation, also under --rspec and --minitest
+          - BEGIN { } runs with the section it is in, not before the file, and
+            DATA is not defined (the text after __END__ is ignored)
           - Each test has a 30-second deadline; a Timeout::Error raised by the
             test code is reported as itself
 
