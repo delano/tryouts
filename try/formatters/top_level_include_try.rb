@@ -11,7 +11,10 @@ require 'rbconfig'
 require 'tmpdir'
 
 # Runs `try` with the flags on each named source, saved as its own file, and
-# returns what it printed, without colours
+# returns what it printed, without colours. The child runs without coverage:
+# SimpleCov's exit report calls `format` with no receiver, which a module a
+# source includes at the top level shadows, and that crash is SimpleCov's,
+# not the report's.
 def try_output(sources, *flags)
   try_command = File.expand_path('../../exe/try', __dir__)
   Dir.mktmpdir do |dir|
@@ -20,7 +23,7 @@ def try_output(sources, *flags)
       File.write(path, source)
       path
     end
-    output, _status = Open3.capture2e(RbConfig.ruby, try_command, *flags, *paths)
+    output, _status = Open3.capture2e({ 'COVERAGE' => nil, 'SIMPLECOV' => nil }, RbConfig.ruby, try_command, *flags, *paths)
     output.force_encoding(Encoding::UTF_8).gsub(/\e\[[\d;]*m/, '')
   end
 end

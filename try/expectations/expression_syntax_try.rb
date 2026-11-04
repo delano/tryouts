@@ -72,14 +72,16 @@ RUBY
 results.map(&:first)
 #=> [:passed, :passed]
 
-## Syntax the running Ruby accepts is not rejected
-expression_failures(<<~'RUBY')
+## Whether an expression compiles is decided by the running Ruby, not by Prism's newest grammar
+# A keyword argument in an index assignment is a syntax error from Ruby 3.4 on
+results = expression_failures(<<~'RUBY')
   ## index assignment with a keyword-style key
   store = {}
   store.size
   #==> (store[key: 1] = :set) == :set
 RUBY
-#=> [[:passed, 'true']]
+results.map(&:first)
+#=> [RUBY_VERSION < '3.4' ? :passed : :failed]
 
 ## A SyntaxError raised while the expectation runs is the test's error, not the expectation's syntax
 results = expression_failures(<<~'RUBY')
