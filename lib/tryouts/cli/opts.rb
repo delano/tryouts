@@ -191,9 +191,17 @@ class Tryouts
           opts.on('-q', '--quiet', 'Minimal output (dots and summary only)') { options[:quiet]            = true }
           opts.on('-c', '--compact', 'Compact single-line output') { options[:compact]                    = true }
           opts.on('-l', '--live', 'Live status display') { options[:live_status]                          = true }
-          opts.on('-j', '--parallel [THREADS]', 'Run test files in parallel (optional thread count)') do |threads|
-            options[:parallel] = true
-            options[:parallel_threads] = threads.to_i if threads && threads.to_i > 0
+          # The thread count is an optional Integer, so a file path after the
+          # option is never taken for it. -j takes it as the next word or
+          # attached (-j 4, -j4); --parallel only after = (--parallel=4),
+          # because OptionParser rejects, rather than leaves, a non-Integer
+          # word after a long option.
+          { '-j [THREADS]' => 'Run test files in parallel (optional thread count)',
+            '--parallel[=THREADS]' => 'Same as -j (--parallel=4)' }.each do |switch, description|
+            opts.on(switch, Integer, description) do |threads|
+              options[:parallel]         = true
+              options[:parallel_threads] = threads if threads&.positive?
+            end
           end
 
           opts.separator "\nParser Options:"
@@ -254,7 +262,7 @@ class Tryouts
         files = parser.parse(args)
         Tryouts.trace "Parsed files: #{files.inspect}, options: #{options.inspect}"
         [files, options]
-      rescue OptionParser::InvalidOption => ex
+      rescue OptionParser::ParseError => ex
         warn "Error: #{ex.message}"
         warn "Try 'try --help' for more information."
         exit 1
