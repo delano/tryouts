@@ -89,8 +89,7 @@ testrun = Tryouts::Testrun.new(
   warnings: []
 )
 generated_code = translator.generate_code(testrun)
-# The translator inserts expectation objects instead of their content - this is the current behavior
-generated_code.include?("assert_equal #<data Tryouts::Expectation")
+generated_code.include?("assert_equal 6, result")
 #=> true
 
 ## TEST: Generated code includes required minitest imports
@@ -199,8 +198,7 @@ exception_testrun = Tryouts::Testrun.new(
 )
 exception_code = translator.generate_code(exception_testrun)
 has_assert_raises = exception_code.include?("error = assert_raises(StandardError)")
-# The translator inserts expectation objects instead of their content - this is the current behavior
-has_error_validation = exception_code.include?("assert #<data Tryouts::Expectation")
+has_error_validation = exception_code.include?('assert error.is_a?(ZeroDivisionError), "Exception expectation failed: error.is_a?(ZeroDivisionError)"')
 has_assert_raises && has_error_validation
 #=> true
 

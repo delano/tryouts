@@ -2,6 +2,8 @@
 #
 # frozen_string_literal: true
 
+require_relative 'eval_source'
+
 class Tryouts
   module Translators
     # Translates Tryouts test files to Minitest format
@@ -66,7 +68,7 @@ class Tryouts
           # Setup method
           if testrun.setup && !testrun.setup.empty?
             define_method(:setup) do
-              instance_eval(testrun.setup.code)
+              instance_eval(*EvalSource.section(testrun, testrun.setup))
             end
           end
 
@@ -75,7 +77,7 @@ class Tryouts
             # Orphan blocks become plain statements in the class body, in source order
             if test_case.is_a?(Tryouts::OrphanBlock)
               unless test_case.empty?
-                class_eval(test_case.code, testrun.source_file, test_case.eval_start_line)
+                class_eval(*EvalSource.section(testrun, test_case))
               end
               next
             end
@@ -90,19 +92,19 @@ class Tryouts
                 # so the expectation is eval'd against this binding rather than
                 # instance_eval'd.
                 error = assert_raises(StandardError) do
-                  instance_eval(test_case.code) unless test_case.code.strip.empty?
+                  instance_eval(*EvalSource.section(testrun, test_case)) unless test_case.code.strip.empty?
                 end
 
                 test_case.exception_expectations.each do |expectation|
-                  result = eval(expectation.content, binding) # rubocop:disable Security/Eval
+                  result = binding.eval(*EvalSource.expectation(testrun, expectation)) # rubocop:disable Security/Eval
                   assert result, "Exception expectation failed: #{expectation.content}"
                 end
               else
                 # Handle regular expectations
-                result = instance_eval(test_case.code) unless test_case.code.strip.empty?
+                result = instance_eval(*EvalSource.section(testrun, test_case)) unless test_case.code.strip.empty?
 
                 test_case.regular_expectations.each do |expectation|
-                  expected_value = instance_eval(expectation.content)
+                  expected_value = instance_eval(*EvalSource.expectation(testrun, expectation))
                   assert_equal expected_value, result
                 end
               end
@@ -112,7 +114,7 @@ class Tryouts
           # Teardown method
           if testrun.teardown && !testrun.teardown.empty?
             define_method(:teardown) do
-              instance_eval(testrun.teardown.code)
+              instance_eval(*EvalSource.section(testrun, testrun.teardown))
             end
           end
         end
@@ -125,7 +127,7 @@ class Tryouts
       def generate_code(testrun)
         file_basename = File.basename(testrun.source_file, '.rb')
         class_name    = "Test#{file_basename.gsub(/[^A-Za-z0-9]/, '')}"
-        lines         = []
+        lines         = [*testrun.magic_comments] # magic comments only apply at the top of a file
 
         lines << ''
         lines << "require 'minitest/test'"
@@ -164,7 +166,7 @@ class Tryouts
             lines << '    end'
 
             test_case.exception_expectations.each do |expectation|
-              lines << "    assert #{expectation}, \"Exception expectation failed: #{expectation}\""
+              lines << "    assert #{expectation.content}, #{"Exception expectation failed: #{expectation.content}".inspect}"
             end
           else
             # Handle regular expectations
@@ -174,8 +176,8 @@ class Tryouts
               lines << '    end'
             end
 
-            test_case.expectations.each do |expectation|
-              lines << "    assert_equal #{expectation}, result"
+            test_case.regular_expectations.each do |expectation|
+              lines << "    assert_equal #{expectation.content}, result"
             end
           end
 

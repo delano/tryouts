@@ -2,6 +2,8 @@
 #
 # frozen_string_literal: true
 
+require_relative 'eval_source'
+
 class Tryouts
   module Translators
     # Translates Tryouts test files to RSpec format
@@ -56,7 +58,7 @@ class Tryouts
           # Setup before all tests
           if testrun.setup && !testrun.setup.empty?
             before(:all) do
-              instance_eval(testrun.setup.code, testrun.source_file)
+              instance_eval(*EvalSource.section(testrun, testrun.setup))
             end
           end
 
@@ -65,7 +67,7 @@ class Tryouts
             # Orphan blocks become plain statements in the describe body, in source order
             if test_case.is_a?(Tryouts::OrphanBlock)
               unless test_case.empty?
-                instance_eval(test_case.code, testrun.source_file, test_case.eval_start_line)
+                instance_eval(*EvalSource.section(testrun, test_case))
               end
               next
             end
@@ -77,21 +79,21 @@ class Tryouts
                 # Handle exception expectations
                 error = nil
                 expect do
-                  instance_eval(test_case.code, testrun.source_file) unless test_case.code.strip.empty?
+                  instance_eval(*EvalSource.section(testrun, test_case)) unless test_case.code.strip.empty?
                 end.to raise_error do |caught_error|
                   error = caught_error
                 end
 
                 test_case.exception_expectations.each do |expectation|
-                  expected_value = instance_eval(expectation.content, testrun.source_file)
+                  expected_value = instance_eval(*EvalSource.expectation(testrun, expectation))
                   expect(expected_value).to be_truthy
                 end
               else
                 # Handle regular expectations
-                result = instance_eval(test_case.code, testrun.source_file) unless test_case.code.strip.empty?
+                result = instance_eval(*EvalSource.section(testrun, test_case)) unless test_case.code.strip.empty?
 
                 test_case.regular_expectations.each do |expectation|
-                  expected_value = instance_eval(expectation.content, testrun.source_file)
+                  expected_value = instance_eval(*EvalSource.expectation(testrun, expectation))
                   expect(result).to eq(expected_value)
                 end
               end
@@ -101,7 +103,7 @@ class Tryouts
           # Teardown after all tests
           if testrun.teardown && !testrun.teardown.empty?
             after(:all) do
-              instance_eval(testrun.teardown.code, testrun.source_file)
+              instance_eval(*EvalSource.section(testrun, testrun.teardown))
             end
           end
         end
@@ -109,7 +111,7 @@ class Tryouts
 
       def generate_code(testrun)
         file_basename = File.basename(testrun.source_file, '.rb')
-        lines         = []
+        lines         = [*testrun.magic_comments] # magic comments only apply at the top of a file
 
         lines << ''
         lines << "RSpec.describe '#{file_basename}' do"
