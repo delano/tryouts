@@ -110,8 +110,9 @@ class Tryouts
       run_test_cases(before_test_hook, &)
       return abort_batch if @aborted
 
-      # e.g. the quiet formatter prints a newline after all test dots
-      @output_manager&.file_end(path, context: context_name.to_sym)
+      # e.g. the quiet formatter prints a newline after all test dots. Tests
+      # the consecutive-failure limit skipped count as not run.
+      @output_manager&.file_end(path, context: context_name.to_sym, not_run: not_run_count)
 
       @shared ? run_section(:teardown, @testrun.teardown, @binding) : announce_fresh_teardown
       finalize_results
@@ -461,10 +462,17 @@ class Tryouts
       @global_tally&.dig(:aggregator)&.add_test_result(@testrun.source_file, result)
       @failed_count += 1 if result.failed? || result.error?
 
-      return unless display
+      report_test_result(result) if display
+    end
 
+    # The result is counted before it is shown, so a formatter that fails to
+    # show it reports why and the file goes on: the tests after it and the
+    # teardown still run.
+    def report_test_result(result)
       @output_manager&.test_result(result)
       @output_manager&.test_output(result.test_case, result.captured_output, result) if result.has_output?
+    rescue StandardError => ex
+      @output_manager&.error("could not show the result of #{result.test_case.description.inspect}: #{ex.class}: #{ex.message}", ex.backtrace)
     end
 
     def finalize_results

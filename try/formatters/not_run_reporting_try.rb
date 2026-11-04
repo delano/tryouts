@@ -83,3 +83,24 @@ state = state.update_from_event(:file_end, 'stops1_try.rb', { framework: :direct
 state = state.update_from_event(:file_end, 'stops2_try.rb', { framework: :direct, context: :shared, not_run: 1 })
 [state.not_run, state.files_completed]
 #=> [3, 2]
+
+## Tests the consecutive-failure limit skipped count as not run when the file ends
+class FileEndsCounted < Tryouts::CLI::QuietFormatter
+  attr_reader :not_run
+
+  def file_end(_file_path, context_info: {})
+    @not_run = context_info[:not_run]
+  end
+end
+Dir.mktmpdir do |dir|
+  path = File.join(dir, 'limit_try.rb')
+  File.write(path, (1..4).map { |n| "## wrong #{n}\n#{n}\n#=> 0\n" }.join("\n"))
+  formatter = FileEndsCounted.new(stdout: StringIO.new, stderr: StringIO.new)
+  batch     = Tryouts::TestBatch.new(
+    Tryouts::StatementParser.new(path).parse,
+    shared_context: true, output_manager: Tryouts::CLI::OutputManager.new(formatter), max_consecutive_failures: 2,
+  )
+  batch.run
+  [batch.results.size, formatter.not_run]
+end
+#=> [2, 2]

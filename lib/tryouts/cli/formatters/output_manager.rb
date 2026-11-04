@@ -44,7 +44,8 @@ class Tryouts
         @formatter.file_start(file_path, context_info: context_info)
       end
 
-      # not_run: test cases skipped because setup or an interlude stopped the file
+      # not_run: test cases skipped because setup or an interlude stopped the
+      # file, or because the consecutive-failure limit was reached
       def file_end(file_path, framework: :direct, context: :fresh, not_run: 0)
         context_info = { framework: framework, context: context, not_run: not_run }
         @live_status_manager.handle_event(:file_end, file_path, context_info)

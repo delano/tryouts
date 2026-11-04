@@ -288,9 +288,9 @@ class Tryouts
           expectation = test_case.expectations[idx] if test_case.expectations
 
           if expectation&.type == :exception
-            puts indent_text("Caught: #{Console.color(:blue, actual.inspect)}", 3)
+            puts indent_text("Caught: #{Console.color(:blue, FailureCollector.inspect_value(actual))}", 3)
             puts indent_text("Expectation: #{Console.color(:green, expectation.content)}", 3)
-            puts indent_text("Result: #{Console.color(:green, expected.inspect)}", 3) if expected
+            puts indent_text("Result: #{Console.color(:green, FailureCollector.inspect_value(expected))}", 3) if expected
           end
         end
 
@@ -338,15 +338,15 @@ class Tryouts
 
           if (expectation_error = FailureCollector.expectation_error(expected, test_case.path))
             puts indent_text("Expectation error: #{Console.color(:red, expectation_error)}", 2)
-            puts indent_text("Actual:   #{Console.color(:red, actual.inspect)}", 2)
+            puts indent_text("Actual:   #{Console.color(:red, FailureCollector.inspect_value(actual))}", 2)
           elsif !expected.nil?
             # Use the evaluated expected value from the evaluator
-            puts indent_text("Expected: #{Console.color(:green, expected.inspect)}", 2)
-            puts indent_text("Actual:   #{Console.color(:red, actual.inspect)}", 2)
+            puts indent_text("Expected: #{Console.color(:green, FailureCollector.inspect_value(expected))}", 2)
+            puts indent_text("Actual:   #{Console.color(:red, FailureCollector.inspect_value(actual))}", 2)
           elsif expected_line && !expected_results.empty?
             # Only show raw expectation content if we have expected_results (non-error case)
             puts indent_text("Expected: #{Console.color(:green, expected_line.content)}", 2)
-            puts indent_text("Actual:   #{Console.color(:red, actual.inspect)}", 2)
+            puts indent_text("Actual:   #{Console.color(:red, FailureCollector.inspect_value(actual))}", 2)
           else
             # For error cases (empty expected_results), show formatted error with stack trace
             if actual.is_a?(String) && actual.include?("\n")
@@ -359,7 +359,7 @@ class Tryouts
               end
             else
               # Single-line error
-              puts indent_text("Error:   #{Console.color(:red, actual.inspect)}", 2)
+              puts indent_text("Error:   #{Console.color(:red, FailureCollector.inspect_value(actual))}", 2)
             end
           end
 

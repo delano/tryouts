@@ -211,7 +211,7 @@ class Tryouts
 
       # A string is shown inspected, so "1" and "" are told apart from 1 and nil
       def truncate_value(value)
-        @budget.smart_truncate(value.is_a?(String) ? value.inspect : value, max_tokens: 25)
+        @budget.smart_truncate(value.is_a?(String) ? FailureCollector.inspect_value(value) : value, max_tokens: 25)
       end
 
       def generate_simple_diff(expected, actual)

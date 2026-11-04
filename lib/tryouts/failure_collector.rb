@@ -3,6 +3,7 @@
 # frozen_string_literal: true
 
 require_relative 'console'
+require_relative 'expectation_evaluators/evaluation_context'
 
 class Tryouts
   # Collects and organizes failed test results across files for summary display
@@ -54,18 +55,23 @@ class Tryouts
       end
     end
 
+    # Kernel#class, for a value that has no class method of its own (a
+    # BasicObject) or one that gives something else
+    CLASS_OF = Kernel.instance_method(:class)
+
+    # A value's inspect is user code and can raise; no report of the value
+    # may. Every formatter shows a test's values through this.
+    def self.inspect_value(value)
+      value.inspect
+    rescue StandardError => ex
+      "#<#{CLASS_OF.bind_call(value)} (inspect raised #{ex.class}: #{ex.message})>"
+    end
+
     # An expectation that raised while it was evaluated (a syntax error, an
     # undefined name) has an EvaluationError for its expected value; see
     # ExpectationEvaluators::Base#handle_evaluation_error. Returns its
     # message without the "path:line: " the test file's location already
     # gives, or nil for an ordinary expected value.
-    # A value's inspect is user code and can raise; the summary must not.
-    def self.inspect_value(value)
-      value.inspect
-    rescue StandardError => ex
-      "#<#{value.class} (inspect raised #{ex.class}: #{ex.message})>"
-    end
-
     def self.expectation_error(expected, path)
       return unless expected.is_a?(ExpectationEvaluators::EvaluationError)
 

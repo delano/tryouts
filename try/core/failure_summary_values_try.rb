@@ -53,3 +53,39 @@ code, output = run_file(<<~'RUBY')
 RUBY
 [code, output[/expected nil, got .*/]]
 #=> [1, "expected nil, got #<Meter (inspect raised RuntimeError: no unit configured)>"]
+
+opaque_then_more = <<~'RUBY'
+  class Meter
+    def inspect = raise('no unit configured')
+  end
+
+  ## a broken inspect
+  Meter.new
+  #=> nil
+
+  ## a later reading that also fails
+  [1, 2].sum
+  #=> 4
+
+  $meter_teardowns += 1
+RUBY
+
+## In every output mode a value whose inspect raises is shown without stopping the file: the next test and the teardown still run
+[{}, { verbose: true }, { agent: true }, { quiet: true }].map do |options|
+  $meter_teardowns = 0
+  code, = run_file(opaque_then_more, **options)
+  [code, $meter_teardowns]
+end
+#=> [[2, 1], [2, 1], [2, 1], [2, 1]]
+
+## A value with no inspect method at all is described by its class
+code, output = run_file("## a bare object\nBasicObject.new\n#=> nil\n")
+[code, output[/got #<BasicObject \(inspect raised NoMethodError/]]
+#=> [1, 'got #<BasicObject (inspect raised NoMethodError']
+
+## The failure collector loads what it needs on its own
+require 'open3'
+require 'rbconfig'
+collector = File.expand_path('../../lib/tryouts/failure_collector', __dir__)
+Open3.capture2e(RbConfig.ruby, '-e', "require #{collector.inspect}; p Tryouts::FailureCollector.expectation_error('3', 'a_try.rb')").first
+#=> "nil\n"

@@ -157,7 +157,7 @@ class Tryouts
 
           # Show minimal context for failures
           unless result_packet.actual_results.empty?
-            failure_info = "got: #{result_packet.failed_actual.inspect}"
+            failure_info = "got: #{FailureCollector.inspect_value(result_packet.failed_actual)}"
             file_line(path, indent_text("    #{failure_info}", 1))
           end
 
