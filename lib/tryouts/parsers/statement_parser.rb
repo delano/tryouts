@@ -65,7 +65,7 @@ class Tryouts
       # (`#<=>`, `#>=`), and operator characters and `>` straight after it
       # are an operator with its `=` left out (`#!>`, `#~>`, `#->`, `#!=>`).
       # Four or more `=` before the `>` are a divider (`# =====>`), not one.
-      OPERATOR_SHAPE      = %r{(?!\s*={4,}>)(?:\s*=[^\s>]*[\s=<!|*:~%/\\\d-]*>|[<>]=\S*|[!|*:~%/<-][=!|*:~%/<-]*>)}
+      OPERATOR_SHAPE      = %r{(?!\s*={4,}>)(?:\s*=[^\s>]*[\s=<!|*:~%/\\\d-]*>|[<>]=\S*|[!|*:~%/<][=!|*:~%/<]*>)}
       # One that EXPECTATION_PATTERN rejects is a mistyped operator (`#=!!>`,
       # `#=/>`, `#=1x>`, `#= = >`, `#<=>`). The match runs to the end of the
       # token (`#=>>`), so it is the whole mistyped operator.
@@ -73,16 +73,13 @@ class Tryouts
       # The same shape behind a description marker (`##=>`, `###=>`,
       # `## = >`) is an expectation with one `#` too many, never a description.
       DOUBLED_SHAPE       = /\A##+#{OPERATOR_SHAPE}\S*/
-      # `# >= 5` is the same mistake as `#>= 5` when what follows is a value,
-      # not prose (`# >= 2 items is plenty`, `# <=> compares`).
-      SPACED_BACKWARDS    = /\A#\s+(?:<=>?|>=)\s*(?<body>.*)\z/m
       # A `##` line with text after it. A bare `##` is a plain comment, or a
       # spacer between the lines of one description.
       DESCRIPTION_PATTERN = /\A##++\s*(?<text>\S.*)\z/m
       BARE_DESCRIPTION    = /\A\s*##+\s*\z/
       # A plain comment that starts like an expectation (`#==`, `#=1`, `#> 5`,
       # `# >= 5 6`).
-      EXPECTATION_LIKE    = /\A#\s?[=<>]/
+      EXPECTATION_LIKE    = /\A#\s*[=<>~!:*%|]/
       VACUOUS_BOOLEAN     = /\A(true|false|nil)\s*(#.*)?\z/
 
       private
@@ -93,25 +90,15 @@ class Tryouts
       # it is not a description and not a way to comment an expectation out
       # (`# #=>` is). A comment opening with `>` or `<` might be one
       # (:suspicious); after code on the same line that is ordinary prose
-      # (`x # > 3 is fine`), so it is not flagged there, and neither is a
-      # spaced backwards operator.
+      # (`x # > 3 is fine`), so it is not flagged there. A spaced comparison
+      # (`# >= 2.0`) is prose.
       def malformed_expectation(text, trailing:)
         return :doubled if text.match?(DOUBLED_SHAPE)
         return nil if text.start_with?('##')
         return :typo if text.match?(EXPECTATION_SHAPE)
         return nil if trailing
-        return :typo if (match = SPACED_BACKWARDS.match(text)) && ruby_value?(match[:body])
 
         :suspicious if text.match?(/\A#\s*>[^=]/) || text.match?(/\A#\s*<[^=]/)
-      end
-
-      # One Ruby expression that is not a bare word or command (`5`, `'abc'`,
-      # `result.size`). Prose is either not Ruby (`2 items`) or reads as a
-      # method call with no receiver (`compares`, `is the spaceship operator`).
-      def ruby_value?(code)
-        result = Prism.parse(code)
-        body   = result.value.statements.body
-        result.success? && body.one? && !(body.first in Prism::CallNode[receiver: nil])
       end
 
       # The whole operator token, spaces and closing `>` included (`=1 >`,
@@ -427,7 +414,7 @@ class Tryouts
     def attempted_expectation?(code)
       code.any? do |i|
         statement = @statements[i]
-        comments  = statement.trailing + statement.gap.take_while { |c| c[:kind] != :description }
+        comments  = statement.gap.take_while { |c| c[:kind] != :description }
         comments.any? { |c| c[:kind] == :comment && c[:text]&.match?(EXPECTATION_LIKE) }
       end
     end

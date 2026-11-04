@@ -61,10 +61,6 @@ missing_equals = <<~'RUBY'
   [].empty?
   #|> result
 
-  ## counts three
-  [1, 2, 3].size
-  #-> 3
-
   ## is not three
   [1, 2].size
   #!=> 3
@@ -108,19 +104,19 @@ RUBY
 ## An operator with its '=' left out fails its test instead of vanishing
 batch = batch_for(missing_equals)
 batch.results.map { |r| [r.test_case.description, r.status] }
-#=> [["parses digits", :passed], ["rejects words", :error], ["finds the word", :failed], ["is a String", :failed], ["has a first element", :failed], ["sorts quickly", :failed], ["is a boolean", :failed], ["counts three", :failed], ["is not three", :failed], ["does not match", :failed]]
+#=> [["parses digits", :passed], ["rejects words", :error], ["finds the word", :failed], ["is a String", :failed], ["has a first element", :failed], ["sorts quickly", :failed], ["is a boolean", :failed], ["is not three", :failed], ["does not match", :failed]]
 
 ## The same tests fail in fresh context
 batch = batch_for(missing_equals, shared: false)
 batch.results.reject(&:passed?).size
-#=> 9
+#=> 8
 
 ## Each one is reported with the operator as written
 batch = batch_for(missing_equals)
 batch.testrun.warnings.map { |w| w.message[/'(.*)'/, 1] }
-#=> ["!>", "~>", ":>", "*>", "%>", "|>", "->", "!=>", "~=>"]
+#=> ["!>", "~>", ":>", "*>", "%>", "|>", "!=>", "~=>"]
 
-## A spaced backwards operator before a value fails like '#>= 5' does
+## A spaced comparison is prose, so its test is only warned about; the unspaced '#>=' fails
 batch = batch_for(<<~'RUBY')
   ## at least five items
   [1, 2].size
@@ -130,8 +126,8 @@ batch = batch_for(<<~'RUBY')
   [1, 2].size
   #>= 1
 RUBY
-batch.results.map { |r| [r.test_case.description, r.status] }
-#=> [["at least five items", :failed], ["no more than one", :failed]]
+[batch.results.map { |r| [r.test_case.description, r.status] }, batch.testrun.warnings.map(&:type)]
+#=> [[["no more than one", :failed]], [:malformed_expectation, :description_without_expectation]]
 
 ## A described test whose operator lost its '>' is reported by name and section, as a warning only
 code, output = run_file(missing_arrow)

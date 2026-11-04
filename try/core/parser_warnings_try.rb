@@ -282,24 +282,18 @@ warning_types(<<~'RUBY')
 RUBY
 #=> []
 
-## A spaced backwards operator before a value fails; before prose it is a comment
+## A spaced comparison in a comment is prose, such as a version requirement in the setup
 testrun = parse_tryouts(<<~'RUBY')
-  ## at least five
-  [1, 2].size
-  # >= 5
-
-  ## at most ten
-  [1, 2].size
-  # <= result.size
-
-  ## prose
-  # >= 2 items is plenty
+  require 'json'
+  # >= 2.0
   # <=> compares
-  [1, 2].size
-  #=> 2
+
+  ## parses an array
+  JSON.parse('[1]')
+  #=> [1]
 RUBY
-testrun.test_cases.map { |tc| tc.expectations.map(&:type) }
-#=> [[:malformed], [:malformed], [:regular]]
+[testrun.test_cases.map(&:description), testrun.warnings.map(&:type)]
+#=> [["parses an array"], []]
 
 ## A bare '##' spacer between description lines does not split the description
 testrun = parse_tryouts(<<~'RUBY', strict: true)
