@@ -34,9 +34,9 @@ class Tryouts
     #
     # IMPLEMENTATION DETAILS:
     # - The test code runs exactly once, before any expectation. A test with
-    #   a #=!> expectation may raise StandardError, ScriptError,
-    #   SystemStackError, NoMemoryError or SecurityError; the exception is
-    #   then context.error and also the result
+    #   a #=!> expectation may raise any exception except an interrupt,
+    #   signal or exit (including a class that inherits from Exception
+    #   directly); the exception is then context.error and also the result
     # - Expression is evaluated in the test's binding: it sees the test's
     #   locals, plus `error` (the exception), `result`/`_` (the same
     #   exception) and `elapsed_ms`

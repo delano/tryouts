@@ -34,16 +34,27 @@ class Tryouts
     # inside capture_output; a plain Mutex would self-deadlock.
     OUTPUT_CAPTURE_MONITOR = Monitor.new
 
-    # Exceptions a test that declares #=!> can catch. Interrupts and exit are
-    # deliberately absent.
-    EXPECTABLE_ERRORS = [StandardError, ScriptError, SystemStackError, NoMemoryError, SecurityError].freeze
-
     # Raised when a test outlives the framework's own deadline. A class of its
     # own, so a Timeout::Error raised by the code under test (Net::ReadTimeout,
     # a Timeout.timeout of its own) is an ordinary error. Not a StandardError:
     # test code's `rescue => e` and a #=!> StandardError must not catch it.
     class DeadlineExceeded < Exception; end # rubocop:disable Lint/InheritException
     private_constant :DeadlineExceeded
+
+    # Matches, in a rescue clause, any exception the code under test raised:
+    # a StandardError, a ScriptError, NoMemoryError, or a class of the
+    # program's own that inherits from Exception directly. Interrupts,
+    # signals, exit and the framework's own deadline never match, so they
+    # are not caught by accident.
+    module ProgramError
+      def self.===(exception)
+        case exception
+        when SignalException, SystemExit, DeadlineExceeded then false
+        else exception.is_a?(Exception)
+        end
+      end
+    end
+    private_constant :ProgramError
 
     attr_reader :testrun, :failed_count, :status, :results, :output_manager
 
@@ -219,7 +230,7 @@ class Tryouts
     rescue SystemExit, SignalException => ex
       Tryouts.debug "Test received #{ex.class}: #{ex.message}"
       build_error_result(test_case, StandardError.new("Test terminated by #{ex.class}: #{ex.message}"))
-    rescue *EXPECTABLE_ERRORS => ex
+    rescue ProgramError => ex
       build_error_result(test_case, ex)
     end
 
@@ -233,7 +244,7 @@ class Tryouts
       started = Process.clock_gettime(Process::CLOCK_MONOTONIC, :nanosecond)
       begin
         value = stdout ? capture_streams(stdout, stderr) { eval_section(test_case, binding) } : eval_section(test_case, binding)
-      rescue *EXPECTABLE_ERRORS => ex
+      rescue ProgramError => ex
         raise unless expects_error?(test_case, ex)
 
         error = ex
@@ -307,7 +318,7 @@ class Tryouts
       announce_section(kind, section) unless rerun || deferred?(kind)
       capture_output(output) { eval_section(section, binding) }
       section_output(kind, output) unless rerun
-    rescue *EXPECTABLE_ERRORS => ex
+    rescue ProgramError => ex
       section_failed(kind, section, ex, with_rerun_context(ex.message, rerun, for_test), output)
     rescue SystemExit, SignalException => ex
       message = "#{section_label(kind)} terminated by #{ex.class}: #{ex.message}"

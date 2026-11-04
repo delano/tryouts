@@ -182,4 +182,34 @@ RUBY
 run[:console].lines.map { |line| line.gsub(/\e\[[\d;]*m/, '').strip }.grep(/\A(Test \d|Executing teardown|teardown sees|ERROR: Teardown failed)/).map { |line| line[/\A\S+ \S+/] }
 #=> ['Test 1/2:', 'Test 2/2:', 'Executing teardown', 'teardown sees', 'ERROR: Teardown']
 
+## A setup that raises an exception inheriting from Exception directly stops the file and is reported
+run = run_sections_fixture(<<~'RUBY')
+  class ConfigMissing < Exception; end
+
+  puts 'reading config/app.yml'
+  raise ConfigMissing, 'config/app.yml not found'
+
+  ## never runs
+  1
+  #=> 1
+RUBY
+[run[:passed], run[:statuses], run[:infrastructure]]
+#=> [false, [], [:setup]]
+#==> run[:console].match?(/reading config\/app.yml\n.*Global setup error: config\/app.yml not found/m)
+
+## A test that raises an exception inheriting from Exception directly is a test error, or passes #=!>
+run = run_sections_fixture(<<~'RUBY')
+  class ShutdownRequested < Exception; end
+
+  ## stops the worker without saying so
+  raise ShutdownRequested, 'worker stopping'
+  #=> nil
+
+  ## stops the worker on purpose
+  raise ShutdownRequested, 'worker stopping'
+  #=!> ShutdownRequested
+RUBY
+[run[:passed], run[:statuses]]
+#=> [false, [:error, :passed]]
+
 $connections_opened = nil
