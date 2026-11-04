@@ -44,3 +44,15 @@ error_lines(<<~'RUBY')
   #=> 'X'
 RUBY
 #=> [3]
+
+## An error raised with its backtrace given as strings is still reported where it was raised
+error_lines(<<~'RUBY')
+  ## wraps a parse error
+  begin
+    Integer('twelve')
+  rescue ArgumentError => e
+    raise RuntimeError, 'bad config', e.backtrace
+  end
+  #=> 12
+RUBY
+#=> [3]

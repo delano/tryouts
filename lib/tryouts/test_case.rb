@@ -201,11 +201,27 @@ class Tryouts
     def failure_line
       return metadata[:failure_line] if metadata&.dig(:failure_line)
 
-      frames = error&.backtrace_locations&.select { |loc| loc.path == test_case.path } || []
-      frame  = frames.find { |loc| test_case.line_range&.cover?(loc.lineno - 1) } || frames.first
-      return frame.lineno - 1 if frame
+      lines = error_lines
+      line  = lines.find { |lineno| test_case.line_range&.cover?(lineno - 1) } || lines.first
+      return line - 1 if line
 
       test_case.first_expectation_line || test_case.line_range&.first || 0
+    end
+
+    # The 1-based line of each frame of the error's backtrace that is in the
+    # test file, deepest first. An exception raised with its backtrace given
+    # as strings (`raise Error, message, caller`, as the timeout gem shipped
+    # with Ruby 3.2 does) has no backtrace_locations, so the strings are
+    # read instead.
+    def error_lines
+      return [] unless error
+
+      if (locations = error.backtrace_locations)
+        locations.filter_map { |loc| loc.lineno if loc.path == test_case.path }
+      else
+        prefix = "#{test_case.path}:"
+        (error.backtrace || []).filter_map { |frame| frame.delete_prefix(prefix).to_i if frame.start_with?(prefix) }
+      end
     end
 
     # Helper for formatter access to first actual/expected values
