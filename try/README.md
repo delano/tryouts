@@ -24,6 +24,7 @@ try -q  2> /dev/null # if you only care about the exit code
 try --inspect try/core/script_model_try.rb  # show what the parser found, without running
 try --no-shared-context try/core/           # fresh context: isolate every test
 try --no-strict path/to/file_try.rb         # allow expectations without a ## description
+try -j 4 try/                               # run files in parallel on 4 threads (or --parallel=4)
 ```
 
 `try/continue-on-error/` holds files that fail on purpose. Expect failures when you run it.
@@ -82,8 +83,10 @@ Some details that follow from the model:
 - `##` lines on adjacent lines join into one description, with a space. A blank line or a plain `#` line ends the block, so a `##` heading above it is just a comment. `## TEST: x` is described as "TEST: x".
 - An expectation directly under a `##` line, with no code between them, does not apply to the test above; the parser warns about it and it fails as a test of its own. A bare `##` is a plain comment.
 - `##=>` is not a description or a comment: it fails and asks for `#=>` (to assert) or `# #=>` (to comment the expectation out).
-- The file runs at the top level, as a script does: `class Widget` is `::Widget`, a top-level `def` defines a method on `Object`, and a top-level `include` mixes into `Object`. These are shared by every file in the run, so give helpers distinct names. Top-level `using` raises; put it inside a class or module body.
-- Magic comments at the top of the file, such as `# frozen_string_literal: true`, apply to every section and expectation.
+- The file runs at the top level, as a script does: `class Widget` is `::Widget`, and a top-level `include` mixes into `Object`. A top-level `def` defines a method on the file's own main object, not on `Object`: top-level code and blocks can call it, but a class the file defines cannot, so pass the value in. Top-level `using` raises; put it inside a class or module body.
+- Classes and constants the file defines are global while it runs and are removed when it ends (in fresh context, after each test), so two files can each define a `Widget`. Files run together with `-j`/`--parallel` share them while they run, so give their classes distinct names. Reopening an existing class such as `String` is not undone.
+- A failure in setup or in an interlude stops the file. The file fails, and the tests after the failure are reported as not run (`1/3 passed, 2 not run, interlude failed`).
+- Magic comments at the top of the file, such as `# frozen_string_literal: true`, apply to every section and expectation, also under `--rspec` and `--minitest`.
 - Each test has a 30-second deadline (an error when exceeded). A `Timeout::Error` raised by the test code is reported as itself and can be expected with `#=!> Timeout::Error`.
 - A single `#` is always a plain comment. `# TEST:` does not name a test.
 - `# =>` with a space is the same as `#=>`.
@@ -171,14 +174,14 @@ The parser warns about:
 
 - a mistyped operator such as `#=X>` or `#=>>`, or `##=>` (the expectation always fails)
 - an expectation inside a statement body (not evaluated)
-- an expectation with no statement above it, including one directly under a `##` line
+- an expectation with no statement above it, including one directly under a `##` line (it also fails as a test of its own)
 - `#==> true` and similar literals, which test nothing about the result
 - text after `#=*>`, which is ignored
 - an expectation without a `##` description (an error in strict mode)
 
 ## Shared and Fresh Context
 
-Shared context (the default) runs the file once as a single script, as described above. Fresh context (`--no-shared-context`) gives each test its own object and binding. Before each test the setup runs again, then every interlude above the test; then the test and its expectations run, then the teardown. No local or instance variable one test sets is visible to any other; classes, constants and globals are not reset. A setup or interlude failure stops the file, and setup and teardown output and failures are reported once.
+Shared context (the default) runs the file once as a single script, as described above. Fresh context (`--no-shared-context`) gives each test its own object and binding. Before each test the setup runs again, then every interlude above the test; then the test and its expectations run, then the teardown. No local or instance variable one test sets is visible to any other, and the classes and constants the file defines are removed after each test; globals and reopened existing classes are not reset. A setup or interlude failure stops the file, and setup and teardown output and failures are reported once.
 
 This file passes in fresh context and fails in shared context:
 

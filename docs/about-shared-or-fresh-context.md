@@ -43,9 +43,12 @@ What follows from this:
 
 - Test order matters. A test sees whatever the statements above it left behind, including what earlier tests changed.
 - A test that raises an unexpected exception is reported as an error and the file carries on. The statements it ran before the raise have still run, so later tests see their effects.
-- If the setup or an interlude raises, the rest of the file is skipped: every test below it would be running against state that never got built. A teardown failure is reported and the file still counts its results.
-- The binding's `self` is a plain `Object` created for the file, with no local variables from the runner. Code runs at the top level, as in a script: `class Report` defines `::Report`, a top-level `def` defines a (public) method on `Object`, and a top-level `include` mixes into `Object`. These definitions are global, so two files in one run that define `Report` share one class. Top-level `using` raises, because each section is evaluated on its own and the refinement could not reach later code; use `using` inside a class or module body.
-- Magic comments at the top of the file, such as `# frozen_string_literal: true`, apply to the setup, every test and interlude, the teardown and every expectation.
+- If the setup or an interlude raises, the rest of the file is skipped: every test below it would be running against state that never got built. The file fails, and the tests it skipped are reported as not run (`1/3 passed, 2 not run, interlude failed`). A teardown failure is reported and the file still counts its results.
+- The binding's `self` is a new object created for the file, which prints as `main`, with no local variables from the runner. Code runs at the top level, as in a script: `class Report` defines `::Report`, and a top-level `include` mixes into `Object`.
+- A top-level `def` defines a public method on that object, not on `Object`. Top-level code and the blocks in it can call it; a method of a class the file defines cannot, as it could in a plain script, so pass the value in or make the helper a class or module method.
+- Classes and constants the file defines are global while the file runs: any code can see `Report`. When the file ends they are removed, so the next file can define its own `Report`, even with a different superclass. Files run together with `-j`/`--parallel` share them while they run at the same time, so give their classes distinct names. Reopening an existing class, such as `class String`, is not undone.
+- Top-level `using` raises, because each section is evaluated on its own and the refinement could not reach later code; use `using` inside a class or module body.
+- Magic comments at the top of the file, such as `# frozen_string_literal: true`, apply to the setup, every test and interlude, the teardown and every expectation. They apply under `--rspec` and `--minitest` too.
 
 Use shared context for files that read as a walkthrough, where each example builds on the one before. That is the documentation style tryouts is designed for.
 
@@ -57,11 +60,12 @@ try --no-shared-context path/to/file_try.rb
 
 For each test, fresh context:
 
-1. creates a new `Object` and a new binding on it;
+1. creates a new object and a new binding on it, as shared context does for the whole file;
 2. runs the setup in that binding;
 3. runs every interlude above the test, in order;
 4. runs the test and evaluates its expectations;
-5. runs the teardown in the same binding.
+5. runs the teardown in the same binding;
+6. removes the classes and constants the file defined.
 
 The binding is then thrown away. This is the per-test `setup`/`teardown` model of Minitest, or `before(:each)`/`after(:each)` in RSpec: each test sees the state it would see if it were the only test in the file.
 
@@ -101,14 +105,13 @@ What follows from this:
 - A test cannot read a local or instance variable that an earlier test defined. In the shared-context example above, the second test's `JSON.parse(json)` raises `NameError` in fresh context, because `json` was defined by the first test.
 - The setup, the interludes above a test and the teardown run once per test. Keep them cheap; a file with 50 tests and a slow setup is 50 times slower in fresh context.
 - Setup, interlude and teardown output is shown once, the first time it runs, not once per test. The setup is announced before the first test and the teardown after the last, as in shared context. A failure in any of them is reported once, on whichever run it happens.
-- If the setup or an interlude raises, the rest of the file is skipped, as in shared context. That includes a setup or interlude that passed for earlier tests and fails when run again for a later one (for example, one that creates a directory); the report names the test it was preparing.
+- If the setup or an interlude raises, the rest of the file is skipped and those tests are reported as not run, as in shared context. That includes a setup or interlude that passed for earlier tests and fails when run again for a later one (for example, one that creates a directory); the report names the test it was preparing.
 - The teardown runs after every test, including one that raised.
 
 ### What fresh context does not reset
 
-Fresh context isolates the binding: its `self` and its local and instance variables. It does not undo changes the code makes to the rest of the process:
+Fresh context isolates the binding: its `self`, its local and instance variables and the methods a top-level `def` puts on it. It also removes the classes, modules and constants the file defined after each test, so the next test's setup defines them again. It does not undo other changes the code makes to the rest of the process:
 
-- classes, modules, constants and methods the file defines: the file runs at the top level, as a script does, so `class Widget` is `::Widget` and a re-run setup assigns its constants again;
 - global variables (`$count`), `ENV`, and files on disk;
 - `require`: a library is loaded once per process, so a second `require` in the next test's setup is a no-op;
 - changes to existing classes, such as `class String` or `String.include(SomeModule)`;

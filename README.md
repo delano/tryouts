@@ -22,7 +22,7 @@ A modern Ruby testing framework that uses simple comments to define what should 
 
 A tryouts file is a Ruby script. It is executed top to bottom in one binding. Local and instance variables persist from each line to the next. An expectation comment asserts something about the value of the statement immediately above it, or the statement it trails on the same line. A `##` comment names the group of statements that ends at the next expectation, for reporting only.
 
-As in a script, the file runs at the top level: `class Widget` defines `::Widget`, a top-level `def` defines a method on `Object`, and a top-level `include` mixes into `Object`. Those definitions are global, so two files in one run that define the same class share it. Top-level `using` raises, because each section is evaluated on its own and a refinement could not reach the code after it; call `using` inside a class or module body instead. Magic comments at the top of the file, such as `# frozen_string_literal: true`, apply to every section and expectation.
+As in a script, the file runs at the top level: `class Widget` defines `::Widget`, and a top-level `include` mixes into `Object`. A top-level `def` defines a method on the file's own main object, not on `Object`. Top-level code and the blocks in it can call that method, but a class the file defines cannot, so pass the value in or make the helper a class or module method. Classes and constants the file defines are global while the file runs and are removed when it ends, so the next file can define its own `Widget`. Files run together with `-j`/`--parallel` share them while they run, so give their classes distinct names there. Changes to existing classes, such as reopening `String`, are not undone. Top-level `using` raises, because each section is evaluated on its own and a refinement could not reach the code after it; call `using` inside a class or module body instead. Magic comments at the top of the file, such as `# frozen_string_literal: true`, apply to every section and expectation, also under `--rspec` and `--minitest`.
 
 ## Installation
 
@@ -111,7 +111,7 @@ A test case is the run of statements from its `##` description down to the state
 
 An expectation goes in the gap after its subject, or at the end of the subject's last line. `# =>` with a space is the same as `#=>`, which is how IRB transcripts and Ruby docs write it.
 
-Code between one test's expectations and the next `##` description is not part of either test. It runs in order, like setup, and anything it defines is visible to the tests below it. If it raises, the rest of the file is skipped.
+Code between one test's expectations and the next `##` description is not part of either test. It runs in order, like setup, and anything it defines is visible to the tests below it. If it raises, the rest of the file is skipped: the file fails, and the tests that did not run are counted as not run (`1/3 passed, 2 not run, interlude failed`). A failure in setup does the same.
 
 ```ruby
 ## Starts empty
@@ -151,7 +151,7 @@ Every expression runs in the test's own binding, so it can use the test's local 
 
 ### Shared and fresh context
 
-By default a file runs in one shared binding, as described in [How a file runs](#how-a-file-runs). With `--no-shared-context` each test gets its own: a new object and binding, into which the setup is re-run, then any code between earlier tests, then the test and its expectations, then the teardown. No local or instance variable leaks from one test into another (classes, constants and globals are not reset), but a test can no longer read a local that an earlier test defined (`a` in the "Locals from setup" example above would be a `NameError`). Setup and teardown output and failures are reported once, not per test. A failure in setup or in code between tests stops the file, including one that only fails when re-run for a later test.
+By default a file runs in one shared binding, as described in [How a file runs](#how-a-file-runs). With `--no-shared-context` each test gets its own: a new object and binding, into which the setup is re-run, then any code between earlier tests, then the test and its expectations, then the teardown. No local or instance variable leaks from one test into another. A top-level `def` lands on the test's own object, and the classes and constants the file defines are removed after each test, so a test sees only the ones its re-run setup and interludes define; globals and changes to existing classes are not reset. But a test can no longer read a local that an earlier test defined (`a` in the "Locals from setup" example above would be a `NameError`). Setup and teardown output and failures are reported once, not per test. A failure in setup or in code between tests stops the file, including one that only fails when re-run for a later test.
 
 ```bash
 try --no-shared-context try/core/basic_syntax_try.rb
@@ -178,6 +178,7 @@ try -D    # debug mode
 try --inspect             # show how a file is split into setup, tests and teardown
 try --no-strict           # allow tests without a ## description
 try --no-shared-context   # run each test in its own fresh binding
+try -j 4 try/             # run files in parallel on 4 threads (or --parallel=4; -j alone uses one per CPU)
 
 # Agent-optimized output for LLMs
 try --agent                              # structured, token-efficient output

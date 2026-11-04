@@ -15,6 +15,7 @@ class Tryouts
         try test_try.rb                             # Tryouts test runner with shared context
         try --no-shared-context test_try.rb         # Tryouts test runner, fresh context per test
         try --rspec test_try.rb                     # RSpec with fresh context
+        try -j 4 try/                               # Files in parallel on 4 threads (or --parallel=4)
         try --direct --shared-context test_try.rb   # Explicit shared context
         try --generate-rspec test_try.rb            # Output RSpec code only
         try --inspect test_try.rb                   # Inspect file structure and validation
@@ -76,13 +77,20 @@ class Tryouts
           - One statement can have several expectations; all must pass
           - Every test needs a ## description (--no-strict allows unnamed tests)
           - An expectation directly under a ## line, with no code between them,
-            is not evaluated and does not apply to the test above (warning)
-          - A failure in setup, or in code between tests, stops the file
-          - The file runs at the top level like a script: classes, constants and
-            top-level methods are global across files, top-level include mixes
-            into Object, top-level using raises (use it in a class/module body)
+            does not apply to the test above: it warns and fails as a test of
+            its own. A bare ## line is a plain comment
+          - A failure in setup, or in code between tests, stops the file; the
+            tests left are reported as not run
+          - The file runs at the top level like a script: class Foo is ::Foo,
+            top-level include mixes into Object, top-level using raises (use it
+            in a class/module body)
+          - A top-level def is a method on the file's own main object, not on
+            Object: top-level code and blocks can call it, a class the file
+            defines cannot
+          - Classes and constants the file defines are global while it runs and
+            removed when it ends; files run together with -j share them
           - Leading magic comments (# frozen_string_literal: true) apply to
-            every section and expectation
+            every section and expectation, also under --rspec and --minitest
           - Each test has a 30-second deadline; a Timeout::Error raised by the
             test code is reported as itself
 
@@ -98,8 +106,9 @@ class Tryouts
           - Before each test, setup runs again in the new binding, followed by
             any code between earlier tests; then the test and its expectations;
             then teardown, in the same binding
-          - No local or instance variable crosses between tests; classes,
-            constants and globals are not reset
+          - No local or instance variable crosses between tests; the classes
+            and constants the file defines are removed after each test;
+            globals and reopened existing classes are not reset
           - Setup and teardown output and failures are reported once
           - Use for: Unit testing, independent test cases
 

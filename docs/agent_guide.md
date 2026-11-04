@@ -133,7 +133,7 @@ end
 
 1. **One subject per test case**: Expectations check the last statement of the test
 2. **Variables persist**: Local and instance variables carry over from each statement to the next, across setup, tests and teardown (in the default shared context)
-3. **Helper methods allowed**: Define in setup. The file runs at the top level like a script, so classes, constants and top-level methods are global across every file in a run: give helpers distinct names. Top-level `include` works; top-level `using` raises (use it inside a class or module body). Leading magic comments such as `# frozen_string_literal: true` apply to the whole file
+3. **Helper methods allowed**: Define in setup. The file runs at the top level like a script, but a top-level `def` is a method on the file's own main object, not on `Object`: top-level code and blocks can call it, a class the file defines cannot (pass the value in). Classes and constants the file defines are global while it runs and removed when it ends (after each test in fresh context); files run together under `-j`/`--parallel` share them, so give classes distinct names. Top-level `include` works; top-level `using` raises (use it inside a class or module body). Leading magic comments such as `# frozen_string_literal: true` apply to the whole file, also under `--rspec`/`--minitest`
 4. **Comments ignored**: Only expectation comments (`#=>`, `#==>`, ...) after a top-level statement are expectations; `##` starts a description; anything else is a comment
 5. **Blank lines OK**: Between code and expectations
 
@@ -172,6 +172,9 @@ try -vfD # verbose for failing tests, and enable debug mode (stack traces)
 # Specific file
 try -vfD path/to/file_try.rb path/to/dir
 
+# Files in parallel (-j 4 or --parallel=4; --parallel 4 with a space reads 4 as a file)
+try --agent -j 4 try/
+
 ```
 
 ## Anti-Patterns (Avoid)
@@ -200,6 +203,9 @@ See `docs/about-shared-or-fresh-context.md` for the full description.
 - Before each test, the setup runs again in it, then any code between earlier tests; after the test, the teardown
 - Nothing is copied between bindings, so a mutable object from setup (`@items = []`) is a new object in every test
 - Test isolation - changes in test 1 don't affect test 2, and a test cannot read locals an earlier test defined
-- Classes, constants and methods the file defines, globals, `ENV`, files on disk and changes to existing classes are not reset
+- Classes and constants the file defines are removed after each test; a top-level `def` lands on the test's own object
+- Globals, `ENV`, files on disk and changes to existing classes are not reset
+
+In either mode, a setup or interlude failure stops the file: it fails, and the tests left are reported as not run (`2 not run, interlude failed` in the file's section, and in the SUMMARY counts).
 
 `--rspec` and `--minitest` translate the file and use that framework's own setup and teardown hooks.

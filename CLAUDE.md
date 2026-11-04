@@ -41,8 +41,8 @@ NOTE: Do not say things like, "You're absolutely right!".
 3. **Variables**: Local and instance variables both persist, across setup, tests, interludes and teardown. Expectations see the test's locals.
 4. **Result**: The value of the last statement in the test case. Inside an expectation it is `result` (or `_`); `error` is the exception the test raised, or nil; `elapsed_ms` is the run time.
 5. **Expectations**: Multiple expectation types available (`#=>`, `#==>`, `#=:>`, `#=!>`, etc.); each test case can have several, and all must pass.
-6. **Script scope**: The file runs at the top level like a script: `class Foo` is `::Foo`, top-level `def` defines an Object method, top-level `include` mixes into Object. These are global across files in one run, so give helpers distinct names. Top-level `using` raises; use it inside a class or module body. Leading magic comments (`# frozen_string_literal: true`) apply to every section and expectation.
-7. **Interludes**: Code between one test's expectations and the next `##` runs in order, before the next test. If it raises, the file stops.
+6. **Script scope**: The file runs at the top level like a script: `class Foo` is `::Foo`, top-level `include` mixes into Object. A top-level `def` is a method on the file's own main object (the test's own object in fresh context), not on Object: top-level code and blocks can call it, a class the file defines cannot, so pass values in. Classes and constants the file defines are global while it runs and removed when it ends (after each test in fresh context); files run together under `-j`/`--parallel` share them, so give classes distinct names. Reopened existing classes stay changed. Top-level `using` raises; use it inside a class or module body. Leading magic comments (`# frozen_string_literal: true`) apply to every section and expectation, also under `--rspec`/`--minitest`.
+7. **Interludes**: Code between one test's expectations and the next `##` runs in order, before the next test. If it raises (or setup raises), the file stops and fails; the tests left are reported as not run.
 8. **Comments**: A single `#` is always a plain comment. DO NOT label file sections. `# TEST:` is not a description; write `##`.
 9. **Exceptions**: `#=!>` passes only when the test code itself raises. A lambda or proc that would raise is just a value. A `Timeout::Error` from the test code is reported as itself; the framework's own 30-second per-test deadline is an error.
 10. **Philosophy**: Plain realistic code, avoid mocks/test DSL
@@ -70,6 +70,7 @@ NOTE: Do not say things like, "You're absolutely right!".
 - **Debug mode**: `bundle exec try -D` (additional logging including stack traces)
 - **Verbose failures**: `bundle exec try -vf` (detailed failure output)
 - **Fresh context**: `bundle exec try --no-shared-context` (each test gets a new object and binding; setup, then each interlude above the test, re-run into it, and teardown runs after it)
+- **Parallel**: `bundle exec try -j 4` or `--parallel=4` (files run on 4 threads; `-j` alone uses one per CPU; `--parallel 4` with a space reads 4 as a file)
 - **Lenient parsing**: `bundle exec try --no-strict` (allow expectations without a `##` description)
 - **Structure**: `bundle exec try --inspect` (show the test cases, setup and teardown the parser found, without running)
 
@@ -225,11 +226,11 @@ puts "#{prices.size} fruits in stock"
 | `#=*>` | `result` is not nil |
 | `#=1> x` / `#=2> x` | stdout / stderr includes the String x, or matches the Regexp x |
 
-A mistyped operator such as `#=X>` or `#=>>` is a failing expectation, and so is `##=>` (write `#=>`, or `# #=>` to comment one out). The parser warns about expectation-shaped comments inside a method or block body (they are not evaluated), expectations with no statement above them, `#==> true`-style literals, and text after `#=*>`.
+A mistyped operator such as `#=X>` or `#=>>` is a failing expectation, and so is `##=>` (write `#=>`, or `# #=>` to comment one out). The parser warns about expectation-shaped comments inside a method or block body (they are not evaluated), expectations with no statement above them (each also fails as a test of its own), `#==> true`-style literals, and text after `#=*>`.
 
 ### Shared and fresh context
 
-Shared context (the default) runs the file once as a single script. Fresh context (`--no-shared-context`) gives each test a new object and binding: the setup runs again, then every interlude above the test, then the test and its expectations, then the teardown. No local or instance variable one test sets is visible to another; classes, constants and globals are not reset. A setup or interlude failure stops the file, including one that fails only when re-run for a later test; setup and teardown output and failures are reported once.
+Shared context (the default) runs the file once as a single script. Fresh context (`--no-shared-context`) gives each test a new object and binding: the setup runs again, then every interlude above the test, then the test and its expectations, then the teardown. No local or instance variable one test sets is visible to another, and the classes and constants the file defines are removed after each test; globals and reopened existing classes are not reset. A setup or interlude failure stops the file, including one that fails only when re-run for a later test; setup and teardown output and failures are reported once.
 
 ### Framework Translation
 
