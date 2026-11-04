@@ -33,7 +33,7 @@ expression_failures(<<~'RUBY')
   2
   #=> 2
 RUBY
-#=> [[:failed, 'EXPECTED: fixture.rb:3: syntax error in expectation `1 +`: expected an expression after the operator'], [:passed, '2']]
+#=> [[:failed, 'fixture.rb:3: syntax error in expectation `1 +`: expected an expression after the operator'], [:passed, '2']]
 
 ## A stray brace is the user's, not the wrapper's
 expression_failures(<<~'RUBY')
@@ -41,7 +41,7 @@ expression_failures(<<~'RUBY')
   { id: 1 }
   #=> }
 RUBY
-#=> [[:failed, "EXPECTED: fixture.rb:3: syntax error in expectation `}`: unexpected '}', expecting end-of-input"]]
+#=> [[:failed, "fixture.rb:3: syntax error in expectation `}`: unexpected '}', expecting end-of-input"]]
 
 ## An expression cannot close the wrapper and start code of its own
 expression_failures(<<~'RUBY')
@@ -49,7 +49,7 @@ expression_failures(<<~'RUBY')
   1
   #=> 1 }; -> { 2
 RUBY
-#=> [[:failed, "EXPECTED: fixture.rb:3: syntax error in expectation `1 }; -> { 2`: unexpected '}', expecting end-of-input"]]
+#=> [[:failed, "fixture.rb:3: syntax error in expectation `1 }; -> { 2`: unexpected '}', expecting end-of-input"]]
 
 ## __END__ in an expression is a syntax error at the expectation's line
 expression_failures(<<~'RUBY')
@@ -57,7 +57,7 @@ expression_failures(<<~'RUBY')
   1
   #=> __END__
 RUBY
-#=> [[:failed, 'EXPECTED: fixture.rb:3: syntax error in expectation `__END__`: __END__ cannot appear in an expectation']]
+#=> [[:failed, 'fixture.rb:3: syntax error in expectation `__END__`: __END__ cannot appear in an expectation']]
 
 ## next and break are valid in an expectation, as in any lambda
 results = expression_failures(<<~'RUBY')

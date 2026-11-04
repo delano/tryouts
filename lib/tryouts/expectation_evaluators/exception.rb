@@ -80,7 +80,7 @@ class Tryouts
         build_result(
           passed: false,
           actual: caught_error.class.name,
-          expected: "EXPECTED: #{ex.message}",
+          expected: EvaluationError.new(message: ex.message),
           error: ex,
         )
       end

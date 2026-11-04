@@ -73,7 +73,7 @@ class Tryouts
         build_result(
           passed: false,
           actual: actual_result,
-          expected: "EXPECTED: #{error.message}",
+          expected: EvaluationError.new(message: error.message),
           expectation: @expectation.content,
           error: error,
         )

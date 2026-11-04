@@ -11,6 +11,14 @@ class Tryouts
     # evaluator's `rescue StandardError` and abort the file.
     class ExpressionSyntaxError < StandardError; end
 
+    # The expected value of an expectation that raised while it was being
+    # evaluated (a syntax error, an undefined name). A distinct type, so an
+    # ordinary expected String can never be mistaken for one.
+    EvaluationError = Data.define(:message) do
+      def to_s = message
+      def inspect = "EXPECTED: #{message}"
+    end
+
     # Everything an expectation can refer to, for one execution of one test.
     #
     # Each expectation is compiled into a lambda inside the test's own binding:
