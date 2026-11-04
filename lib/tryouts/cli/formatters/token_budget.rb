@@ -132,7 +132,8 @@ class Tryouts
             "{#{truncated.map { |k, v| "#{k.inspect}=>#{v.inspect}" }.join(', ')}, ...#{value.size - truncated.size} more}"
           end
         else
-          smart_truncate(value.to_s, max_tokens: max_tokens)
+          # inspect, so nil shows as nil rather than as nothing
+          smart_truncate(value.inspect, max_tokens: max_tokens)
         end
       end
 

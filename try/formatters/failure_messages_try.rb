@@ -59,3 +59,24 @@ RUBY
 _, output = run_try(boolean_fixture)
 output[/got: .*$/]
 #=> "got: false"
+
+## Compact output shows an actual value of nil
+_, output = run_try("## nothing found\n[].first\n#=> 1\n")
+output[/got: .*$/]
+#=> "got: nil"
+
+typo_fixture = <<~'RUBY'
+  ## total with a typo in the expectation
+  2 + 2
+  #=> 4 +
+RUBY
+
+## The failure summary gives the reason an expectation could not be read, without its path
+_, output = run_try(typo_fixture)
+output[/Failed Tests:.*/m].lines.last(2).first.strip
+#=> 'syntax error in expectation `4 +`: expected an expression after the operator'
+
+## Verbose output labels it as an expectation error, once
+_, output = run_try(typo_fixture, verbose: true)
+[output.gsub(/\e\[[\d;]*m/, '')[/Expectation error: .*$/], output.include?('EXPECTED:')]
+#=> ['Expectation error: syntax error in expectation `4 +`: expected an expression after the operator', false]

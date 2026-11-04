@@ -105,6 +105,17 @@ class Tryouts
         # Default: no output
       end
 
+      # An error while a file ran, such as its setup failing; the message
+      # does not name the file
+      def file_error_message(_file_path, message, backtrace: nil)
+        error_message(message, backtrace: backtrace)
+      end
+
+      # A file that could not be run, because it failed to parse or load
+      def file_failure(file_path, message, backtrace: nil)
+        error_message("#{Console.pretty_path(file_path)}: #{message}", backtrace: backtrace)
+      end
+
       # Live status capability negotiation
       def live_status_capabilities
         {

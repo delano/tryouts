@@ -103,3 +103,12 @@ Dir.mktmpdir do |dir|
   [code, out.string.include?('folder_try.rb: Is a directory'), out.string[/\d+ of \d+ files passed/]]
 end
 #=> [1, true, '1 of 2 files passed']
+
+## A file with no test cases passes, as its exit code says
+code, output = run_files(["# notes for later\n", "## fine\n1\n#=> 1\n"])
+[code, output[/\d+ of \d+ files passed/]]
+#=> [0, '2 of 2 files passed']
+
+## In agent critical focus a file that fails to parse counts toward the exit code
+run_files(["## broken\ndef (\n#=> 1\n", "## fine\n1\n#=> 1\n"], agent: true, agent_focus: :critical).first
+#=> 1

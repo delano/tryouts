@@ -23,7 +23,9 @@ class Tryouts
         case result_packet.status
         when :failed
           if !result_packet.actual_results.empty? && !result_packet.expected_results.empty?
-            "expected #{result_packet.failed_expected.inspect}, got #{result_packet.failed_actual.inspect}"
+            expected = result_packet.failed_expected
+            FailureCollector.expectation_error(expected, file_path) ||
+              "expected #{expected.inspect}, got #{result_packet.failed_actual.inspect}"
           else
             'test failed'
           end
@@ -43,6 +45,17 @@ class Tryouts
           line.strip.empty? || line.strip.start_with?('#')
         end.first(3) # Limit to first 3 relevant lines
       end
+    end
+
+    # An expectation that raised while it was evaluated (a syntax error, an
+    # undefined name) has "EXPECTED: <message>" for its expected value; see
+    # ExpectationEvaluators::Base#handle_evaluation_error. Returns that
+    # message without the label and without the "path:line: " the test
+    # file's location already gives, or nil for an ordinary expected value.
+    def self.expectation_error(expected, path)
+      return unless expected.is_a?(String) && expected.start_with?('EXPECTED: ')
+
+      expected.delete_prefix('EXPECTED: ').sub(/\A#{Regexp.escape(path.to_s)}:\d+: /, '')
     end
 
     def initialize

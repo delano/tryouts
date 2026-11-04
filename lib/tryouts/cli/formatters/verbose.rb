@@ -336,7 +336,10 @@ class Tryouts
           expected = expected_results[idx] if expected_results && idx < expected_results.length
           expected_line = test_case.expectations[idx] if test_case.expectations
 
-          if !expected.nil?
+          if (expectation_error = FailureCollector.expectation_error(expected, test_case.path))
+            puts indent_text("Expectation error: #{Console.color(:red, expectation_error)}", 2)
+            puts indent_text("Actual:   #{Console.color(:red, actual.inspect)}", 2)
+          elsif !expected.nil?
             # Use the evaluated expected value from the evaluator
             puts indent_text("Expected: #{Console.color(:green, expected.inspect)}", 2)
             puts indent_text("Actual:   #{Console.color(:red, actual.inspect)}", 2)
@@ -361,7 +364,7 @@ class Tryouts
           end
 
           # Show difference if both are strings
-          if !expected.nil? && actual.is_a?(String) && expected.is_a?(String)
+          if !expected.nil? && !expectation_error && actual.is_a?(String) && expected.is_a?(String)
             show_string_diff(expected, actual)
           end
 

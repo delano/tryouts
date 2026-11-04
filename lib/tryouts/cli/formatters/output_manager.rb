@@ -86,11 +86,15 @@ class Tryouts
         )
       end
 
+      # The file could not be run: it failed to parse or load
       def file_failure(file_path, error_message, backtrace = nil)
-        @formatter.error_message(
-          "#{Console.pretty_path(file_path)}: #{error_message}",
-          backtrace: backtrace
-        )
+        @formatter.file_failure(file_path, error_message, backtrace: backtrace)
+      end
+
+      # The same output, with the errors reported while one file runs (its
+      # setup, interlude and teardown failures) attributed to that file
+      def for_file(file_path)
+        dup.tap { |scoped| scoped.file_path = file_path }
       end
 
       # Test-level methods
@@ -163,13 +167,21 @@ class Tryouts
       end
 
       def error(message, backtrace = nil)
-        @formatter.error_message(message, backtrace: backtrace)
+        if @file_path
+          @formatter.file_error_message(@file_path, message, backtrace: backtrace)
+        else
+          @formatter.error_message(message, backtrace: backtrace)
+        end
       end
 
       # Raw output method (bypasses formatting)
       def raw(message)
         @formatter.stdout.puts(message)
       end
+
+      protected
+
+      attr_writer :file_path
     end
   end
 end

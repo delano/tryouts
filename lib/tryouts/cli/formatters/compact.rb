@@ -144,7 +144,7 @@ class Tryouts
           puts indent_text("#{status} #{desc}", 1)
 
           # Show minimal context for failures
-          if result_packet.actual_results.any?
+          unless result_packet.actual_results.empty?
             failure_info = "got: #{result_packet.failed_actual.inspect}"
             puts indent_text("    #{failure_info}", 1)
           end

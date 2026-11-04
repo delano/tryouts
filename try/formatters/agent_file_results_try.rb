@@ -53,6 +53,16 @@ setup_stops = <<~'RUBY'
   #=> 1
 RUBY
 
+teardown_fails = <<~'RUBY'
+  ## passes
+  1
+  #=> 1
+
+  raise 'teardown broke'
+RUBY
+
+unparsable = "## broken\ndef (\n#=> 1\n"
+
 # Each test waits a moment, so files running in parallel overlap
 two_failures = ->(name) { "## #{name} one\nsleep 0.01\n1\n#=> 2\n\n## #{name} two\nsleep 0.01\n2\n#=> 3\n" }
 
@@ -65,7 +75,7 @@ report[/^\d+ testcases passed.* files/]
 report = agent_report(interlude: interlude_stops)
 tests_by_file(report)
 #=> { 'interlude_try.rb' => ['first test fails'] }
-#==> report.include?("interlude_try.rb:\n  interlude failed, 1 not run\n  L3: expected 2, got 1")
+#==> report.include?("interlude_try.rb:\n  1 not run, interlude failed\n  L3: expected 2, got 1")
 
 ## The summary says a file failed even when every test that ran passed
 report = agent_report(setup: setup_stops, fine: "## fine\n1\n#=> 1\n")
@@ -89,3 +99,32 @@ report = agent_report(names.to_h { |name| [name, two_failures.call(name)] }, '-j
 tests_by_file(report).sort.to_h
 #=> names.sort.to_h { |name| ["#{name}_try.rb", ["#{name} one", "#{name} two"]] }
 #==> report.include?('0 testcases passed, 8 failed in 4 files')
+
+## A file that fails to parse is a critical error, listed under its own heading
+report = agent_report({ unparsable: unparsable }, '--agent-focus', 'critical')
+[report[/^\d+ files? with critical errors/], report.include?("unparsable_try.rb:\n  file failed\n")]
+#=> ['1 file with critical errors', true]
+
+## A file that fails to parse gets its own section in the full report too
+report = agent_report(unparsable: unparsable, fine: "## fine\n1\n#=> 1\n")
+report[/^unparsable_try\.rb:\n.*$/]
+#=> "unparsable_try.rb:\n  file failed"
+
+## Setup and teardown errors name the file they happened in
+report = agent_report(setup: setup_stops, teardown: teardown_fails)
+report[/^Errors:\n(?:  .*\n?)*/].lines.map(&:strip).grep(/broke/)
+#=> ['setup_try.rb: Global setup error: setup broke', 'teardown_try.rb: Teardown failed: teardown broke']
+
+## Files with no test cases, or only inspected, are not counted as failed files
+[agent_report(empty: '', fine: "## fine\n1\n#=> 1\n"), agent_report({ fine: "## fine\n1\n#=> 1\n" }, '--inspect')].map { |report| report[/^Failed files: .*$/] }
+#=> [nil, nil]
+
+## An actual value of nil or an empty string is shown, not left blank
+report = agent_report(values: "## nothing found\n[].first\n#=> 1\n\n## no name\n''\n#=> 'Ann'\n")
+report.scan(/L\d+: .*$/)
+#=> ['L3: expected 1, got nil', 'L7: expected "Ann", got ""']
+
+## An expectation with a syntax error shows the reason, not the file's path
+report = agent_report(typo: "## typo in an expectation\n1\n#=> 1 +\n")
+report[/L3: .*$/]
+#=> 'L3: syntax error in expectation `1 +`: expected an expression after the operator'

@@ -147,6 +147,20 @@ class Tryouts
         }
       end
 
+      # Under --parallel errors from several files arrive interleaved, so
+      # each is listed with its file
+      def file_error_message(file_path, message, backtrace: nil)
+        error_message("#{file_data(file_path)[:path]}: #{message}", backtrace: backtrace)
+      end
+
+      # A file that failed to parse or load gets a section of its own, and
+      # counts as a file failure
+      def file_failure(file_path, message, backtrace: nil)
+        data = file_data(file_path)
+        data[:section_failures] |= [:file_processing]
+        error_message("#{data[:path]}: #{message}", backtrace: backtrace)
+      end
+
       # Override live status - not needed for agent mode
       def live_status_capabilities
         {
@@ -172,14 +186,20 @@ class Tryouts
           failure_data[:error] = error ? "#{error.class.name}: #{error.message}" : 'unknown error'
         when :failed
           if !result_packet.expected_results.empty? && !result_packet.actual_results.empty?
-            failed_expected         = result_packet.failed_expected
-            failed_actual           = result_packet.failed_actual
-            failure_data[:expected] = @budget.smart_truncate(failed_expected, max_tokens: 25)
-            failure_data[:got]      = @budget.smart_truncate(failed_actual, max_tokens: 25)
+            failed_expected   = result_packet.failed_expected
+            failed_actual     = result_packet.failed_actual
+            expectation_error = FailureCollector.expectation_error(failed_expected, test_case.path)
 
-            # Add diff for strings if budget allows
-            if failed_expected.is_a?(String) && failed_actual.is_a?(String) && @budget.has_budget?
-              failure_data[:diff] = generate_simple_diff(failed_expected, failed_actual)
+            if expectation_error
+              failure_data[:reason] = @budget.smart_truncate(expectation_error, max_tokens: 50)
+            else
+              failure_data[:expected] = truncate_value(failed_expected)
+              failure_data[:got]      = truncate_value(failed_actual)
+
+              # Add diff for strings if budget allows
+              if failed_expected.is_a?(String) && failed_actual.is_a?(String) && @budget.has_budget?
+                failure_data[:diff] = generate_simple_diff(failed_expected, failed_actual)
+              end
             end
           else
             failure_data[:reason] = 'test failed'
@@ -187,6 +207,11 @@ class Tryouts
         end
 
         failure_data
+      end
+
+      # A string is shown inspected, so "1" and "" are told apart from 1 and nil
+      def truncate_value(value)
+        @budget.smart_truncate(value.is_a?(String) ? value.inspect : value, max_tokens: 25)
       end
 
       def generate_simple_diff(expected, actual)
@@ -346,17 +371,14 @@ class Tryouts
 
       # "Failed files: 2 of 4 (1 setup failure, 1 teardown failure)", when a
       # file failed; a file can fail through its setup, an interlude or its
-      # teardown with every test that ran passing. A file that never reported
-      # a result (it failed to parse or load) is a file failure.
+      # teardown with every test that ran passing. A file that failed to parse
+      # or load is a file failure.
       def failed_files_line
         total  = @total_stats[:total_files].to_i
         failed = total - @total_stats[:successful_files].to_i
         return nil unless failed > 0
 
-        kinds                   = collected_files.flat_map { |f| f[:section_failures] }.tally
-        unloaded                = total - collected_files.count { |f| f[:passed] }
-        kinds[:file_processing] = kinds.fetch(:file_processing, 0) + unloaded if unloaded > 0
-
+        kinds  = collected_files.flat_map { |f| f[:section_failures] }.tally
         causes = kinds.map do |kind, count|
           name = { orphan: 'interlude', file_processing: 'file' }.fetch(kind, kind.to_s)
           "#{count} #{name} failure#{'s' if count != 1}"
@@ -366,11 +388,11 @@ class Tryouts
         causes.empty? ? line : "#{line} (#{causes.join(', ')})"
       end
 
-      # ["interlude failed", "2 not run"] for one file
+      # ["2 not run", "interlude failed"] for one file, in the order the
+      # other formatters use
       def section_details(file_data)
-        details = section_failure_details(file_data[:section_failures])
-        details << "#{file_data[:not_run]} not run" if file_data[:not_run] > 0
-        details
+        details = file_data[:not_run] > 0 ? ["#{file_data[:not_run]} not run"] : []
+        details.concat(section_failure_details(file_data[:section_failures]))
       end
 
       def time_suffix

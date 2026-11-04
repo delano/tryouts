@@ -37,7 +37,7 @@ class Tryouts
         verbose: @options[:verbose],
         fails_only: @options[:fails_only],
         line_spec: @options[:line_spec],  # Pass line_spec for output filtering
-        output_manager: @output_manager,
+        output_manager: @output_manager.for_file(@file),
         global_tally: @global_tally,
       )
 
@@ -48,7 +48,7 @@ class Tryouts
       end
 
       test_results = []
-      success      = batch.run do
+      batch.run do
         last_result = batch.results.last
         test_results << last_result if last_result
       end
@@ -60,12 +60,9 @@ class Tryouts
 
       # Setup, interlude and teardown failures recorded for this file. Each
       # counts once toward the exit code, alongside the failing tests.
+      # Individual test results are added to the aggregator in TestBatch.
       aggregator       = @global_tally[:aggregator]
       section_failures = aggregator.infrastructure_failures_for(@file).map { |failure| failure[:type] }
-
-      # NOTE: Individual test results are added to the aggregator in TestBatch
-      # Here we just update the file success count atomically
-      aggregator.increment_successful_files if success && section_failures.empty?
       aggregator.add_not_run(not_run_count)
 
       duration = Time.now.to_f - @file_start.to_f

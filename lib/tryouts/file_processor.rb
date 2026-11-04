@@ -17,9 +17,20 @@ class Tryouts
       @global_tally   = global_tally
     end
 
+    # Returns the file's failure count. A file passes when that is zero,
+    # also when it has no test cases or was only inspected, generated or
+    # handed to RSpec or Minitest; one that fails to parse fails.
     def process
-      # Counted before parsing, so a file that fails to parse is a failed file
-      @global_tally[:aggregator].increment_total_files
+      aggregator = @global_tally[:aggregator]
+      aggregator.increment_total_files
+      failures = process_file
+      aggregator.increment_successful_files if failures.zero?
+      failures
+    end
+
+    private
+
+    def process_file
       testrun = StatementParser.new(@file, @options).parse
 
       # Report total test count (before filtering for display)
@@ -40,8 +51,6 @@ class Tryouts
       handle_general_error(ex)
     end
 
-    private
-
     def handle_inspect_mode(testrun)
       mode = Tryouts::CLI::InspectMode.new(@file, testrun, @options, @output_manager, @translator)
       mode.handle
@@ -60,16 +69,14 @@ class Tryouts
     end
 
     def handle_syntax_error(ex)
-      @output_manager.file_failure(@file, "Syntax error: #{ex.message}")
+      message = "Syntax error: #{ex.message}"
+      @global_tally[:aggregator].add_infrastructure_failure(:file_processing, @file, message, ex)
+      @output_manager.file_failure(@file, message)
       1
     end
 
     def handle_general_error(ex)
-      if @global_tally
-        @global_tally[:aggregator].add_infrastructure_failure(
-          :file_processing, @file, ex.message, ex
-        )
-      end
+      @global_tally[:aggregator].add_infrastructure_failure(:file_processing, @file, ex.message, ex)
       @output_manager.file_failure(@file, ex.message, ex.backtrace)
       1
     end
