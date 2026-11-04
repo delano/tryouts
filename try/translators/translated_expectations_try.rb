@@ -353,4 +353,11 @@ generate.call('--generate-minitest', own_names_run.source_file)
 #=~> /^    rescue Exception => error_\n      raise if error_\.is_a\?\(SignalException\) \|\| error_\.is_a\?\(SystemExit\)\n      error_\n    end\n    refute_nil error_$/
 #=~> /^    assert_same\(true, ->\(result\) \{ \(\n      result == 3\n    \) \}\.call\(result_\)\)$/
 
+## try --rspec -j2 runs each file's examples once, on its own
+slow  = write_file.call('rspec_slow', "## a slow sum\nsleep 0.2\n1 + 1\n#=> 2\n\n## another slow sum\nsleep 0.2\n2 + 2\n#=> 4\n")
+quick = write_file.call('rspec_quick', "## a quick product\n2 * 3\n#=> 6\n")
+output, status = Open3.capture2e(RbConfig.ruby, try_command, '--rspec', '-j2', slow, quick)
+[status.success?, output.scan(/^\d+ examples?, \d+ failures?$/).sort]
+#=> [true, ["1 example, 0 failures", "2 examples, 0 failures"]]
+
 FileUtils.remove_entry(dir)

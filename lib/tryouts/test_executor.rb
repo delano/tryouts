@@ -6,6 +6,11 @@ require_relative 'test_batch'
 
 class Tryouts
   class TestExecutor
+    # RSpec keeps one set of example groups for the whole process, so under
+    # -j two files must not translate, run and clear it at the same time:
+    # each would run the other's examples, and clear them under it.
+    RSPEC_RUN = Mutex.new
+
     def initialize(file, testrun, options, output_manager, translator, global_tally)
       @file           = file
       @testrun        = testrun
@@ -76,11 +81,13 @@ class Tryouts
 
     def execute_rspec_mode
       @output_manager.info 'Executing with RSpec framework', 2
-      @translator.translate(@testrun)
       require 'rspec/core'
-      status = RSpec::Core::Runner.run([]) # 0, or 1 when an example failed
-      RSpec.clear_examples # so the next file runs only its own examples
-      status
+      RSPEC_RUN.synchronize do
+        @translator.translate(@testrun)
+        status = RSpec::Core::Runner.run([]) # 0, or 1 when an example failed
+        RSpec.clear_examples # so the next file runs only its own examples
+        status
+      end
     end
 
     def execute_minitest_mode
