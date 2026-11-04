@@ -54,7 +54,7 @@ Beyond the symptoms above, in reading order through the parse:
 - **`execution_phase` is emitted twice per file** (`test_batch.rb:85` and `:177`), with different counts, so formatters see two `EXECUTING N TESTS` headers.
 - **`TestBatch#initialize` builds a `FormatterFactory.create_formatter`** it never uses; the real formatter lives in `@output_manager`.
 - **Evaluation line numbers are wrong twice over.** Test code is anchored correctly now (`first_code_line`), but expectations are anchored at the block start (S8) and the translator paths pass no line at all for expectations.
-- **`Timeout.timeout` wraps expectation evaluation but not the `#=!>` code path** (October). Separately: the per-test timeout is a thread-raising `Timeout`, which can interrupt test code mid-`ensure`; a `Process.clock_gettime` budget checked between statements would be safer under the statement model below.
+- **`Timeout.timeout` wraps expectation evaluation but not the `#=!>` code path** (October). Separately: the per-test timeout is a thread-raising `Timeout`, which can interrupt test code mid-`ensure`. A `Process.clock_gettime` budget checked between statements is only cooperative monitoring: it cannot stop a statement that never returns or a blocking call, and under section 4.3 a test case runs as one evaluation, so there are no checkpoints inside it. Keep an independently enforced deadline per test (the thread-raising one, or a watchdog thread) so a run stays bounded, and use the clock only to report elapsed time.
 - **Fresh mode is three different things**: setup runs in `@setup_container` via `instance_eval`; tests run in `Object.new` with ivars shallow-copied in (S12); teardown runs in `@container`, which never saw setup (October #10); orphans run in `@setup_container`. There is no single sentence that describes what "fresh" means.
 
 ## 3. Syntax: what to tighten
@@ -111,27 +111,53 @@ result   = Prism.parse(source)
 stmts    = result.value.statements.body          # top-level statements, in order
 comments = result.comments                       # every comment, with locations
 
-# 1. Attach each comment to a slot:
-#    - a comment that starts on a statement's last line, after code  -> trailing comment of that statement
-#    - a comment strictly between stmt[i].end_line and stmt[i+1].start_line -> gap i (after stmt i)
-#    - a comment before stmt[0]                                        -> gap -1
-#    Comments inside a statement's line span (heredoc bodies, string literals) are not
-#    in result.comments at all; Prism already excluded them.
+# 0. Give each statement its full extent. A statement's location ends at a heredoc's
+#    *opener* (`<<~TEXT`), not at its terminator, so widen the end to the furthest
+#    closing_loc of any heredoc node inside it. A statement that starts inside the
+#    previous one's widened extent (`a = <<~A; b = 1`) shares the opener line; merge
+#    the two into one unit.
 #
-# 2. In each gap, split comments into: expectations (/\A#\s*=\S*>/), descriptions (/\A##/),
-#    everything else (ignored prose).
+# 1. Attach each comment to a slot, by its offset against the widened extents:
+#    - starts after a statement's own code on that statement's last code line
+#                                       -> trailing comment of that statement
+#    - between the end of stmt[i] and the start of stmt[i+1]
+#                                       -> gap i (after stmt i)
+#    - after the last statement (i = n-1, up to end of file or __END__)
+#                                       -> gap n-1, the terminal gap
+#    - before stmt[0]                   -> the leading gap (gap -1)
+#    - anywhere else inside a statement's extent (a method, class or block body)
+#                                       -> internal comment of that statement
+#    Text inside string literals and heredoc bodies is not in result.comments at all;
+#    real comments inside method, class and block bodies are, and land in the last case.
 #
-# 3. Expectations in gap i, plus trailing expectation comments on stmt i, are assertions
-#    about the value of stmt i. stmt i is the *subject*.
+# 2. Classify each comment: expectations (/\A#\s*=\S*>/), descriptions (/\A##/),
+#    everything else (prose). Internal comments are never expectations; an
+#    expectation-shaped one produces the S2 warning ("expectation inside a statement
+#    body at line N, not evaluated") instead of being dropped.
 #
-# 4. A test case is the run of statements (prev_subject, subject], named by the nearest
-#    preceding run of ## comments that sits in a gap after prev_subject.
+# 3. Expectations in gap i (the terminal gap included), plus trailing expectation
+#    comments on stmt i, are assertions about the value of stmt i. stmt i is the
+#    *subject*. An expectation in the leading gap has no statement above it: warn,
+#    and report it as a failing test of its own.
 #
-# 5. Statements before the first test case's first statement are setup; statements after
-#    the last subject are teardown. Both are just statements and execute in order.
+# 4. Test cases, in order. Let prev be the previous subject's index, or -1 for the first
+#    test. A test case for subject s starts after the nearest ## description in gaps
+#    prev .. s-1 (for the first test, the leading gap counts as gap -1), and ends at s.
+#    Gap prev also holds the previous subject's expectations; only descriptions written
+#    after them count, so a ## above a #=> never names the test above it.
+#    The statements from prev+1 up to that description are not part of the test:
+#    for the first test they are the setup, for later tests an interlude that runs in
+#    order before the test. A test with no ## in those gaps is unnamed and starts right
+#    after prev, so an unnamed first test starts at stmt 0 and the file has no setup;
+#    strict mode rejects it at the subject's line, saying the setup has no ## between it
+#    and the first expectation (S11).
+#
+# 5. With no subjects at all, every statement is setup. Statements after the last
+#    subject are teardown. Setup, interludes and teardown are just statements and
+#    execute in order with the tests.
 ```
 
-Prism 1.x ships `ParseResult#attach_comments!`, which does step 1 for free (`node.location.leading_comments` / `trailing_comments`). In a prototype against this branch's Prism it attaches `#=>` lines as *leading* comments of the next statement and same-line comments as *trailing*, which is exactly the information step 3 needs.
+Prism 1.x ships `ParseResult#attach_comments!` (`node.location.leading_comments` / `trailing_comments`). In a prototype against this branch's Prism it attaches `#=>` lines as *leading* comments of the next statement and same-line comments as *trailing*, but it attaches by node location, so it neither widens heredoc extents (step 0) nor gives the terminal gap or internal comments their own slots. A single sorted pass over `result.comments` against the widened extents is simpler and covers all five cases.
 
 ### 4.2 What it removes
 
@@ -139,7 +165,7 @@ Compared with today's `enhanced_parser.rb` + `shared_methods.rb` (about 840 line
 
 - No per-line regex pass. No `tokenize_content_with_inhouse_extraction`, `multiline_comment_spans`, `multiline_statement_ranges`, `strictly_inside_multiline_statement?`, `parse_ruby_line`.
 - No `potential_description` and none of the four boundary-guessing functions.
-- No `group_into_test_blocks` state machine, no `classify_blocks` by index, no `calculate_end_line`, no `extract_code_content` line-padding reconstruction: code for a test case is `source.byteslice(first_stmt.start_offset, last_stmt.end_offset - first_stmt.start_offset)` and its start line is `first_stmt.location.start_line`. Backtraces are right by construction.
+- No `group_into_test_blocks` state machine, no `classify_blocks` by index, no `calculate_end_line`, no `extract_code_content` line-padding reconstruction: code for a test case is `source.byteslice(first.start_offset, last.end_offset - first.start_offset)` over the widened extents from step 0, so a subject ending in a heredoc includes its body and terminator, and its start line is `first.start_line`. Backtraces are right by construction. (A slice that stops at Prism's own `end_offset` ends at `<<~TEXT` and is not valid Ruby; `try/debug/complex_line_number_try.rb` has such a test.)
 - S1, S2 (an indented `#=>` is inside a statement, so it is not a top-level gap comment; emit "expectation inside a statement body at line N" instead of silence), S9, S10, S11 (an expectation with no `##` above it since the previous subject is an unnamed test, and the warning can say exactly which statement it is attached to), S13 and S14 (a `# =>` above the first statement can be warned about specifically) are all handled by the data model rather than by special cases.
 
 ### 4.3 Execution under the same model
@@ -148,9 +174,11 @@ Keep one `Binding` per file in shared mode. Evaluate **per test case** (the stat
 
 ```ruby
 value  = binding.eval(code, path, start_line)              # the subject's value
-check  = binding.eval("->(result, _, error) { #{expr} }", path, expectation_line)
+check  = binding.eval("->(result, _, error) { (\n#{expr}\n) }", path, expectation_line - 1)
 check.call(value, value, raised_or_nil)
 ```
+
+The expression goes on a line of its own: expectations can carry a trailing comment (`try/expectations/multiple_expectations_try.rb:14-16`), which on one line would comment out the closing brace. The parentheses make a stray `}` in the expression a syntax error rather than the end of the lambda, and starting the eval one line early keeps the expression on its own line number.
 
 Verified on this branch: the lambda sees the test's locals (`x` in S3), `result` and `error` are true locals that cannot go stale (S6, S7), no singleton methods are defined on the container, and the expectation line is what the backtrace reports (S8). `#=%>` passes `elapsed_ms` the same way. Fix S5 at the same time by acquiring the binding from a method with no parameters, or via `TOPLEVEL_BINDING.dup`-style isolation with `self` swapped using `instance_exec`.
 
