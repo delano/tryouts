@@ -6,7 +6,7 @@
 # Debug script for edge cases that might trigger line number off-by-one bugs
 # This tests scenarios that could cause inconsistencies in line number tracking
 
-require_relative '../../lib/tryouts/parsers/enhanced_parser'
+require_relative '../../lib/tryouts/parsers/statement_parser'
 
 puts "=== Line Number Edge Cases Debug ==="
 puts
@@ -82,7 +82,7 @@ def analyze_test_case(name, content)
   temp_file.close
 
   begin
-    parser = Tryouts::EnhancedParser.new(temp_file.path)
+    parser = Tryouts::StatementParser.new(temp_file.path)
     testrun = parser.parse
 
     puts "Found #{testrun.test_cases.length} test case(s):"

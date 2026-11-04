@@ -21,16 +21,22 @@ class Tryouts
     #   "HELLO WORLD"      #=~> /hello/i          # Pass: case insensitive match
     #   "hello world"      #=~> /goodbye/         # Fail: pattern not found
     #
+    #   Integer("abc")
+    #   #=~> /invalid value/                      # Pass: matches the exception message
+    #
     # IMPLEMENTATION DETAILS:
     # - Converts actual_result to string using to_s for regex matching
-    # - Uses Ruby's =~ operator for pattern matching (returns match position or nil)
-    # - Evaluates expectation content to resolve regex patterns with flags
+    # - When the result is an exception (the test raised), matches its message
+    # - A test with a #=~> expectation may raise a StandardError; the
+    #   exception is then the result
+    # - Uses String#match? (no match data, no $~ side effects)
+    # - The expression is evaluated in the test's binding, so it may build the
+    #   pattern from the test's locals
     # - Expected display shows pattern.inspect (e.g., "/hello/i", "/\d+/")
     # - Actual display shows stringified result for pattern comparison
     #
     # DESIGN DECISIONS:
     # - Always converts to string (allows regex matching on any object)
-    # - Uses =~ operator (Ruby standard) rather than match? for compatibility
     # - Pattern evaluation supports dynamic regex construction
     # - Displays pattern.inspect for clear regex representation
     class RegexMatch < Base
@@ -39,22 +45,13 @@ class Tryouts
       end
 
       def evaluate(actual_result = nil)
-        expectation_result = ExpectationResult.from_result(actual_result)
-        pattern            = eval_expectation_content(@expectation.content, expectation_result)
+        pattern = evaluate_expression
 
-        # Auto-detect exceptions and use message for regex matching
-        # This allows #=~> /pattern/ to work naturally with exception messages
-        # Note: error variable is already available in context (set in evaluate_expectations)
-        string_result = if actual_result.is_a?(Exception)
-                          actual_result.message  # Match against error message
-                        else
-                          actual_result.to_s     # Normal case: convert to string
-                        end
-
-        match_result = string_result =~ pattern
+        # A test that raised is matched on its message (`#=~> /not found/`)
+        string_result = actual_result.is_a?(::Exception) ? actual_result.message : actual_result.to_s
 
         build_result(
-          passed: !match_result.nil?,
+          passed: string_result.match?(pattern),
           actual: string_result,
           expected: pattern.inspect,
         )

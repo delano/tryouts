@@ -2,15 +2,13 @@
 #
 # frozen_string_literal: true
 
-require_relative 'parsers/enhanced_parser'
+require_relative 'parsers/statement_parser'
 require_relative 'test_executor'
 require_relative 'cli/modes/inspect'
 require_relative 'cli/modes/generate'
 
 class Tryouts
   class FileProcessor
-    # Supported parser types for validation and documentation
-    PARSER_TYPES = [:enhanced].freeze
     def initialize(file:, options:, output_manager:, translator:, global_tally:)
       @file           = file
       @options        = options
@@ -19,12 +17,24 @@ class Tryouts
       @global_tally   = global_tally
     end
 
+    # Returns the file's failure count. A file passes when that is zero,
+    # also when it has no test cases or was only inspected, generated or
+    # handed to RSpec or Minitest; one that fails to parse fails.
     def process
-      testrun = create_parser(@file, @options).parse
+      aggregator = @global_tally[:aggregator]
+      aggregator.increment_total_files
+      failures   = process_file
+      aggregator.increment_successful_files if failures.zero?
+      failures
+    end
+
+    private
+
+    def process_file
+      testrun = StatementParser.new(@file, @options).parse
 
       # Report total test count (before filtering for display)
       # Line spec filtering affects output only, not execution
-      @global_tally[:aggregator].increment_total_files
       @output_manager.file_parsed(@file, testrun.total_tests)
       @output_manager.parser_warnings(@file, warnings: testrun.warnings)
 
@@ -39,21 +49,6 @@ class Tryouts
       handle_syntax_error(ex)
     rescue StandardError, SystemStackError, LoadError, SecurityError, NoMemoryError => ex
       handle_general_error(ex)
-    end
-
-    private
-
-    def create_parser(file, options)
-      parser_type = options[:parser] || :enhanced  # enhanced parser is now the default
-
-      unless PARSER_TYPES.include?(parser_type)
-        raise ArgumentError, "Unknown parser: #{parser_type}. Allowed types: #{PARSER_TYPES.join(', ')}"
-      end
-
-      case parser_type
-      when :enhanced
-        EnhancedParser.new(file, options)
-      end
     end
 
     def handle_inspect_mode(testrun)
@@ -74,16 +69,14 @@ class Tryouts
     end
 
     def handle_syntax_error(ex)
-      @output_manager.file_failure(@file, "Syntax error: #{ex.message}")
+      message = "Syntax error: #{ex.message}"
+      @global_tally[:aggregator].add_infrastructure_failure(:file_processing, @file, message, ex)
+      @output_manager.file_failure(@file, message)
       1
     end
 
     def handle_general_error(ex)
-      if @global_tally
-        @global_tally[:aggregator].add_infrastructure_failure(
-          :file_processing, @file, ex.message, ex
-        )
-      end
+      @global_tally[:aggregator].add_infrastructure_failure(:file_processing, @file, ex.message, ex)
       @output_manager.file_failure(@file, ex.message, ex.backtrace)
       1
     end

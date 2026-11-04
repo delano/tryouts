@@ -6,21 +6,16 @@ if ENV['COVERAGE'] || ENV['SIMPLECOV']
   # Reset any existing coverage data to prevent line count mismatches
   Coverage.result(stop: false, clear: true) if defined?(Coverage)
   SimpleCov.start do
-    track_files 'lib/**/*.rb'
-    add_filter '/try/'
-    add_filter '/test/'
-    add_filter '/test_'
-    add_filter '/spec/'
-    add_filter '/examples/'
-    add_filter '/docs/'
+    # The framework's own files, loaded or not; the report holds nothing else
+    cover 'lib/**/*.rb'
 
-    add_group 'Core', 'lib/tryouts.rb'
-    add_group 'CLI', 'lib/tryouts/cli'
-    add_group 'Formatters', 'lib/tryouts/cli/formatters'
-    add_group 'Parsers', 'lib/tryouts/parsers'
-    add_group 'Data Structures', ['lib/tryouts/testcase.rb', 'lib/tryouts/testbatch.rb']
-    add_group 'Translators', 'lib/tryouts/translators'
-    add_group 'Execution', ['lib/tryouts/test_executor.rb', 'lib/tryouts/test_runner.rb', 'lib/tryouts/file_processor.rb']
+    group 'Core', 'lib/tryouts.rb'
+    group 'CLI', 'lib/tryouts/cli'
+    group 'Formatters', 'lib/tryouts/cli/formatters'
+    group 'Parsers', 'lib/tryouts/parsers'
+    group 'Data Structures', ['lib/tryouts/test_case.rb', 'lib/tryouts/test_batch.rb']
+    group 'Translators', 'lib/tryouts/translators'
+    group 'Execution', ['lib/tryouts/test_executor.rb', 'lib/tryouts/test_runner.rb', 'lib/tryouts/file_processor.rb']
 
     coverage_dir 'coverage'
 
@@ -70,8 +65,8 @@ begin
 
   # If user provided explicit paths but nothing matched, exit with error
   if explicit_paths_given && files.empty?
-    warn 'Error: No test files found matching the given paths'
-    exit 1
+    Kernel.warn 'Error: No test files found matching the given paths'
+    Kernel.exit 1
   end
 
   # Default file discovery if no files specified
@@ -90,9 +85,11 @@ begin
   end
 
   cli = Tryouts::CLI.new
-  exit cli.run(files, **options)
+  # Kernel.exit and Kernel.warn: a test file's top-level `include` mixes into
+  # Object, so a module of its own could otherwise answer these calls.
+  Kernel.exit cli.run(files, **options)
 rescue StandardError => ex
-  warn "Error: #{ex.message}"
-  warn ex.backtrace.join("\n") if options&.dig(:debug)
-  exit 1
+  Kernel.warn "Error: #{ex.message}"
+  Kernel.warn ex.backtrace.join("\n") if options&.dig(:debug)
+  Kernel.exit 1
 end

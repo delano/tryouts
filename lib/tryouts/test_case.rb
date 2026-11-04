@@ -44,7 +44,14 @@ class Tryouts
     end
   end
 
-  Expectation = Data.define(:content, :type) do
+  # line is the 0-based source line of the expectation comment. Expectations
+  # are evaluated there, so a raise inside one reports its own line.
+  # Hand-built expectations (e.g. translator fixtures) may omit it.
+  Expectation = Data.define(:content, :type, :line) do
+    def initialize(line: nil, **rest)
+      super
+    end
+
     def regular? = type == :regular
     def exception? = type == :exception
     def boolean? = type == :boolean
@@ -58,7 +65,11 @@ class Tryouts
   end
 
   # Special expectation type for output capturing with pipe information
-  OutputExpectation = Data.define(:content, :type, :pipe) do
+  OutputExpectation = Data.define(:content, :type, :pipe, :line) do
+    def initialize(line: nil, **rest)
+      super
+    end
+
     def regular? = type == :regular
     def exception? = type == :exception
     def boolean? = type == :boolean
@@ -86,9 +97,9 @@ class Tryouts
     end
   end
 
-  # Code with no description and no expectations that sits between test cases.
-  # Executed in source order for its side effects, but never evaluated against
-  # expectations and never counted in test tallies.
+  # Statements between one test's subject and the next test's `##`
+  # description. Executed in source order for their side effects, never
+  # evaluated against expectations and never counted in test tallies.
   OrphanBlock = Data.define(:code, :line_range, :path, :first_code_line) do
     include EvalAnchor
 
@@ -115,7 +126,30 @@ class Tryouts
 
   # test_cases is a single ordered array of TestCase | OrphanBlock — the
   # interleaving order is load-bearing for shared-context local-variable state.
-  Testrun = Data.define(:setup, :test_cases, :teardown, :source_file, :metadata, :warnings) do
+  #
+  # magic_comments are the file's leading magic comments, such as
+  # "# frozen_string_literal: true". Every section and expectation is a
+  # separate eval, so each one is prefixed with them.
+  Testrun = Data.define(:setup, :test_cases, :teardown, :source_file, :metadata, :warnings, :magic_comments) do
+    def initialize(magic_comments: [], **rest)
+      super
+    end
+
+    # The magic comments Ruby honours for the whole file: those above the
+    # first statement. Encoding comments are left out; the source is already
+    # decoded.
+    #
+    # @param prism_result [Prism::ParseResult]
+    # @return [Array<String>]
+    def self.magic_comments_from(prism_result)
+      first_line = prism_result.value.statements.body.first&.location&.start_line || Float::INFINITY
+      prism_result.magic_comments.filter_map do |comment|
+        next if comment.key_loc.start_line >= first_line || comment.key.match?(/\A(en)?coding\z/i)
+
+        "# #{comment.key}: #{comment.value}"
+      end
+    end
+
     def total_tests
       test_cases.count { |tc| tc.is_a?(TestCase) }
     end
@@ -159,6 +193,37 @@ class Tryouts
       !error.nil?
     end
 
+    # 0-based source line that best explains this result: the first failing
+    # expectation, or for an error the deepest frame inside the test itself
+    # (an error raised in a helper the setup defined points at the test's
+    # call, not the helper), then the deepest frame in the test file, then
+    # the first expectation.
+    def failure_line
+      return metadata[:failure_line] if metadata&.dig(:failure_line)
+
+      lines = error_lines
+      line  = lines.find { |lineno| test_case.line_range&.cover?(lineno - 1) } || lines.first
+      return line - 1 if line
+
+      test_case.first_expectation_line || test_case.line_range&.first || 0
+    end
+
+    # The 1-based line of each frame of the error's backtrace that is in the
+    # test file, deepest first. An exception raised with its backtrace given
+    # as strings (`raise Error, message, caller`, as the timeout gem shipped
+    # with Ruby 3.2 does) has no backtrace_locations, so the strings are
+    # read instead.
+    def error_lines
+      return [] unless error
+
+      if (locations = error.backtrace_locations)
+        locations.filter_map { |loc| loc.lineno if loc.path == test_case.path }
+      else
+        prefix = "#{test_case.path}:"
+        (error.backtrace || []).filter_map { |frame| frame.delete_prefix(prefix).to_i if frame.start_with?(prefix) }
+      end
+    end
+
     # Helper for formatter access to first actual/expected values
     def first_actual
       actual_results&.first
@@ -166,6 +231,21 @@ class Tryouts
 
     def first_expected
       expected_results&.first
+    end
+
+    # Index of the first expectation that failed, or nil.
+    def failure_index
+      metadata&.dig(:failure_index)
+    end
+
+    # Expected and actual values of the expectation that failed; the first
+    # expectation's when no failing index was recorded.
+    def failed_expected
+      expected_results&.[](failure_index || 0)
+    end
+
+    def failed_actual
+      actual_results&.[](failure_index || 0)
     end
 
     # Create a basic result packet for successful tests

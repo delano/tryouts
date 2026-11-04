@@ -21,7 +21,7 @@ puts 'If you see this the setup ran correctly.'
 
 ## TEST CASES
 
-# TEST 1: test matches result with expectation
+## TEST 1: test matches result with expectation
 a = 1 + 1
 #=> 2
 
@@ -39,11 +39,11 @@ a + b
 
 # This is a valid comment between testcases
 
-# TEST 3: test expectation type matters
+## TEST 3: test expectation type matters
 'foo'.class
 #=> String
 
-# TEST 4: instance variables can be used in expectations
+## TEST 4: instance variables can be used in expectations
 @a = 1
 @a
 #=> @a
@@ -51,9 +51,10 @@ a + b
 # ------
 
 
-# TEST 7: test expectations can be commented out
+## TEST 7: test expectations can be commented out
 'foo'
-##=> 'this is a skipped test'
+#=> 'foo'
+# #=> 'this is a skipped test'
 
 ## TEARDOWN
 # Everything after this is run as teardown code

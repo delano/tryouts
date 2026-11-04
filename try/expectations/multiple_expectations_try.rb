@@ -30,7 +30,7 @@ numbers = (1..10).to_a
 #==> _.include?(5) && result.length == 10 # must evaluate to true
 #=/=> result.all? { |n| n.is_a?(Float) } # must evaluate to false
 #==> result.first == 1
-numbers  # Return numbers so it's available as 'result'
+#==> result.equal?(numbers)
 
 ## TEST6: Boolean evaluator (true OR false)
 true

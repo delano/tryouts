@@ -25,12 +25,15 @@ class Tryouts
     # BOOLEAN STRICTNESS:
     # - Only passes when expression evaluates to exactly false (not falsy)
     # - Fails for true, nil, 0, "", [], {}, or any non-false value
-    # - Uses Ruby's === comparison for exact boolean matching
+    # - Compares with `== false`, so only the false object passes
     # - Encourages explicit boolean expressions in documentation
+    # - A literal (`#=/=> false`) tests nothing and draws a
+    #   vacuous_expectation warning; write `#=> false` to compare the result
     #
     # IMPLEMENTATION DETAILS:
-    # - Expression has access to `result` and `_` variables (actual_result)
-    # - Expected display shows 'false (exactly)' for clarity
+    # - Expression is evaluated in the test's binding: it sees the test's
+    #   locals, plus `result`/`_` (the test value), `error` and `elapsed_ms`
+    # - Expected display shows false
     # - Actual display shows the evaluated expression result
     # - Distinguishes from regular expectations through strict false matching
     #
@@ -46,9 +49,7 @@ class Tryouts
       end
 
       def evaluate(actual_result = nil)
-        expectation_result = ExpectationResult.from_result(actual_result)
-        expression_result  = eval_expectation_content(@expectation.content, expectation_result)
-
+        expression_result = evaluate_expression
         build_result(
           passed: expression_result == false,
           actual: expression_result,

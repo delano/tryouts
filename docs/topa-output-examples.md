@@ -163,20 +163,21 @@ Summary: 21 passed, 0 failed in 1 files
   ----------------------------------------------------------------------
   >>>>>  try/formatters/agent_formatter_try.rb  <<<<<<<<<<<<<<<<<<<<<<<<
   ----------------------------------------------------------------------
-    Executing global setup (lines 3..5)
+    Executing global setup (lines 7..8)
     Test 1/21: Test TokenBudget initialization and basic functionality
 
-    PASSED @ try/formatters/agent_formatter_try.rb:10
-          7: ## Test TokenBudget initialization and basic functionality
-          8: @budget = Tryouts::CLI::TokenBudget.new(100)
-          9: @budget.limit
-         10: #=> 100
+    PASSED @ try/formatters/agent_formatter_try.rb:14
+         11: ## Test TokenBudget initialization and basic functionality
+         12: @budget = Tryouts::CLI::TokenBudget.new(100)
+         13: @budget.limit
+         14: #=> 100
 
-    Test 2/21: Unnamed test
+    Test 2/21: Test TokenBudget starts with zero usage
 
-    PASSED @ try/formatters/agent_formatter_try.rb:13
-         12: @budget.used
-         13: #=> 0
+    PASSED @ try/formatters/agent_formatter_try.rb:18
+         16: ## Test TokenBudget starts with zero usage
+         17: @budget.used
+         18: #=> 0
 ...
 ```
 
@@ -224,6 +225,7 @@ file_path:
   L{line}: {error_type}: {error_message}
   L{line}: expected {expected}, got {actual}
 ```
+`L{line}` is the line of the failing expectation comment, or for an error, the line in the file that raised. A test's expectations all assert on the same subject (the statement above them), so a test with several expectations reports the first one that failed.
 
 ### Summary Line Format
 ```

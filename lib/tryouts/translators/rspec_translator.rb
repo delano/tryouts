@@ -2,6 +2,10 @@
 #
 # frozen_string_literal: true
 
+require_relative 'eval_source'
+require_relative 'example_run'
+require_relative 'generated_code'
+
 class Tryouts
   module Translators
     # Translates Tryouts test files to RSpec format
@@ -56,52 +60,34 @@ class Tryouts
           # Setup before all tests
           if testrun.setup && !testrun.setup.empty?
             before(:all) do
-              instance_eval(testrun.setup.code, testrun.source_file)
+              ExampleRun.top_level_binding(self).eval(*EvalSource.section(testrun, testrun.setup))
             end
           end
 
           # Generate test cases
-          testrun.test_cases.each_with_index do |test_case, _index|
+          testrun.test_cases.each do |test_case|
             # Orphan blocks become plain statements in the describe body, in source order
             if test_case.is_a?(Tryouts::OrphanBlock)
               unless test_case.empty?
-                instance_eval(test_case.code, testrun.source_file, test_case.eval_start_line)
+                ExampleRun.top_level_class_binding(self).eval(*EvalSource.section(testrun, test_case))
               end
               next
             end
 
-            next if test_case.empty? || !test_case.expectations?
-
+            # Every test case is an example, as in direct mode: one with no
+            # code (a detached expectation) fails there and here.
             it test_case.description do
-              if test_case.exception_expectations?
-                # Handle exception expectations
-                error = nil
-                expect do
-                  instance_eval(test_case.code, testrun.source_file) unless test_case.code.strip.empty?
-                end.to raise_error do |caught_error|
-                  error = caught_error
-                end
-
-                test_case.exception_expectations.each do |expectation|
-                  expected_value = instance_eval(expectation.content, testrun.source_file)
-                  expect(expected_value).to be_truthy
-                end
-              else
-                # Handle regular expectations
-                result = instance_eval(test_case.code, testrun.source_file) unless test_case.code.strip.empty?
-
-                test_case.regular_expectations.each do |expectation|
-                  expected_value = instance_eval(expectation.content, testrun.source_file)
-                  expect(result).to eq(expected_value)
-                end
+              ExampleRun.new(testrun, test_case, ExampleRun.top_level_binding(self)).each_outcome do |passed, message|
+                expect(passed).to be_truthy, message
               end
             end
           end
 
-          # Teardown after all tests
+          # Teardown after all tests. The constants the file defined stay
+          # for the rest of the run, as in direct mode.
           if testrun.teardown && !testrun.teardown.empty?
             after(:all) do
-              instance_eval(testrun.teardown.code, testrun.source_file)
+              ExampleRun.top_level_binding(self).eval(*EvalSource.section(testrun, testrun.teardown))
             end
           end
         end
@@ -109,7 +95,7 @@ class Tryouts
 
       def generate_code(testrun)
         file_basename = File.basename(testrun.source_file, '.rb')
-        lines         = []
+        lines         = [*testrun.magic_comments] # magic comments only apply at the top of a file
 
         lines << ''
         lines << "RSpec.describe '#{file_basename}' do"
@@ -131,37 +117,12 @@ class Tryouts
             next
           end
 
-          next if test_case.empty? || !test_case.expectations?
-
-          lines << "  it '#{test_case.description}' do"
-
-          if test_case.exception_expectations?
-            # Handle exception expectations
-            lines << '    error = nil'
-            lines << '    expect {'
-            unless test_case.code.strip.empty?
-              test_case.code.lines.each { |line| lines << "      #{line.chomp}" }
-            end
-            lines << '    }.to raise_error do |caught_error|'
-            lines << '      error = caught_error'
-            lines << '    end'
-
-            test_case.exception_expectations.each do |expectation|
-              lines << "    expect(#{expectation.content}).to be_truthy"
-            end
-          else
-            # Handle regular expectations
-            unless test_case.code.strip.empty?
-              lines << '    result = begin'
-              test_case.code.lines.each { |line| lines << "      #{line.chomp}" }
-              lines << '    end'
-            end
-
-            test_case.regular_expectations.each do |expectation|
-              lines << "    expect(result).to eq(#{expectation.content})"
-            end
+          lines << "  it #{test_case.description.inspect} do"
+          code = GeneratedCode.new(test_case)
+          lines.concat(code.result_lines)
+          test_case.expectations.each do |expectation|
+            lines.concat(assertion_lines(code, expectation))
           end
-
           lines << '  end'
           lines << ''
         end
@@ -174,6 +135,40 @@ class Tryouts
 
         lines << 'end'
         lines.join("\n")
+      end
+
+      private
+
+      # The RSpec expectations for one tryouts expectation, with the same
+      # pass/fail as direct mode (see GeneratedCode)
+      def assertion_lines(code, expectation)
+        expr = code.expression(expectation)
+        case expectation.type
+        when :regular then ["    expect(#{code.result}).to eq(#{expr})"]
+        when :true then ["    expect(#{expr}).to be(true)"] # rubocop:disable Lint/BooleanSymbol
+        when :false then ["    expect(#{expr}).to be(false)"] # rubocop:disable Lint/BooleanSymbol
+        when :boolean then ["    expect([true, false]).to include(#{expr})"]
+        when :result_type then ["    expect(#{code.result}).to be_a(#{expr})"]
+        when :regex_match then ["    expect(#{code.result}.to_s).to match(#{expr})"]
+        when :non_nil
+          # Not nil and, where the code may have rescued one, no error
+          [*("    expect(#{code.error}).to be_nil" if code.rescues?), "    expect(#{code.result}).not_to be_nil"]
+        when :exception
+          # Only once the code has raised is the expression evaluated, as in
+          # direct mode, and its value decides: a Module is what the error
+          # must be a kind of, anything else must be truthy. The value is a
+          # lambda parameter, so a local of the test's keeps its own.
+          ["    expect(#{code.error}).not_to be_nil",
+           '    ->(expected) do',
+           '      if expected.is_a?(Module)',
+           "        expect(#{code.error}).to be_a(expected)",
+           '      else',
+           '        expect(expected).to be_truthy',
+           '      end',
+           "    end.call(#{expr})"]
+        else
+          ["    RSpec::Expectations.fail_with(#{code.untranslated_message(expectation, 'RSpec').inspect})"]
+        end
       end
     end
   end

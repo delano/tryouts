@@ -6,7 +6,7 @@
 # Real test to verify line number consistency fix in practice
 # This creates actual failing tests and checks error output for consistent line numbers
 
-require_relative '../../lib/tryouts/parsers/enhanced_parser'
+require_relative '../../lib/tryouts/parsers/statement_parser'
 # Don't require verbose formatter to avoid dependency issues
 require_relative '../../lib/tryouts/failure_collector'
 require 'tempfile'
@@ -38,7 +38,7 @@ puts
 
 begin
   # Parse the file
-  parser = Tryouts::EnhancedParser.new(temp_file.path)
+  parser = Tryouts::StatementParser.new(temp_file.path)
   testrun = parser.parse
   test_case = testrun.test_cases.first
 
@@ -52,14 +52,8 @@ begin
   # Create failure collector to test the fix
   failure_collector = Tryouts::FailureCollector.new
 
-  # Create mock result packet for a failed test
-  result_packet = Struct.new(:test_case, :status, :actual_results, :expected_results, :failure_message) do
-    def failed?; status == :failed; end
-    def error?; status == :error; end
-    def passed?; status == :passed; end
-    def first_actual; actual_results&.first; end
-    def first_expected; expected_results&.first; end
-  end.new(test_case, :failed, [30], [999], "Test failed")
+  # A failed result for the test's first expectation
+  result_packet = Tryouts::TestCaseResultPacket.from_failure(test_case, 30, [30], [999])
 
   # Add failure to collector
   failure_collector.add_failure(temp_file.path, result_packet)

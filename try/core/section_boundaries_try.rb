@@ -38,7 +38,7 @@ result = @setup_var + "_test"
 ## TEST: Ensure setup ran completely
 # All setup variables should be defined
 [@setup_var, @another_var, @complex_data].all? { |var| !var.nil? }
-#==> true
+#==> result
 
 ## TEST: Multiple description lines
 ## should work as expected

@@ -7,13 +7,16 @@ class Tryouts
     HELP = <<~HELP
 
       Framework Defaults:
-        Tryouts:    Shared context (state persists across tests)
+        Tryouts:    Shared context (the file runs as one script)
         RSpec:      Fresh context (each test isolated)
         Minitest:   Fresh context (each test isolated)
 
       Examples:
         try test_try.rb                             # Tryouts test runner with shared context
+        try --no-shared-context test_try.rb         # Tryouts test runner, fresh context per test
         try --rspec test_try.rb                     # RSpec with fresh context
+        try -j 4 try/                               # Files in parallel on 4 threads (or --parallel=4)
+        try -jvf try/                               # Flags after -j stay flags: -j -vf (-j4v is -j4 -v)
         try --direct --shared-context test_try.rb   # Explicit shared context
         try --generate-rspec test_try.rb            # Output RSpec code only
         try --inspect test_try.rb                   # Inspect file structure and validation
@@ -35,58 +38,149 @@ class Tryouts
         Auto-discovery searches: ./try/, ./tryouts/, ./*_try.rb, ./*.try.rb patterns
         Organize by feature/module: try/models/, try/services/, try/api/
 
-      Testcase Structure (3 required parts)
-        ## This is the description
-        echo 'This is ruby code under test'
-        true
-        #=> true  # this is the expected result
+      Testcase Structure (3 required parts):
+        ## Description of what the test shows
+        greeting = "Hello, " + "world"
+        greeting.length
+        #=> 12    # expectation about the value of the statement above it
 
-      File Structure (3 sections):
-        # Setup section (optional) - code before first testcase runs once before all tests
-        @shared_var = "available to all test cases"
+      File Structure:
+        A tryouts file is a Ruby script, run top to bottom. A test case is the
+        code from a ## description down to the statement its expectations sit
+        under. Code before the first test is setup, code after the last test is
+        teardown, and code between two tests runs in order where it stands.
 
-        ## TEST: Feature description
-        # Test case body with plain Ruby code
-        result = some_operation()
-        #=> expected_value
+        require 'json'
+        @settings = { "retries" => 3 }
+        retries = @settings["retries"]
 
-        # Teardown section (optional) - code after last testcase runs once after all tests
+        ## Retries come from the settings
+        retries + 1
+        #=> 4
+
+        ## An expectation can also trail the statement it checks
+        JSON.generate(@settings) #=> '{"retries":3}'
+
+        @settings["retries"] = 5
+
+        ## Code between tests has already run
+        ## when the next test starts
+        @settings["retries"]
+        #=> 5
+
+        Rules:
+          - ## starts a description; ## lines on adjacent lines join into one,
+            also across a bare ## spacer line, and a blank line or plain #
+            line ends the block
+          - A single # line is an ordinary comment, never a description
+          - An expectation checks the statement directly above it, or the
+            statement it trails on the same line (1 + 1 #=> 2)
+          - "# =>" with a space means the same as "#=>"
+          - One statement can have several expectations; all must pass
+          - Every test needs a ## description (--no-strict allows unnamed tests)
+          - An expectation directly under a ## line, with no code between them,
+            does not apply to the test above: it warns and fails as a test of
+            its own. A bare ## line is a plain comment
+          - A failure in setup, or in code between tests, stops the file; the
+            tests left are reported as not run
+          - The file runs at the top level like a script: class Foo is ::Foo,
+            top-level include mixes into Object, top-level using raises (use it
+            in a class/module body)
+          - A top-level def is a method on the file's own main object, not on
+            Object: top-level code and blocks can call it, a class the file
+            defines cannot
+          - Classes and constants the file defines are global and stay defined
+            for the rest of the run, so later files see them (files run
+            together with -j share them too); give classes distinct names
+          - Leading magic comments (# frozen_string_literal: true) apply to
+            every section and expectation, also under --rspec and --minitest
+          - BEGIN { } runs with the section it is in, not before the file, and
+            DATA is not defined (the text after __END__ is ignored)
+          - Each test has a 30-second deadline; a Timeout::Error raised by the
+            test code is reported as itself
 
       Execution Context:
-        Shared Context (default): Instance variables persist across test cases
+        Shared Context (default): the whole file runs in one binding
+          - Local and instance variables persist from each statement to the next,
+            across setup, tests, code between tests, and teardown
+          - Setup and teardown run once
           - Use for: Integration testing, stateful scenarios, realistic workflows
           - Caution: Test order matters, state accumulates
 
-        Fresh Context (--rspec/--minitest): Each test gets isolated environment
+        Fresh Context (--no-shared-context): each test gets a new object and binding
+          - Before each test, setup runs again in the new binding, followed by
+            any code between earlier tests; then the test and its expectations;
+            then teardown, in the same binding
+          - No local or instance variable crosses between tests
+          - Before setup runs again for the 2nd and later tests, the file's
+            top-level classes and constants are removed, so class definitions
+            run again (inherited hooks see each run); constants nested in an
+            existing namespace stay, and nothing is removed after the last test
+          - Globals and reopened existing classes are not reset
+          - Setup and teardown output and failures are reported once
           - Use for: Unit testing, independent test cases
-          - Setup variables copied to each test, but changes don't persist
+
+        --rspec and --minitest translate the file into that framework and use its
+        own setup and teardown hooks (RSpec: once around all examples; Minitest:
+        around every test). Setup instance variables reach the tests, setup
+        locals do not. Every expectation is judged as in direct mode, and
+        --rspec exits non-zero when an example fails. --generate-* code
+        translates most operators and writes a failing assertion, naming the
+        expectation, for #=<>, #=%>, #=1>, #=2> and mistyped ones.
 
       Writing Quality Tryouts:
         - Use realistic, plain Ruby code (avoid mocks, test harnesses)
         - Test descriptions start with ##, be specific about what's being tested
-        - One result per test case (last expression is the result)
+        - The last statement of a test case is the one its expectations check
         - Use appropriate expectation types for clarity (#==> for boolean, #=:> for types)
         - Keep tests focused and readable - they serve as documentation
 
       Great Expectations System:
-        #=>   Value equality        #==> Must be true         #=/=> Must be false
-        #=|>  True OR false         #=!>  Must raise error    #=:>  Type matching
-        #=~>  Regex matching        #=%>  Time constraints    #=*>  Non-nil result
-        #=1>  STDOUT content        #=2>  STDERR content      #=<>  Intentional failure
+        #=>   expr               result == expr
+        #==>  expr               expr is exactly true
+        #=/=> expr               expr is exactly false
+        #=|>  expr               expr is true or false
+        #=!>  ErrorClass | expr  test raised: error.is_a?(ErrorClass), or expr is truthy
+        #=:>  Class              result.is_a?(Class)
+        #=~>  /regex/            result.to_s matches (the message, if the test raised)
+        #=%>  ms                 test code ran within ms milliseconds (+10% tolerance)
+        #=*>                     result is not nil
+        #=<>  /regex/ | expr     negation: must not match a regex; a true/false
+                                 expr must be false; otherwise result != expr
+        #=1>  "text" | /regex/   stdout includes the text or matches the regex
+        #=2>  "text" | /regex/   stderr includes the text or matches the regex
+        A mistyped operator (e.g. #=x>, #=>>) always fails, and so does ##=>
+        (write #=> to assert, or # #=> to comment an expectation out). So does
+        one missing its = (#~> /x/, #:> String, #>= 5); a spaced comparison
+        (# >= 2.0) and dividers (# =====>, #------>) are comments.
+        One missing its > (#== 5, #=~ /x/) is a plain comment: a ## test whose
+        code holds one and has no expectation gets a warning that its code
+        runs as setup, an interlude or teardown.
+
+        Every expectation is Ruby evaluated in the test's binding. It can use
+        the test's local and instance variables, and:
+          result, _     value of the statement under test (the exception, if it raised)
+          error         the exception the test raised, or nil
+          elapsed_ms    how long the test code took, in milliseconds
 
       Exception Testing:
-        ## Method 1: Rescue and test exception
+        ## Method 1: Rescue and test the exception as a value
         begin
-          risky_operation
-        rescue MySpecificError => e
+          Integer("forty-two")
+        rescue ArgumentError => e
           e.class
         end
-        #=> MySpecificError
+        #=> ArgumentError
 
-        ## Method 2: Let it raise and test with #=!> and #=~>
-        risky_operation
-        #=!> MySpecificError
-        #=~> /Could not complete action/
+        ## Method 2: Let it raise and declare it with #=!>
+        Integer("forty-two")
+        #=!> ArgumentError
+        #=~> /invalid value/
+        #==> error.message.include?("forty-two")
+
+        The test code runs once. #=!> fails if nothing was raised. A test
+        without #=!> that raises is reported as an error, unless it has a
+        #=:> or #=~> expectation to check the raised error's class or message.
     HELP
 
     class << self
@@ -124,9 +218,17 @@ class Tryouts
           opts.on('-q', '--quiet', 'Minimal output (dots and summary only)') { options[:quiet]            = true }
           opts.on('-c', '--compact', 'Compact single-line output') { options[:compact]                    = true }
           opts.on('-l', '--live', 'Live status display') { options[:live_status]                          = true }
-          opts.on('-j', '--parallel [THREADS]', 'Run test files in parallel (optional thread count)') do |threads|
-            options[:parallel] = true
-            options[:parallel_threads] = threads.to_i if threads && threads.to_i > 0
+          # The thread count is an optional Integer, so a file path after the
+          # option is never taken for it. -j takes it as the next word or
+          # attached (-j 4, -j4); --parallel only after = (--parallel=4),
+          # because OptionParser rejects, rather than leaves, a non-Integer
+          # word after a long option.
+          { '-j [THREADS]' => 'Run test files in parallel (optional thread count)',
+            '--parallel[=THREADS]' => 'Same as -j (--parallel=4)' }.each do |switch, description|
+            opts.on(switch, Integer, description) do |threads|
+              options[:parallel]         = true
+              options[:parallel_threads] = threads if threads&.positive?
+            end
           end
 
           opts.separator "\nParser Options:"
@@ -161,9 +263,6 @@ class Tryouts
             options[:agent_no_failures] = true
           end
 
-          opts.separator "\nParser Options:"
-          opts.on('--enhanced-parser', 'Use enhanced parser with inhouse comment extraction (default)') { options[:parser] = :enhanced }
-
           opts.separator "\nInspection Options:"
           opts.on('-i', '--inspect', 'Inspect file structure without running tests') { options[:inspect] = true }
 
@@ -187,13 +286,29 @@ class Tryouts
           opts.separator HELP.freeze
         end
 
-        files = parser.parse(args)
+        files = parser.parse(split_parallel_clusters(args))
         Tryouts.trace "Parsed files: #{files.inspect}, options: #{options.inspect}"
         [files, options]
-      rescue OptionParser::InvalidOption => ex
+      rescue OptionParser::ParseError => ex
         warn "Error: #{ex.message}"
         warn "Try 'try --help' for more information."
         exit 1
+      end
+
+      private
+
+      # OptionParser reads everything bundled after -j as its optional thread
+      # count and silently drops what is not a number, so -jv would lose -v.
+      # The count is only the digits attached to -j; the letters after them
+      # are flags of their own: -jv is -j -v, and -j4v is -j4 -v. The letters
+      # before -j are any but j, so the first j is the option and the match
+      # takes time linear in the argument's length.
+      def split_parallel_clusters(args)
+        options_end = args.index('--') || args.size
+        args.take(options_end).flat_map do |arg|
+          match = arg.match(/\A(-[a-ik-zA-Z]*j\d*)([a-zA-Z].*)\z/)
+          match ? [match[1], "-#{match[2]}"] : arg
+        end + args.drop(options_end)
       end
     end
   end

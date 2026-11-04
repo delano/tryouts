@@ -29,7 +29,8 @@ class Tryouts
     # - More lenient than True/False evaluators but stricter than truthy/falsy
     #
     # IMPLEMENTATION DETAILS:
-    # - Expression has access to `result` and `_` variables (actual_result)
+    # - Expression is evaluated in the test's binding: it sees the test's
+    #   locals, plus `result`/`_` (the test value), `error` and `elapsed_ms`
     # - Expected display shows 'true or false' indicating flexible acceptance
     # - Actual display shows the evaluated expression result
     # - Distinguishes from regular expectations through boolean type validation
@@ -46,9 +47,7 @@ class Tryouts
       end
 
       def evaluate(actual_result = nil)
-        expectation_result = ExpectationResult.from_result(actual_result)
-        expression_result  = eval_expectation_content(@expectation.content, expectation_result)
-
+        expression_result = evaluate_expression
         build_result(
           passed: [true, false].include?(expression_result),
           actual: expression_result,

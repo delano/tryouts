@@ -6,67 +6,70 @@ require_relative 'base'
 
 class Tryouts
   module ExpectationEvaluators
+    # Evaluator for exception expectations using syntax: #=!> expression
+    #
+    # PURPOSE:
+    # - Declares that the test code is expected to raise
+    # - Checks the raised exception by class or module, or by any expression
+    #
+    # SYNTAX: #=!> ErrorClass, or #=!> expression
+    # Examples:
+    #   Integer("abc")
+    #   #=!> ArgumentError                         # Pass: error.is_a?(ArgumentError)
+    #
+    #   Integer("abc")
+    #   #=!> StandardError                         # Pass: is_a? includes ancestors
+    #
+    #   Integer("abc")
+    #   #=!> error.message.include?("abc")         # Pass: the expression is truthy
+    #
+    #   Integer("42")
+    #   #=!> ArgumentError                         # Fail: nothing was raised
+    #
+    # MATCHING:
+    # - If the expression evaluates to a Module (a class or a module such as
+    #   Comparable), passes when error.is_a?(it)
+    # - Otherwise passes when the expression is truthy
+    # - Fails, and never re-runs the code, when the test raised nothing
+    #
+    # IMPLEMENTATION DETAILS:
+    # - The test code runs exactly once, before any expectation. A test with
+    #   a #=!> expectation may raise any exception except an interrupt,
+    #   signal or exit (including a class that inherits from Exception
+    #   directly); the exception is then context.error and also the result
+    # - Expression is evaluated in the test's binding: it sees the test's
+    #   locals, plus `error` (the exception), `result`/`_` (the same
+    #   exception) and `elapsed_ms`
+    # - Other expectations on the same test see the same `error`, and #=~>
+    #   matches the exception message
+    # - Expected display shows the class name or the expression value;
+    #   actual display shows the raised class name or the message
     class Exception < Base
       def self.handles?(expectation_type)
         expectation_type == :exception
       end
 
-      def evaluate(_actual_result = nil, caught_exception: nil)
-        if caught_exception
-          # Use the pre-caught exception to avoid double execution
-          evaluate_exception_condition(caught_exception)
-        else
-          # Fallback for direct calls - shouldn't happen in normal flow
-          execute_test_code_and_evaluate_exception
+      # The test code has already run, exactly once. If it raised, the exception
+      # is context.error; if it did not, this expectation fails. It never runs
+      # the test code again.
+      def evaluate(actual_result = nil)
+        caught_error = @context.error
+        unless caught_error
+          return build_result(
+            passed: false,
+            actual: "No exception was raised (result: #{actual_result.inspect})",
+            expected: @expectation.content,
+          )
         end
-      end
 
-      private
-
-      def execute_test_code_and_evaluate_exception
-        path  = @test_case.path
-        range = @test_case.line_range
-        @context.instance_eval(@test_case.code, path, range.first + 1)
-
-        # Create result packet for evaluation to show what was expected
-        expectation_result = ExpectationResult.from_result(nil)
-        expected_value     = eval_expectation_content(@expectation.content, expectation_result)
-
-        build_result(
-          passed: false,
-          actual: 'No exception was raised',
-          expected: expected_value,
-        )
-      rescue SystemStackError, NoMemoryError, SecurityError, ScriptError => ex
-        # Handle system-level exceptions that don't inherit from StandardError
-        # ScriptError includes: LoadError, SyntaxError, NotImplementedError
-        evaluate_exception_condition(ex)
-      rescue StandardError => ex
-        evaluate_exception_condition(ex)
-      end
-
-      def evaluate_exception_condition(caught_error)
-        # Note: error variable is already available in context (set in evaluate_expectations)
-
-        expectation_result = ExpectationResult.from_result(caught_error)
-        expected_value = eval_expectation_content(@expectation.content, expectation_result)
-
-        # Support two syntaxes:
-        # 1. Class constant: #=!> StandardError (checks exception class)
-        # 2. Boolean expression: #=!> error.message == "test" (checks truthy value)
-        if expected_value.is_a?(Class)
-          # Class-based exception checking (new behavior)
-          # Check if caught exception is instance of expected class (or subclass)
-          exception_matches = caught_error.is_a?(expected_value)
-
+        expected_value = evaluate_expression
+        if expected_value.is_a?(Module)
           build_result(
-            passed: exception_matches,
+            passed: caught_error.is_a?(expected_value),
             actual: caught_error.class.name,
             expected: expected_value.name,
           )
         else
-          # Boolean/truthy expression checking (legacy behavior)
-          # This supports expressions like: error.message == "test"
           build_result(
             passed: !!expected_value,
             actual: caught_error.message,
@@ -77,7 +80,7 @@ class Tryouts
         build_result(
           passed: false,
           actual: caught_error.class.name,
-          expected: "EXPECTED: #{ex.message}",
+          expected: EvaluationError.new(message: ex.message),
           error: ex,
         )
       end

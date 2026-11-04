@@ -72,11 +72,7 @@ class Tryouts
             pretty_path = Console.pretty_path(file_path)
 
             # Include line number with file path for easy copying/clicking
-            if failure.line_number > 0
-              location = "#{pretty_path}:#{failure.line_number + 1}"
-            else
-              location = pretty_path
-            end
+            location = "#{pretty_path}:#{failure.line_number + 1}"
 
             puts
             puts Console.color(:yellow, location)
@@ -94,20 +90,22 @@ class Tryouts
         end
       end
 
-      def file_result(_file_path, total_tests:, failed_count:, error_count:, elapsed_time: nil)
-        issues_count = failed_count + error_count
-        passed_count = total_tests - issues_count
+      def file_result(_file_path, total_tests:, failed_count:, error_count:, elapsed_time: nil, section_failures: [], not_run: 0)
+        issues_count = failed_count + error_count + section_failures.size + not_run
+        passed_count = total_tests - failed_count - error_count
         details = ["#{passed_count} passed"]
 
         puts
         if issues_count > 0
           details << "#{failed_count} failed" if failed_count > 0
           details << "#{error_count} errors" if error_count > 0
+          details << "#{not_run} not run" if not_run > 0
+          details.concat(section_failure_details(section_failures))
           details_str = details.join(', ')
           color = :red
 
           time_str = elapsed_time ? " (#{elapsed_time.round(2)}s)" : ''
-          message = "✗ Out of #{total_tests} tests: #{details_str}#{time_str}"
+          message = "✗ Out of #{total_tests + not_run} tests: #{details_str}#{time_str}"
           puts indent_text(Console.color(color, message), 1)
         else
           message = "#{total_tests} tests passed"
@@ -149,7 +147,7 @@ class Tryouts
         end
 
         test_case = result_packet.test_case
-        location = "#{Console.pretty_path(test_case.path)}:#{test_case.first_expectation_line + 1}"
+        location = "#{Console.pretty_path(test_case.path)}:#{result_packet.failure_line + 1}"
         puts
         puts indent_text("#{status_line} @ #{location}", 1)
 
@@ -181,7 +179,7 @@ class Tryouts
 
       # Setup/teardown operations
       def setup_start(line_range:)
-        message = "Executing global setup (lines #{line_range.first}..#{line_range.last})"
+        message = "Executing global setup (lines #{display_lines(line_range)})"
         puts indent_text(Console.color(:cyan, message), 1)
         puts
       end
@@ -195,7 +193,7 @@ class Tryouts
       end
 
       def teardown_start(line_range:)
-        message = "Executing teardown (lines #{line_range.first}..#{line_range.last})"
+        message = "Executing teardown (lines #{display_lines(line_range)})"
         puts indent_text(Console.color(:cyan, message), 1)
       end
 
@@ -207,7 +205,7 @@ class Tryouts
         end
       end
 
-      def grand_total(total_tests:, failed_count:, error_count:, successful_files:, total_files:, elapsed_time:)
+      def grand_total(total_tests:, failed_count:, error_count:, successful_files:, total_files:, elapsed_time:, not_run: 0)
         puts
         puts '=== TOTAL ==='
 
@@ -223,12 +221,12 @@ class Tryouts
           details = []
           details << "#{failed_count} failed" if failed_count > 0
           details << "#{error_count} errors" if error_count > 0
-          printf("%-10s %s\n", "Testcases:", "#{details.join(', ')}, #{passed} passed#{time_str}")
+          puts "Testcases: #{details.join(', ')}, #{passed} passed#{not_run_detail(not_run)}#{time_str}"
         else
-          printf("%-10s %s\n", "Testcases:", "#{total_tests} tests passed#{time_str}")
+          puts "Testcases: #{total_tests} tests passed#{not_run_detail(not_run)}#{time_str}"
         end
 
-        printf("%-10s %s\n", "Files:", "#{successful_files} of #{total_files} passed")
+        puts "Files:     #{successful_files} of #{total_files} passed"
       end
 
       # Debug and diagnostic output
@@ -271,6 +269,11 @@ class Tryouts
 
       private
 
+      # Section line ranges are 0-based; files and --inspect count from 1.
+      def display_lines(line_range)
+        "#{line_range.first + 1}..#{line_range.last + 1}"
+      end
+
       def has_exception_expectations?(test_case)
         test_case.expectations.any? { |exp| exp.type == :exception }
       end
@@ -285,9 +288,9 @@ class Tryouts
           expectation = test_case.expectations[idx] if test_case.expectations
 
           if expectation&.type == :exception
-            puts indent_text("Caught: #{Console.color(:blue, actual.inspect)}", 3)
+            puts indent_text("Caught: #{Console.color(:blue, FailureCollector.inspect_value(actual))}", 3)
             puts indent_text("Expectation: #{Console.color(:green, expectation.content)}", 3)
-            puts indent_text("Result: #{Console.color(:green, expected.inspect)}", 3) if expected
+            puts indent_text("Result: #{Console.color(:green, FailureCollector.inspect_value(expected))}", 3) if expected
           end
         end
 
@@ -312,7 +315,9 @@ class Tryouts
 
         test_case.source_lines.each_with_index do |line_content, index|
           line_num = start_line + index
-          line_display = format('%3d: %s', line_num + 1, line_content)
+          # Kernel.format, because a test file's top-level include can give
+          # every object a format method of its own
+          line_display = Kernel.format('%3d: %s', line_num + 1, line_content)
 
           # Highlight expectation lines by checking if this line contains any expectation syntax
           if line_content.match?(%r{^\s*#\s*=(!|<|=|/=|\||:|~|%|\d+)?>\s*})
@@ -331,14 +336,17 @@ class Tryouts
           expected = expected_results[idx] if expected_results && idx < expected_results.length
           expected_line = test_case.expectations[idx] if test_case.expectations
 
-          if !expected.nil?
+          if (expectation_error = FailureCollector.expectation_error(expected, test_case.path))
+            puts indent_text("Expectation error: #{Console.color(:red, expectation_error)}", 2)
+            puts indent_text("Actual:   #{Console.color(:red, FailureCollector.inspect_value(actual))}", 2)
+          elsif !expected.nil?
             # Use the evaluated expected value from the evaluator
-            puts indent_text("Expected: #{Console.color(:green, expected.inspect)}", 2)
-            puts indent_text("Actual:   #{Console.color(:red, actual.inspect)}", 2)
+            puts indent_text("Expected: #{Console.color(:green, FailureCollector.inspect_value(expected))}", 2)
+            puts indent_text("Actual:   #{Console.color(:red, FailureCollector.inspect_value(actual))}", 2)
           elsif expected_line && !expected_results.empty?
             # Only show raw expectation content if we have expected_results (non-error case)
             puts indent_text("Expected: #{Console.color(:green, expected_line.content)}", 2)
-            puts indent_text("Actual:   #{Console.color(:red, actual.inspect)}", 2)
+            puts indent_text("Actual:   #{Console.color(:red, FailureCollector.inspect_value(actual))}", 2)
           else
             # For error cases (empty expected_results), show formatted error with stack trace
             if actual.is_a?(String) && actual.include?("\n")
@@ -351,12 +359,12 @@ class Tryouts
               end
             else
               # Single-line error
-              puts indent_text("Error:   #{Console.color(:red, actual.inspect)}", 2)
+              puts indent_text("Error:   #{Console.color(:red, FailureCollector.inspect_value(actual))}", 2)
             end
           end
 
           # Show difference if both are strings
-          if !expected.nil? && actual.is_a?(String) && expected.is_a?(String)
+          if !expected.nil? && !expectation_error && actual.is_a?(String) && expected.is_a?(String)
             show_string_diff(expected, actual)
           end
 
@@ -423,7 +431,7 @@ class Tryouts
       end
 
       # Show file result summaries in fails-only mode (matching compact behavior)
-      def file_result(_file_path, total_tests:, failed_count:, error_count:, elapsed_time: nil)
+      def file_result(_file_path, total_tests:, failed_count:, error_count:, elapsed_time: nil, section_failures: [], not_run: 0)
         # Always show summary - this matches compact formatter behavior
         super
       end

@@ -26,7 +26,7 @@ class Tryouts
           if tc.is_a?(Tryouts::OrphanBlock)
             @output_manager.raw("Orphan code block (no description, no expectations)")
             @output_manager.raw("  Code lines: #{tc.code.lines.count}")
-            @output_manager.raw("  Range: #{tc.line_range}")
+            @output_manager.raw("  Lines: #{tc.line_range.first + 1}-#{tc.line_range.last + 1}")
             @output_manager.raw('')
             next
           end
@@ -35,7 +35,7 @@ class Tryouts
           @output_manager.raw("Test #{test_number}: #{tc.description}")
           @output_manager.raw("  Code lines: #{tc.code.lines.count}")
           @output_manager.raw("  Expectations: #{tc.expectations.size}")
-          @output_manager.raw("  Range: #{tc.line_range}")
+          @output_manager.raw("  Lines: #{tc.line_range.first + 1}-#{tc.line_range.last + 1}")
           @output_manager.raw('')
         end
 

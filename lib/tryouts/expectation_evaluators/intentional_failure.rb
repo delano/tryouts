@@ -8,68 +8,77 @@ require_relative '../test_case'
 
 class Tryouts
   module ExpectationEvaluators
-    # Evaluator for intentional failure expectations using syntax: #=<> expression
+    # Evaluator for negated expectations using syntax: #=<> expression
     #
     # PURPOSE:
-    # - Validates that an expectation intentionally fails (passes when the underlying expectation fails)
-    # - Provides ability to test negative cases and expected failures
-    # - Useful for testing error conditions and boundary cases
+    # - Asserts what the result must NOT be
+    # - Provides ability to test negative cases and boundary conditions
+    # - Historically called "intentional failure"; it is a negation, and a
+    #   passing #=<> is a passing test
     #
     # SYNTAX: #=<> expression
     # Examples:
-    #   1 + 1          #=<> 3                    # Pass: 1+1 ≠ 3, so failure expected
-    #   "hello"        #=<> result.include?("x") # Pass: "hello" doesn't contain "x"
-    #   [1, 2, 3]      #=<> result.empty?        # Pass: array is not empty
-    #   "test"         #=<> /\d+/                # Pass: "test" doesn't match digits
+    #   "order-42"     #=<> /\A\d+\z/            # Pass: does not match the Regexp
+    #   [1, 2, 3]      #=<> result.empty?        # Pass: the predicate is false
+    #   "hello"        #=<> result.include?("x") # Pass: the predicate is false
+    #   1 + 1          #=<> 3                    # Pass: 2 != 3
+    #   1 + 1          #=<> 2                    # Fail: 2 == 2
+    #   "test-1"       #=<> /\d/                 # Fail: matches the Regexp
     #
-    # FAILURE INVERSION:
-    # - Takes any valid expectation expression and inverts the result
-    # - If underlying expectation would pass, intentional failure fails
-    # - If underlying expectation would fail, intentional failure passes
-    # - Preserves all error details and content from underlying expectation
+    # THE THREE NEGATION FORMS (chosen by the evaluated expression):
+    # - Regexp: the result, converted with to_s, must not match it
+    # - true or false, when the result itself is not a boolean: the
+    #   expression is a predicate about the result and must be false
+    # - Anything else (including true/false against a boolean result):
+    #   result != expression
     #
     # IMPLEMENTATION DETAILS:
-    # - Uses delegation pattern to wrap the regular evaluator
-    # - Expression has access to `result` and `_` variables (actual_result)
-    # - Expected display shows the evaluated expression result for clarity
+    # - Self-contained; it does not delegate to the Regular evaluator
+    # - Expression is evaluated in the test's binding: it sees the test's
+    #   locals, plus `result`/`_` (the test value), `error` and `elapsed_ms`
+    # - Expected display reads "NOT ..." followed by the negated condition
     # - Actual display shows the test result value
-    # - Inverts only the final passed/failed status, preserving other metadata
     #
     # DESIGN DECISIONS:
     # - Uses #=<> syntax (angle brackets suggest "opposite/inverted direction")
-    # - Delegates to regular evaluator to maintain consistency
-    # - Preserves original expectation details for debugging
-    # - Clear messaging indicates this is an intentional failure test
+    # - One operator covers "must not match", "must not hold" and "must not
+    #   equal", so negative cases read like their positive counterparts
     # - Part of unified #= prefix convention for all expectation types
-    #
-    # DELEGATION PATTERN:
-    # - Creates a temporary regular expectation with same content
-    # - Delegates evaluation to Regular evaluator
-    # - Inverts the passed result while preserving actual/expected values
-    # - Provides clear messaging about intentional failure semantics
     class IntentionalFailure < Base
       def self.handles?(expectation_type)
         expectation_type == :intentional_failure
       end
 
+      # Negates whatever the expression says, so the expectation holds when:
+      # - the expression is a Regexp and the result does not match it
+      # - the expression is true/false (a predicate about a non-boolean result)
+      #   and it is false
+      # - otherwise, the result is not == to the expression
       def evaluate(actual_result = nil)
-        # Create a temporary regular expectation for delegation
-        regular_expectation = Expectation.new(content: @expectation.content, type: :regular)
+        expected_value      = evaluate_expression
+        passed, description = negate(actual_result, expected_value)
 
-        # Delegate to regular evaluator
-        regular_evaluator = Regular.new(regular_expectation, @test_case, @context)
-        regular_result    = regular_evaluator.evaluate(actual_result)
-
-        # Invert the result while preserving metadata
         build_result(
-          passed: !regular_result[:passed],
-          actual: regular_result[:actual],
-          expected: "NOT #{regular_result[:expected]} (intentional failure)",
+          passed: passed,
+          actual: actual_result,
+          expected: "NOT #{description}",
           expectation: @expectation.content,
         )
       rescue StandardError => ex
-        # If evaluation itself fails (not the expectation), that's a real error
         handle_evaluation_error(ex, actual_result)
+      end
+
+      private
+
+      def negate(actual_result, expected_value)
+        boolean = [true, false]
+        if expected_value.is_a?(Regexp)
+          [actual_result.to_s !~ expected_value, "matching #{expected_value.inspect}"]
+        elsif boolean.include?(expected_value) && !boolean.include?(actual_result)
+          [expected_value == false, "#{@expectation.content} (is #{expected_value})"]
+        else
+          [actual_result != expected_value, expected_value.inspect]
+        end
       end
     end
   end

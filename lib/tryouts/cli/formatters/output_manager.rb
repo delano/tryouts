@@ -44,8 +44,10 @@ class Tryouts
         @formatter.file_start(file_path, context_info: context_info)
       end
 
-      def file_end(file_path, framework: :direct, context: :fresh)
-        context_info = { framework: framework, context: context }
+      # not_run: test cases skipped because setup or an interlude stopped the
+      # file, or because the consecutive-failure limit was reached
+      def file_end(file_path, framework: :direct, context: :fresh, not_run: 0)
+        context_info = { framework: framework, context: context, not_run: not_run }
         @live_status_manager.handle_event(:file_end, file_path, context_info)
         @formatter.file_end(file_path, context_info: context_info)
       end
@@ -71,21 +73,29 @@ class Tryouts
         )
       end
 
-      def file_success(file_path, total_tests, failed_count, error_count, elapsed_time)
+      # total_tests counts the tests that ran; not_run, those the file never
+      # reached because its setup or an interlude failed.
+      def file_success(file_path, total_tests, failed_count, error_count, elapsed_time, section_failures: [], not_run: 0)
         @formatter.file_result(
           file_path,
           total_tests: total_tests,
           failed_count: failed_count,
           error_count: error_count,
-          elapsed_time: elapsed_time
+          elapsed_time: elapsed_time,
+          section_failures: section_failures,
+          not_run: not_run
         )
       end
 
+      # The file could not be run: it failed to parse or load
       def file_failure(file_path, error_message, backtrace = nil)
-        @formatter.error_message(
-          "#{Console.pretty_path(file_path)}: #{error_message}",
-          backtrace: backtrace
-        )
+        @formatter.file_failure(file_path, error_message, backtrace: backtrace)
+      end
+
+      # The same output, with the errors reported while one file runs (its
+      # setup, interlude and teardown failures) attributed to that file
+      def for_file(file_path)
+        dup.tap { |scoped| scoped.file_path = file_path }
       end
 
       # Test-level methods
@@ -135,7 +145,7 @@ class Tryouts
         @formatter.batch_summary(failure_collector)
       end
 
-      def grand_total(total_tests, failed_count, error_count, successful_files, total_files, elapsed_time)
+      def grand_total(total_tests, failed_count, error_count, successful_files, total_files, elapsed_time, not_run: 0)
         @live_status_manager.handle_event(:grand_total, total_tests, failed_count, error_count, successful_files, total_files, elapsed_time)
         @formatter.grand_total(
           total_tests: total_tests,
@@ -143,7 +153,8 @@ class Tryouts
           error_count: error_count,
           successful_files: successful_files,
           total_files: total_files,
-          elapsed_time: elapsed_time
+          elapsed_time: elapsed_time,
+          not_run: not_run
         )
       end
 
@@ -157,13 +168,21 @@ class Tryouts
       end
 
       def error(message, backtrace = nil)
-        @formatter.error_message(message, backtrace: backtrace)
+        if @file_path
+          @formatter.file_error_message(@file_path, message, backtrace: backtrace)
+        else
+          @formatter.error_message(message, backtrace: backtrace)
+        end
       end
 
       # Raw output method (bypasses formatting)
       def raw(message)
         @formatter.stdout.puts(message)
       end
+
+      protected
+
+      attr_writer :file_path
     end
   end
 end

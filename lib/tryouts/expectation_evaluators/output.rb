@@ -24,21 +24,25 @@ class Tryouts
     #   $stderr.puts "Warning: 404"  #=2> /Warning.*\d+/     # Stderr regex match
     #
     # MATCHING BEHAVIOR:
-    # - String expectations: Uses String#include? for substring matching
-    # - Regex expectations: Uses =~ operator for pattern matching
-    # - Auto-detects expectation type based on content (literal string vs regex)
+    # - The expression is evaluated first; a Regexp is matched with
+    #   String#match?, anything else is converted with to_s and tested with
+    #   String#include? (a String is a substring test, not an exact match)
     # - Case-sensitive matching for both strings and regex patterns
     #
     # IMPLEMENTATION DETAILS:
-    # - Requires output capture during test execution
-    # - Expression has access to `result` and `_` variables (actual_result)
+    # - stdout and stderr are captured separately only for tests that have a
+    #   #=1> or #=2> expectation
+    # - Output written before a raise is kept, so a #=!> test can also check
+    #   what it printed
+    # - Expression is evaluated in the test's binding: it sees the test's
+    #   locals, plus `result`/`_` (the test value), `error` and `elapsed_ms`
     # - Expected display shows the evaluated expression result
     # - Actual display shows captured output content for the specific pipe
-    # - Supports evaluation of dynamic expressions in expectation content
     #
     # DESIGN DECISIONS:
     # - Uses POSIX pipe convention: 1=stdout, 2=stderr
-    # - Always captures output for debugging regardless of expectations
+    # - Every test's combined output is also captured for display, regardless
+    #   of expectations
     # - Supports both literal strings and regex patterns seamlessly
     # - Part of unified #= prefix convention for all expectation types
     # - Uses #=N> syntax where N is the pipe number (following shell convention)
@@ -52,42 +56,29 @@ class Tryouts
         expectation_type == :output
       end
 
-      def evaluate(actual_result = nil, stdout_content = nil, stderr_content = nil)
-        # Determine which pipe we're testing based on expectation metadata
+      def evaluate(actual_result = nil)
         pipe_number = @expectation.respond_to?(:pipe) ? @expectation.pipe : 1
 
-        # Get the appropriate captured content
         captured_content = case pipe_number
-                          when 1 then stdout_content || ''
-                          when 2 then stderr_content || ''
-                          else ''
-                          end
+                           when 1 then @context.stdout || ''
+                           when 2 then @context.stderr || ''
+                           else ''
+                           end
 
-        # Create result packet for expression evaluation
-        expectation_result = ExpectationResult.from_execution_with_output(actual_result, stdout_content, stderr_content)
+        expected_pattern = evaluate_expression
 
-        # Evaluate the expectation expression (could be string literal or regex)
-        expected_pattern = eval_expectation_content(@expectation.content, expectation_result)
-
-        # Determine matching strategy based on expectation type
         matched = case expected_pattern
                   when Regexp
-                    # Regex pattern matching
-                    !!(captured_content =~ expected_pattern)
-                  when String
-                    # String contains matching
-                    captured_content.include?(expected_pattern)
+                    captured_content.match?(expected_pattern)
                   else
-                    # Convert to string and do contains check
                     captured_content.include?(expected_pattern.to_s)
                   end
 
-        # Build result with appropriate pipe description
         pipe_name = case pipe_number
-                   when 1 then 'stdout'
-                   when 2 then 'stderr'
-                   else "pipe#{pipe_number}"
-                   end
+                    when 1 then 'stdout'
+                    when 2 then 'stderr'
+                    else "pipe#{pipe_number}"
+                    end
 
         build_result(
           passed: matched,

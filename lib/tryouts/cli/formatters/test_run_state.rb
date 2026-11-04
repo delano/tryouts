@@ -10,6 +10,7 @@ class Tryouts
       :passed,
       :failed,
       :errors,
+      :not_run,
       :files_completed,
       :total_files,
       :current_file,
@@ -22,6 +23,7 @@ class Tryouts
           passed: 0,
           failed: 0,
           errors: 0,
+          not_run: 0,
           files_completed: 0,
           total_files: 0,
           current_file: nil,
@@ -54,8 +56,10 @@ class Tryouts
           with(current_file: pretty_path)
 
         in :file_end
+          context_info = args[1] || {}
           with(
             files_completed: files_completed + 1,
+            not_run: not_run + context_info.fetch(:not_run, 0),
             current_file: nil,
           )
 

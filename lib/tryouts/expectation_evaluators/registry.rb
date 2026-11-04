@@ -2,7 +2,7 @@
 #
 # frozen_string_literal: true
 
-require_relative 'expectation_result'
+require_relative 'evaluation_context'
 require_relative 'base'
 require_relative 'regular'
 require_relative 'exception'
@@ -15,6 +15,7 @@ require_relative 'performance_time'
 require_relative 'intentional_failure'
 require_relative 'output'
 require_relative 'non_nil'
+require_relative 'malformed'
 
 class Tryouts
   module ExpectationEvaluators
@@ -65,6 +66,7 @@ class Tryouts
       register(IntentionalFailure)
       register(Output)
       register(NonNil)
+      register(Malformed)
     end
   end
 end

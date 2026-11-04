@@ -2,6 +2,8 @@
 #
 # frozen_string_literal: true
 
+require_relative '../../failure_collector'
+
 class Tryouts
   class CLI
     # Token budget tracking for agent-optimized output
@@ -92,15 +94,15 @@ class Tryouts
           return '...' if max_chars <= 3
           "#{value[0, max_chars - 3]}..."
         when Array
-          if estimate_tokens(value.inspect) <= max_tokens
-            value.inspect
+          if estimate_tokens(inspected(value)) <= max_tokens
+            inspected(value)
           else
             # Show first few elements
             truncated = []
             char_count = 2  # for "[]"
 
             value.each do |item|
-              item_str = item.inspect
+              item_str = inspected(item)
               if char_count + item_str.length + 2 <= max_chars - 10  # 10 chars for ", ..."
                 truncated << item
                 char_count += item_str.length + 2  # +2 for ", "
@@ -109,18 +111,18 @@ class Tryouts
               end
             end
 
-            "[#{truncated.map(&:inspect).join(', ')}, ...#{value.size - truncated.size} more]"
+            "[#{truncated.map { |item| inspected(item) }.join(', ')}, ...#{value.size - truncated.size} more]"
           end
         when Hash
-          if estimate_tokens(value.inspect) <= max_tokens
-            value.inspect
+          if estimate_tokens(inspected(value)) <= max_tokens
+            inspected(value)
           else
             # Show first few key-value pairs
             truncated = {}
             char_count = 2  # for "{}"
 
             value.each do |key, val|
-              pair_str = "#{key.inspect}=>#{val.inspect}"
+              pair_str = "#{inspected(key)}=>#{inspected(val)}"
               if char_count + pair_str.length + 2 <= max_chars - 10
                 truncated[key] = val
                 char_count += pair_str.length + 2
@@ -129,10 +131,11 @@ class Tryouts
               end
             end
 
-            "{#{truncated.map { |k, v| "#{k.inspect}=>#{v.inspect}" }.join(', ')}, ...#{value.size - truncated.size} more}"
+            "{#{truncated.map { |k, v| "#{inspected(k)}=>#{inspected(v)}" }.join(', ')}, ...#{value.size - truncated.size} more}"
           end
         else
-          smart_truncate(value.to_s, max_tokens: max_tokens)
+          # inspect, so nil shows as nil rather than as nothing
+          smart_truncate(inspected(value), max_tokens: max_tokens)
         end
       end
 
@@ -154,6 +157,11 @@ class Tryouts
       def to_s
         "TokenBudget[#{@used}/#{@limit} tokens (#{utilization}%)]"
       end
+
+      private
+
+      # A test's value is user code: its inspect may raise
+      def inspected(value) = FailureCollector.inspect_value(value)
     end
   end
 end

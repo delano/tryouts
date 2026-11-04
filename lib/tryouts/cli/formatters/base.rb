@@ -43,7 +43,9 @@ class Tryouts
         # Default: no output
       end
 
-      def file_result(file_path, total_tests:, failed_count:, error_count:, elapsed_time: nil)
+      # total_tests counts the tests that ran. not_run counts the tests that
+      # never ran because the file's setup or an interlude failed.
+      def file_result(file_path, total_tests:, failed_count:, error_count:, elapsed_time: nil, section_failures: [], not_run: 0)
         # Default: no output
       end
 
@@ -86,7 +88,7 @@ class Tryouts
         # Default: no output
       end
 
-      def grand_total(total_tests:, failed_count:, error_count:, successful_files:, total_files:, elapsed_time:)
+      def grand_total(total_tests:, failed_count:, error_count:, successful_files:, total_files:, elapsed_time:, not_run: 0)
         # Default: no output
       end
 
@@ -101,6 +103,17 @@ class Tryouts
 
       def error_message(message, backtrace: nil)
         # Default: no output
+      end
+
+      # An error while a file ran, such as its setup failing; the message
+      # does not name the file
+      def file_error_message(_file_path, message, backtrace: nil)
+        error_message(message, backtrace: backtrace)
+      end
+
+      # A file that could not be run, because it failed to parse or load
+      def file_failure(file_path, message, backtrace: nil)
+        error_message("#{Console.pretty_path(file_path)}: #{message}", backtrace: backtrace)
       end
 
       # Live status capability negotiation
@@ -168,6 +181,20 @@ class Tryouts
         else
           '-' * width
         end
+      end
+
+      # "setup failed", "interlude failed", "teardown failed" for the
+      # infrastructure failure types a file recorded.
+      def section_failure_details(section_failures)
+        section_failures.map do |kind|
+          name = { orphan: 'interlude', file_processing: 'file' }.fetch(kind, kind.to_s)
+          "#{name} failed"
+        end
+      end
+
+      # ", 2 not run" when a file stopped before reaching some of its tests
+      def not_run_detail(not_run)
+        not_run.positive? ? ", #{not_run} not run" : ''
       end
 
       def format_timing(elapsed_time)
