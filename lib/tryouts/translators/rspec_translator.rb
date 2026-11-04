@@ -149,13 +149,19 @@ class Tryouts
         when :boolean then ["    expect([true, false]).to include(#{expr})"]
         when :result_type then ["    expect(result).to be_a(#{expr})"]
         when :regex_match then ["    expect(result.to_s).to match(#{expr})"]
-        when :non_nil then ['    expect(result).not_to be_nil']
+        when :non_nil
+          # Not nil and, where the code may have rescued one, no error
+          [*('    expect(error).to be_nil' if GeneratedCode.rescues?(test_case)), '    expect(result).not_to be_nil']
         when :exception
-          if GeneratedCode.constant?(expectation)
-            ["    expect(error).to be_a(#{expectation.content})"]
-          else
-            ['    expect(error).not_to be_nil', "    expect(#{expr}).to be_truthy"]
-          end
+          # The expression's value decides, as in direct mode: a Module is
+          # what the error must be a kind of, anything else must be truthy
+          ["    expected = #{expr}",
+           '    expect(error).not_to be_nil',
+           '    if expected.is_a?(Module)',
+           '      expect(error).to be_a(expected)',
+           '    else',
+           '      expect(expected).to be_truthy',
+           '    end']
         else
           ["    RSpec::Expectations.fail_with(#{GeneratedCode.untranslated_message(test_case, expectation, 'RSpec').inspect})"]
         end

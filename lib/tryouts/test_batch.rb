@@ -34,6 +34,13 @@ class Tryouts
     # inside capture_output; a plain Mutex would self-deadlock.
     OUTPUT_CAPTURE_MONITOR = Monitor.new
 
+    # What a test or section wrote, as valid UTF-8: the buffer is binary so
+    # any bytes can be written to it, and invalid sequences are replaced.
+    # The translators' ExampleRun reads its captured output the same way.
+    def self.captured_text(io)
+      io.string.dup.force_encoding(Encoding::UTF_8).scrub
+    end
+
     # Raised when a test outlives the framework's own deadline. A class of its
     # own, so a Timeout::Error raised by the code under test (Net::ReadTimeout,
     # a Timeout.timeout of its own) is an ordinary error. Not a StandardError:
@@ -256,8 +263,8 @@ class Tryouts
         result: error || value,
         error: error,
         elapsed_ns: elapsed,
-        stdout: stdout && captured_text(stdout),
-        stderr: stderr && captured_text(stderr),
+        stdout: stdout && TestBatch.captured_text(stdout),
+        stderr: stderr && TestBatch.captured_text(stderr),
       )
     end
 
@@ -482,13 +489,7 @@ class Tryouts
       err = StringIO.new(''.b)
       capture_streams(out, err, &)
     ensure
-      [out, err].each { |io| output << captured_text(io) }
-    end
-
-    # What a test or section wrote, as valid UTF-8: the buffer is binary so
-    # any bytes can be written to it, and invalid sequences are replaced.
-    def captured_text(io)
-      io.string.dup.force_encoding(Encoding::UTF_8).scrub
+      [out, err].each { |io| output << TestBatch.captured_text(io) }
     end
 
     # Redirects $stdout to `out` and $stderr to `err` for the duration of the

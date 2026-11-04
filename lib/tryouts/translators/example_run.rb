@@ -46,25 +46,29 @@ class Tryouts
       end
 
       # Runs the test code, then yields, for each expectation in order,
-      # whether it passed and a message saying what it expected and got.
+      # whether it passed and, when it did not, a message saying what it
+      # expected and got. The message is built only then, so a passing
+      # check never calls inspect on the values.
       def each_outcome
         context = run_code
         @test_case.expectations.each do |expectation|
           evaluator = ExpectationEvaluators::Registry.evaluator_for(expectation, @test_case, context)
           outcome   = evaluator.evaluate(context.result)
-          yield outcome[:passed], failure_message(expectation, outcome)
+          yield outcome[:passed], (failure_message(expectation, outcome) unless outcome[:passed])
         end
       end
 
       private
 
       # As TestBatch#run_test_code: an error the test is not expected to
-      # raise propagates, and the example errors.
+      # raise propagates, and the example errors. Output goes to binary
+      # buffers and is read as UTF-8 with invalid bytes replaced, as
+      # TestBatch reads it.
       def run_code
         value  = nil
         error  = nil
-        stdout = @test_case.expectations.any?(&:output?) ? StringIO.new : nil
-        stderr = stdout && StringIO.new
+        stdout = @test_case.expectations.any?(&:output?) ? StringIO.new(''.b) : nil
+        stderr = stdout && StringIO.new(''.b)
 
         started = Process.clock_gettime(Process::CLOCK_MONOTONIC, :nanosecond)
         begin
@@ -83,8 +87,8 @@ class Tryouts
           result: error || value,
           error: error,
           elapsed_ns: elapsed,
-          stdout: stdout&.string,
-          stderr: stderr&.string,
+          stdout: stdout && TestBatch.captured_text(stdout),
+          stderr: stderr && TestBatch.captured_text(stderr),
         )
       end
 

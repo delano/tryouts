@@ -98,6 +98,33 @@ operators = <<~'RUBY'
   Integer('twelve')
   #=!> error.message.include?('twelve')
 
+  ## wrong error class, with a comment
+  Integer('twelve')
+  #=!> TypeError # the wrong class
+
+  ## error class, with a comment
+  Integer('twelve')
+  #=!> ArgumentError # invalid input
+
+  ## not nil, but raised
+  Integer('twelve')
+  #=!> ArgumentError
+  #=*>
+
+  ## the expectation variables
+  42
+  #==> _ == 42
+  #==> error.nil?
+  #==> elapsed_ms < 1000
+
+  ## break gives nil
+  1
+  #=> break
+
+  ## next gives the value
+  1
+  #=> next 1
+
   ## wrong type
   'abc'
   #=:> Integer
@@ -156,6 +183,7 @@ RUBY
 
 expected_passes = [
   true, false, true, false, true, false, true, false, true, false, true, false, true,
+  false, true, false, true, false, true,
   false, true, false, true, false, true, false, true, false, true, false, true, false, false
 ]
 
@@ -216,6 +244,26 @@ jumps = parse.call('jumps', "## next\n1\n#=> next 1\n\n## break\n2\n#=> break 2\
 [minitest_passed.call(jumps), rspec_statuses.call(jumps)]
 #=> [[true, true], [:passed, :passed]]
 
+## A check that passes never calls inspect on the values, so an object whose inspect raises passes as in direct mode
+opaque = <<~'RUBY'
+  class TranslatedOpaque
+    def ==(other) = other.is_a?(TranslatedOpaque)
+    def inspect = raise('inspected')
+  end
+
+  ## two of a kind
+  TranslatedOpaque.new
+  #=> TranslatedOpaque.new
+RUBY
+opaque_run = parse.call('opaque', opaque)
+[minitest_passed.call(opaque_run), rspec_statuses.call(opaque_run)]
+#=> [[true], [:passed]]
+
+## Captured output with invalid UTF-8 is read with the bytes replaced, as in direct mode
+binary = parse.call('binary_output', "## a byte, then text\n$stdout.write(\"\\xFF\".b)\nputs 'done'\n#=1> /done/\n")
+[minitest_passed.call(binary), rspec_statuses.call(binary)]
+#=> [[true], [:passed]]
+
 ## try --rspec exits non-zero when an example fails, and the next file runs only its own examples
 failing = write_file.call('rspec_fails', "## wrong sum\n1 + 1\n#=> 3\n")
 passing = write_file.call('rspec_passes', "## right sum\n1 + 1\n#=> 2\n")
@@ -232,17 +280,17 @@ output, status = Open3.capture2e(RbConfig.ruby, try_command, '--minitest', write
 File.write(File.join(dir, 'operators_test.rb'), generate.call('--generate-minitest', operators_run.source_file))
 output, = Open3.capture2e(RbConfig.ruby, File.join(dir, 'operators_test.rb'))
 output[/^\d+ runs, \d+ assertions, \d+ failures, \d+ errors/]
-#=~> /\A27 runs, \d+ assertions, 17 failures, 0 errors\z/
+#=~> /\A33 runs, \d+ assertions, 20 failures, 0 errors\z/
 
 ## Generated Minitest code says why an untranslated expectation fails
 generate.call('--generate-minitest', operators_run.source_file)
-#=~> /flunk\("line 96: #=%> 1 is not translated to Minitest; run the tryouts file with --minitest to check it"\)/
-#=~> /flunk\("line 107: expected a statement above line 107 to assert on \(there is none in this test\), got: #=> 1"\)/
+#=~> /flunk\("line 123: #=%> 1 is not translated to Minitest; run the tryouts file with --minitest to check it"\)/
+#=~> /flunk\("line 134: expected a statement above line 134 to assert on \(there is none in this test\), got: #=> 1"\)/
 
 ## Generated RSpec code loads and fails the tests direct mode fails, and the passing ones whose operator it does not translate
 File.write(File.join(dir, 'operators_spec.rb'), generate.call('--generate-rspec', operators_run.source_file))
 output, = Open3.capture2e(RbConfig.ruby, Gem.bin_path('rspec-core', 'rspec'), File.join(dir, 'operators_spec.rb'))
 output[/^\d+ examples, \d+ failures.*$/]
-#=> "27 examples, 17 failures"
+#=> "33 examples, 20 failures"
 
 FileUtils.remove_entry(dir)

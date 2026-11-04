@@ -102,7 +102,7 @@ exception_code
 
 ## TEST: Exception expectation requires an error and a truthy expression
 exception_code
-#=~> /^    expect\(error\)\.not_to be_nil\n    expect\(\(\n      error\.is_a\?\(ArgumentError\)\n    \)\)\.to be_truthy$/
+#=~> /^    expected = \(\n      error\.is_a\?\(ArgumentError\)\n    \)\n    expect\(error\)\.not_to be_nil\n    if expected\.is_a\?\(Module\)\n      expect\(error\)\.to be_a\(expected\)\n    else\n      expect\(expected\)\.to be_truthy\n    end$/
 
 ## TEST: Teardown method generation when present
 teardown_code = Tryouts::Teardown.new(
@@ -275,3 +275,94 @@ has_after = full_code.include?("after(:all)")
 has_both = has_before && has_after
 has_both
 #=> true
+
+## TEST: Expectations that read _, error and elapsed_ms get them defined, as in direct mode
+variables_case = Tryouts::TestCase.new(
+  description: "the expectation variables",
+  code: "2 + 2",
+  expectations: [
+    Tryouts::Expectation.new(content: "_ == 4", type: :true),
+    Tryouts::Expectation.new(content: "error.nil?", type: :true),
+    Tryouts::Expectation.new(content: "elapsed_ms < 1000", type: :true),
+  ],
+  line_range: 1..4,
+  path: 'test.rb',
+  source_lines: ["2 + 2", "#==> _ == 4", "#==> error.nil?", "#==> elapsed_ms < 1000"],
+  first_expectation_line: 2
+)
+variables_testrun = Tryouts::Testrun.new(
+  setup: nil,
+  test_cases: [variables_case],
+  teardown: nil,
+  source_file: 'variables_test.rb',
+  metadata: {},
+  warnings: []
+)
+translator.generate_code(variables_testrun)
+#=~> /^    error = nil\n    started = Process\.clock_gettime\(Process::CLOCK_MONOTONIC\)\n    result = begin\n      2 \+ 2\n    end\n    elapsed_ms = \(\(Process\.clock_gettime\(Process::CLOCK_MONOTONIC\) - started\) \* 1000\)\.round\(2\)\n    _ = result$/
+
+## TEST: A jump in an expectation is called inside a lambda, where it has a value
+jump_case = Tryouts::TestCase.new(
+  description: "next gives the value",
+  code: "1",
+  expectations: [Tryouts::Expectation.new(content: "next 1", type: :regular)],
+  line_range: 1..2,
+  path: 'test.rb',
+  source_lines: ["1", "#=> next 1"],
+  first_expectation_line: 2
+)
+jump_testrun = Tryouts::Testrun.new(
+  setup: nil,
+  test_cases: [jump_case],
+  teardown: nil,
+  source_file: 'jump_test.rb',
+  metadata: {},
+  warnings: []
+)
+translator.generate_code(jump_testrun)
+#=~> /^    expect\(result\)\.to eq\(-> \{ \(\n      next 1\n    \) \}\.call\)$/
+
+## TEST: An exception expectation with a trailing comment is checked by its value, not its spelling
+commented_case = Tryouts::TestCase.new(
+  description: "invalid input",
+  code: "Integer('twelve')",
+  expectations: [Tryouts::Expectation.new(content: "ArgumentError # invalid input", type: :exception)],
+  line_range: 1..2,
+  path: 'test.rb',
+  source_lines: ["Integer('twelve')", "#=!> ArgumentError # invalid input"],
+  first_expectation_line: 2
+)
+commented_testrun = Tryouts::Testrun.new(
+  setup: nil,
+  test_cases: [commented_case],
+  teardown: nil,
+  source_file: 'commented_test.rb',
+  metadata: {},
+  warnings: []
+)
+translator.generate_code(commented_testrun)
+#=~> /^    expected = \(\n      ArgumentError # invalid input\n    \)\n    expect\(error\)\.not_to be_nil\n    if expected\.is_a\?\(Module\)\n      expect\(error\)\.to be_a\(expected\)\n    else\n      expect\(expected\)\.to be_truthy\n    end$/
+
+## TEST: A non-nil expectation on a test that may raise also expects that nothing was raised
+raised_case = Tryouts::TestCase.new(
+  description: "raised, so not non-nil",
+  code: "Integer('twelve')",
+  expectations: [
+    Tryouts::Expectation.new(content: "ArgumentError", type: :exception),
+    Tryouts::Expectation.new(content: "", type: :non_nil),
+  ],
+  line_range: 1..3,
+  path: 'test.rb',
+  source_lines: ["Integer('twelve')", "#=!> ArgumentError", "#=*>"],
+  first_expectation_line: 2
+)
+raised_testrun = Tryouts::Testrun.new(
+  setup: nil,
+  test_cases: [raised_case],
+  teardown: nil,
+  source_file: 'raised_test.rb',
+  metadata: {},
+  warnings: []
+)
+translator.generate_code(raised_testrun)
+#=~> /^    expect\(error\)\.to be_nil\n    expect\(result\)\.not_to be_nil$/

@@ -168,13 +168,19 @@ class Tryouts
         when :boolean then ["    assert_includes([true, false], #{expr})"]
         when :result_type then ["    assert_kind_of(#{expr}, result)"]
         when :regex_match then ["    assert_match(#{expr}, result.to_s)"]
-        when :non_nil then ['    refute_nil result']
+        when :non_nil
+          # Not nil and, where the code may have rescued one, no error
+          [*('    assert_nil error' if GeneratedCode.rescues?(test_case)), '    refute_nil result']
         when :exception
-          if GeneratedCode.constant?(expectation)
-            ["    assert_kind_of #{expectation.content}, error"]
-          else
-            ['    refute_nil error', "    assert(#{expr})"]
-          end
+          # The expression's value decides, as in direct mode: a Module is
+          # what the error must be a kind of, anything else must be truthy
+          ["    expected = #{expr}",
+           '    refute_nil error',
+           '    if expected.is_a?(Module)',
+           '      assert_kind_of expected, error',
+           '    else',
+           '      assert expected',
+           '    end']
         else
           ["    flunk(#{GeneratedCode.untranslated_message(test_case, expectation, 'Minitest').inspect})"]
         end

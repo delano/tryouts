@@ -199,7 +199,7 @@ exception_testrun = Tryouts::Testrun.new(
 exception_code = translator.generate_code(exception_testrun)
 exception_code
 #=~> /^    rescue Exception => error\n      raise if error\.is_a\?\(SignalException\) \|\| error\.is_a\?\(SystemExit\)$/
-#=~> /^    refute_nil error\n    assert\(\(\n      error\.is_a\?\(ZeroDivisionError\)\n    \)\)$/
+#=~> /^    expected = \(\n      error\.is_a\?\(ZeroDivisionError\)\n    \)\n    refute_nil error\n    if expected\.is_a\?\(Module\)\n      assert_kind_of expected, error\n    else\n      assert expected\n    end$/
 
 ## TEST: Multiple test cases generate multiple methods with proper indexing
 translator = Tryouts::Translators::MinitestTranslator.new
@@ -306,3 +306,121 @@ live_testrun = Tryouts::Testrun.new(
 live_class = translator.translate(live_testrun)
 live_class.instance_methods(false).grep(/^test_/).map(&:to_s)
 #=> ["test_000_adds_two_numbers"]
+
+## TEST: Expectations that read _, error and elapsed_ms get them defined, as in direct mode
+translator = Tryouts::Translators::MinitestTranslator.new
+variables_case = Tryouts::TestCase.new(
+  description: "the expectation variables",
+  code: "2 + 2",
+  expectations: [
+    Tryouts::Expectation.new(content: "_ == 4", type: :true),
+    Tryouts::Expectation.new(content: "error.nil?", type: :true),
+    Tryouts::Expectation.new(content: "elapsed_ms < 1000", type: :true),
+  ],
+  line_range: 1..4,
+  path: 'test.rb',
+  source_lines: ["2 + 2", "#==> _ == 4", "#==> error.nil?", "#==> elapsed_ms < 1000"],
+  first_expectation_line: 2
+)
+variables_testrun = Tryouts::Testrun.new(
+  setup: nil,
+  test_cases: [variables_case],
+  teardown: nil,
+  source_file: 'variables_test.rb',
+  metadata: {},
+  warnings: []
+)
+variables_code = translator.generate_code(variables_testrun)
+variables_code
+#=~> /^    error = nil\n    started = Process\.clock_gettime\(Process::CLOCK_MONOTONIC\)\n    result = begin\n      2 \+ 2\n    end\n    elapsed_ms = \(\(Process\.clock_gettime\(Process::CLOCK_MONOTONIC\) - started\) \* 1000\)\.round\(2\)\n    _ = result$/
+
+## TEST: A test whose expectations read none of them defines none of them
+translator = Tryouts::Translators::MinitestTranslator.new
+plain_case = Tryouts::TestCase.new(
+  description: "a plain sum",
+  code: "2 + 2",
+  expectations: [Tryouts::Expectation.new(content: "result == 4", type: :true)],
+  line_range: 1..2,
+  path: 'test.rb',
+  source_lines: ["2 + 2", "#==> result == 4"],
+  first_expectation_line: 2
+)
+plain_testrun = Tryouts::Testrun.new(
+  setup: nil,
+  test_cases: [plain_case],
+  teardown: nil,
+  source_file: 'plain_test.rb',
+  metadata: {},
+  warnings: []
+)
+translator.generate_code(plain_testrun).lines.grep(/error = nil|elapsed_ms|_ = result/)
+#=> []
+
+## TEST: A jump in an expectation is called inside a lambda, where it has a value
+translator = Tryouts::Translators::MinitestTranslator.new
+jump_case = Tryouts::TestCase.new(
+  description: "next gives the value",
+  code: "1",
+  expectations: [Tryouts::Expectation.new(content: "next 1", type: :regular)],
+  line_range: 1..2,
+  path: 'test.rb',
+  source_lines: ["1", "#=> next 1"],
+  first_expectation_line: 2
+)
+jump_testrun = Tryouts::Testrun.new(
+  setup: nil,
+  test_cases: [jump_case],
+  teardown: nil,
+  source_file: 'jump_test.rb',
+  metadata: {},
+  warnings: []
+)
+translator.generate_code(jump_testrun)
+#=~> /^    assert_equal\(-> \{ \(\n      next 1\n    \) \}\.call, result\)$/
+
+## TEST: An exception expectation with a trailing comment is checked by its value, not its spelling
+translator = Tryouts::Translators::MinitestTranslator.new
+commented_case = Tryouts::TestCase.new(
+  description: "invalid input",
+  code: "Integer('twelve')",
+  expectations: [Tryouts::Expectation.new(content: "ArgumentError # invalid input", type: :exception)],
+  line_range: 1..2,
+  path: 'test.rb',
+  source_lines: ["Integer('twelve')", "#=!> ArgumentError # invalid input"],
+  first_expectation_line: 2
+)
+commented_testrun = Tryouts::Testrun.new(
+  setup: nil,
+  test_cases: [commented_case],
+  teardown: nil,
+  source_file: 'commented_test.rb',
+  metadata: {},
+  warnings: []
+)
+translator.generate_code(commented_testrun)
+#=~> /^    expected = \(\n      ArgumentError # invalid input\n    \)\n    refute_nil error\n    if expected\.is_a\?\(Module\)\n      assert_kind_of expected, error\n    else\n      assert expected\n    end$/
+
+## TEST: A non-nil expectation on a test that may raise also asserts that nothing was raised
+translator = Tryouts::Translators::MinitestTranslator.new
+raised_case = Tryouts::TestCase.new(
+  description: "raised, so not non-nil",
+  code: "Integer('twelve')",
+  expectations: [
+    Tryouts::Expectation.new(content: "ArgumentError", type: :exception),
+    Tryouts::Expectation.new(content: "", type: :non_nil),
+  ],
+  line_range: 1..3,
+  path: 'test.rb',
+  source_lines: ["Integer('twelve')", "#=!> ArgumentError", "#=*>"],
+  first_expectation_line: 2
+)
+raised_testrun = Tryouts::Testrun.new(
+  setup: nil,
+  test_cases: [raised_case],
+  teardown: nil,
+  source_file: 'raised_test.rb',
+  metadata: {},
+  warnings: []
+)
+translator.generate_code(raised_testrun)
+#=~> /^    assert_nil error\n    refute_nil result$/
