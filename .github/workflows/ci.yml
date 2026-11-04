@@ -72,11 +72,13 @@ jobs:
       - name: Run framework unit tests with coverage
         run: COVERAGE=1 FORCE_COLOR=1 bundle exec exe/try try/core try/expectations try/formatters try/translators
 
+  # try/safety passes and try/continue-on-error fails on purpose. The job
+  # checks that the runner reports those failures, as the exit status: one per
+  # failed or erroring test, plus one for a file that does not parse
   failure_is_an_option:
     timeout-minutes: 10
     runs-on: ubuntu-24.04
-    name: "Runtime Safety Checks (intentionally fail)  (Ruby ${{ matrix.ruby }})"
-    continue-on-error: true
+    name: "Runtime Safety Checks (expected failures) (Ruby ${{ matrix.ruby }})"
     strategy:
       fail-fast: false
       matrix:
@@ -96,8 +98,18 @@ jobs:
       - name: Install dependencies
         run: bundle install
 
-      - name: Run framework unit tests with coverage
-        run: COVERAGE=1 FORCE_COLOR=1 bundle exec exe/try try/safety try/continue-on-error
+      # 10 failed expectations, 10 tests that raise (the consecutive-failure
+      # limit then skips the other 2 in that file) and one file that strict
+      # mode rejects: 10 + 10 + 1. A new file under try/continue-on-error
+      # changes this number
+      - name: Run the files that fail on purpose and check the exit status
+        run: |
+          set +e
+          COVERAGE=1 FORCE_COLOR=1 bundle exec exe/try try/safety try/continue-on-error
+          status=$?
+          set -e
+          echo "exit status: $status (expected 21)"
+          test "$status" -eq 21
 
   cli-options:
     timeout-minutes: 10
