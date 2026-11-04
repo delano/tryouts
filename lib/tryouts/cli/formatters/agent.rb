@@ -667,13 +667,15 @@ class Tryouts
       # Safely get git information with timeout protection
       def safe_git_info
         # Check if we're in a git repository
-        return {} unless File.directory?('.git') || system('git rev-parse --git-dir >/dev/null 2>&1')
+        # Kernel's methods are called on Kernel: a test file's top-level
+        # include can give every object a method of the same name.
+        return {} unless File.directory?('.git') || Kernel.system('git rev-parse --git-dir >/dev/null 2>&1')
 
         require 'timeout'
 
         Timeout.timeout(2) do
-          branch = `git rev-parse --abbrev-ref HEAD 2>/dev/null`.strip
-          commit = `git rev-parse --short HEAD 2>/dev/null`.strip
+          branch = IO.popen(%w[git rev-parse --abbrev-ref HEAD], err: File::NULL, &:read).strip
+          commit = IO.popen(%w[git rev-parse --short HEAD], err: File::NULL, &:read).strip
 
           # Validate output to prevent injection
           branch = nil unless branch =~ /\A[\w\-\/\.]+\z/

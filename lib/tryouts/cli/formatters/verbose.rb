@@ -221,12 +221,12 @@ class Tryouts
           details = []
           details << "#{failed_count} failed" if failed_count > 0
           details << "#{error_count} errors" if error_count > 0
-          printf("%-10s %s\n", "Testcases:", "#{details.join(', ')}, #{passed} passed#{not_run_detail(not_run)}#{time_str}")
+          puts Kernel.format('%-10s %s', 'Testcases:', "#{details.join(', ')}, #{passed} passed#{not_run_detail(not_run)}#{time_str}")
         else
-          printf("%-10s %s\n", "Testcases:", "#{total_tests} tests passed#{not_run_detail(not_run)}#{time_str}")
+          puts Kernel.format('%-10s %s', 'Testcases:', "#{total_tests} tests passed#{not_run_detail(not_run)}#{time_str}")
         end
 
-        printf("%-10s %s\n", "Files:", "#{successful_files} of #{total_files} passed")
+        puts Kernel.format('%-10s %s', 'Files:', "#{successful_files} of #{total_files} passed")
       end
 
       # Debug and diagnostic output
@@ -315,7 +315,9 @@ class Tryouts
 
         test_case.source_lines.each_with_index do |line_content, index|
           line_num = start_line + index
-          line_display = format('%3d: %s', line_num + 1, line_content)
+          # Kernel.format, because a test file's top-level include can give
+          # every object a format method of its own
+          line_display = Kernel.format('%3d: %s', line_num + 1, line_content)
 
           # Highlight expectation lines by checking if this line contains any expectation syntax
           if line_content.match?(%r{^\s*#\s*=(!|<|=|/=|\||:|~|%|\d+)?>\s*})
