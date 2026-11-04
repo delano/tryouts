@@ -16,6 +16,7 @@ class Tryouts
         try --no-shared-context test_try.rb         # Tryouts test runner, fresh context per test
         try --rspec test_try.rb                     # RSpec with fresh context
         try -j 4 try/                               # Files in parallel on 4 threads (or --parallel=4)
+        try -jvf try/                               # Flags after -j stay flags: -j -vf (-j4v is -j4 -v)
         try --direct --shared-context test_try.rb   # Explicit shared context
         try --generate-rspec test_try.rb            # Output RSpec code only
         try --inspect test_try.rb                   # Inspect file structure and validation
@@ -69,7 +70,8 @@ class Tryouts
 
         Rules:
           - ## starts a description; ## lines on adjacent lines join into one,
-            and a blank line or plain # line ends the block
+            also across a bare ## spacer line, and a blank line or plain #
+            line ends the block
           - A single # line is an ordinary comment, never a description
           - An expectation checks the statement directly above it, or the
             statement it trails on the same line (1 + 1 #=> 2)
@@ -87,8 +89,9 @@ class Tryouts
           - A top-level def is a method on the file's own main object, not on
             Object: top-level code and blocks can call it, a class the file
             defines cannot
-          - Classes and constants the file defines are global while it runs and
-            removed when it ends; files run together with -j share them
+          - Classes and constants the file defines are global and stay defined
+            for the rest of the run, so later files see them (files run
+            together with -j share them too); give classes distinct names
           - Leading magic comments (# frozen_string_literal: true) apply to
             every section and expectation, also under --rspec and --minitest
           - Each test has a 30-second deadline; a Timeout::Error raised by the
@@ -106,14 +109,22 @@ class Tryouts
           - Before each test, setup runs again in the new binding, followed by
             any code between earlier tests; then the test and its expectations;
             then teardown, in the same binding
-          - No local or instance variable crosses between tests; the classes
-            and constants the file defines are removed after each test;
-            globals and reopened existing classes are not reset
+          - No local or instance variable crosses between tests
+          - Before setup runs again for the 2nd and later tests, the file's
+            top-level classes and constants are removed, so class definitions
+            run again (inherited hooks see each run); constants nested in an
+            existing namespace stay, and nothing is removed after the last test
+          - Globals and reopened existing classes are not reset
           - Setup and teardown output and failures are reported once
           - Use for: Unit testing, independent test cases
 
         --rspec and --minitest translate the file into that framework and use its
-        own setup and teardown hooks.
+        own setup and teardown hooks (RSpec: once around all examples; Minitest:
+        around every test). Setup instance variables reach the tests, setup
+        locals do not. Every expectation is judged as in direct mode, and
+        --rspec exits non-zero when an example fails. --generate-* code
+        translates most operators and writes a failing assertion, naming the
+        expectation, for #=<>, #=%>, #=1>, #=2> and mistyped ones.
 
       Writing Quality Tryouts:
         - Use realistic, plain Ruby code (avoid mocks, test harnesses)
@@ -137,7 +148,12 @@ class Tryouts
         #=1>  "text" | /regex/   stdout includes the text or matches the regex
         #=2>  "text" | /regex/   stderr includes the text or matches the regex
         A mistyped operator (e.g. #=x>, #=>>) always fails, and so does ##=>
-        (write #=> to assert, or # #=> to comment an expectation out).
+        (write #=> to assert, or # #=> to comment an expectation out). So does
+        one missing its = (#~> /x/, #:> String, # >= 5 before a single value);
+        prose (# >= 2 is plenty) and dividers of 4+ = (# =====>) are comments.
+        One missing its > (#== 5, #=~ /x/) is a plain comment: a ## test whose
+        code holds one and has no expectation gets a warning that its code
+        runs as setup, an interlude or teardown.
 
         Every expectation is Ruby evaluated in the test's binding. It can use
         the test's local and instance variables, and:

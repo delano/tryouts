@@ -46,7 +46,7 @@ What follows from this:
 - If the setup or an interlude raises, the rest of the file is skipped: every test below it would be running against state that never got built. The file fails, and the tests it skipped are reported as not run (`1/3 passed, 2 not run, interlude failed`). A teardown failure is reported and the file still counts its results.
 - The binding's `self` is a new object created for the file, which prints as `main`, with no local variables from the runner. Code runs at the top level, as in a script: `class Report` defines `::Report`, and a top-level `include` mixes into `Object`.
 - A top-level `def` defines a public method on that object, not on `Object`. Top-level code and the blocks in it can call it; a method of a class the file defines cannot, as it could in a plain script, so pass the value in or make the helper a class or module method.
-- Classes and constants the file defines are global while the file runs: any code can see `Report`. When the file ends they are removed, so the next file can define its own `Report`, even with a different superclass. Files run together with `-j`/`--parallel` share them while they run at the same time, so give their classes distinct names. Reopening an existing class, such as `class String`, is not undone.
+- Classes and constants the file defines are global: any code can see `Report`. They stay defined for the rest of the run, as they would if Ruby loaded several files into one process (RSpec and Minitest behave the same). A later file sees `Report`; its own `class Report` reopens it, or raises superclass mismatch if it names a different superclass. Files run together with `-j`/`--parallel` share them as they run. Give the classes in different files distinct names. Reopening an existing class, such as `class String`, is not undone.
 - Top-level `using` raises, because each section is evaluated on its own and the refinement could not reach later code; use `using` inside a class or module body.
 - Magic comments at the top of the file, such as `# frozen_string_literal: true`, apply to the setup, every test and interlude, the teardown and every expectation. They apply under `--rspec` and `--minitest` too.
 
@@ -61,11 +61,11 @@ try --no-shared-context path/to/file_try.rb
 For each test, fresh context:
 
 1. creates a new object and a new binding on it, as shared context does for the whole file;
-2. runs the setup in that binding;
-3. runs every interlude above the test, in order;
-4. runs the test and evaluates its expectations;
-5. runs the teardown in the same binding;
-6. removes the classes and constants the file defined.
+2. for the second and later tests, removes the top-level classes and constants the file defined;
+3. runs the setup in that binding;
+4. runs every interlude above the test, in order;
+5. runs the test and evaluates its expectations;
+6. runs the teardown in the same binding.
 
 The binding is then thrown away. This is the per-test `setup`/`teardown` model of Minitest, or `before(:each)`/`after(:each)` in RSpec: each test sees the state it would see if it were the only test in the file.
 
@@ -110,7 +110,12 @@ What follows from this:
 
 ### What fresh context does not reset
 
-Fresh context isolates the binding: its `self`, its local and instance variables and the methods a top-level `def` puts on it. It also removes the classes, modules and constants the file defined after each test, so the next test's setup defines them again. It does not undo other changes the code makes to the rest of the process:
+Fresh context isolates the binding: its `self`, its local and instance variables and the methods a top-level `def` puts on it. Before it re-runs the setup for the second and later tests, it also removes the classes, modules and constants the file defined at the top level, so the setup defines them again: `class Point < Struct.new(:x, :y)` gets a new superclass every time without a superclass mismatch. After the last test nothing is removed, so they stay defined for the rest of the run, as in shared context. Running the class definitions again has consequences of its own:
+
+- a constant the file nests inside an existing namespace, such as `JSON::Point` or a constant inside a library's module, is not removed;
+- each run defines new class objects, so an `inherited` hook or a registry kept by a library class sees every run.
+
+It does not undo other changes the code makes to the rest of the process:
 
 - global variables (`$count`), `ENV`, and files on disk;
 - `require`: a library is loaded once per process, so a second `require` in the next test's setup is a no-op;
@@ -128,4 +133,4 @@ To make a file work in both modes, put everything a test needs either in the set
 
 ## RSpec and Minitest
 
-`--rspec` and `--minitest` do not use either mode. They translate the file into that framework's own structure and its own setup and teardown hooks; see `lib/tryouts/translators/`.
+`--rspec` and `--minitest` do not use either mode. They translate the file into that framework's own structure and its own setup and teardown hooks; see `lib/tryouts/translators/`. RSpec runs the setup once, before its examples (`before(:all)`), and the teardown after them; Minitest runs them around every test. Instance variables the setup sets reach the tests; its local variables do not, so a file that reads a setup local in a test fails there. Each test's code runs once and its expectations are judged by the same evaluators as in direct mode, so every operator means the same thing, and a mistyped or detached expectation is a failing test. Constants the file defines stay defined, as in direct mode.
